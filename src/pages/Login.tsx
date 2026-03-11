@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import npaLogoFull from "@/assets/npa-logo-full.png";
+import npaLogoStandard from "@/assets/npa-logo-standard.png";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
