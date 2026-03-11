@@ -1,12 +1,12 @@
 import { Search, Bell, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import npaLogoFull from "@/assets/npa-logo-full.png";
+import npaLogoWhite from "@/assets/npa-logo-white.png";
 
 export function AppHeader() {
   return (
     <header className="h-14 bg-navy text-navy-foreground flex items-center justify-between px-6 sticky top-0 z-30 shadow-md">
       <div className="flex items-center gap-4">
-        <img src={npaLogoFull} alt="NPA" className="h-8 hidden md:block" />
+        <img src={npaLogoWhite} alt="NPA" className="h-8 hidden md:block" />
         <div className="h-6 w-px bg-navy-foreground/20 hidden md:block" />
         <h2 className="text-sm font-medium text-navy-foreground/90">
           Incident & Field Data Intelligence System

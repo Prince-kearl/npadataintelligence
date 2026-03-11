@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import npaLogoFull from "@/assets/npa-logo-full.png";
+import npaLogoStandard from "@/assets/npa-logo-standard.png";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -25,7 +25,7 @@ export default function Login() {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-4">
           <div className="flex justify-center">
-            <img src={npaLogoFull} alt="NPA Logo" className="h-20" />
+            <img src={npaLogoStandard} alt="NPA Logo" className="h-20" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-foreground">
