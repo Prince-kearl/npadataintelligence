@@ -16,10 +16,10 @@ export function SidebarNavLink({ to, icon: Icon, label, collapsed }: SidebarNavL
       end={to === "/"}
       className={({ isActive }) =>
         cn(
-          "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+          "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
           isActive
-            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-            : "text-sidebar-foreground hover:text-foreground hover:bg-secondary"
+            ? "bg-primary text-primary-foreground shadow-sm"
+            : "text-sidebar-foreground hover:text-navy-foreground hover:bg-sidebar-accent"
         )
       }
     >
