@@ -14,7 +14,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["'Roboto Flex'", "system-ui", "sans-serif"],
+        sans: ["'Inter'", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -73,14 +73,22 @@ export default {
           DEFAULT: "hsl(var(--info))",
           foreground: "hsl(var(--info-foreground))",
         },
-        "header-bg": "hsl(var(--header-bg))",
-        "header-fg": "hsl(var(--header-fg))",
+        chart: {
+          purple: "hsl(var(--chart-purple))",
+          pink: "hsl(var(--chart-pink))",
+          green: "hsl(var(--chart-green))",
+          yellow: "hsl(var(--chart-yellow))",
+          blue: "hsl(var(--chart-blue))",
+          orange: "hsl(var(--chart-orange))",
+          teal: "hsl(var(--chart-teal))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-        xl: "0.75rem",
+        xl: "1rem",
+        "2xl": "1.25rem",
       },
       keyframes: {
         "accordion-down": {
