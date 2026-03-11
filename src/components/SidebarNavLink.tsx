@@ -13,15 +13,17 @@ export function SidebarNavLink({ to, icon: Icon, label, collapsed }: SidebarNavL
   return (
     <RouterNavLink
       to={to}
+      end={to === "/"}
       className={({ isActive }) =>
         cn(
-          "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
-          "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent",
-          isActive && "bg-sidebar-accent text-sidebar-accent-foreground border-l-2 border-sidebar-primary"
+          "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+          isActive
+            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+            : "text-sidebar-foreground hover:text-foreground hover:bg-secondary"
         )
       }
     >
-      <Icon className="h-5 w-5 shrink-0" />
+      <Icon className="h-[18px] w-[18px] shrink-0" />
       {!collapsed && <span>{label}</span>}
     </RouterNavLink>
   );

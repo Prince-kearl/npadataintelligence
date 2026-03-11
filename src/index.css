@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,100..1000&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,79 +6,73 @@
 
 @layer base {
   :root {
-    --font-sans: 'Roboto Flex', system-ui, sans-serif;
+    --font-sans: 'Inter', system-ui, sans-serif;
 
-    /* Font sizes (clamp for responsiveness) */
-    --font-size-h1: clamp(1.5rem, 4vw, 2.25rem);
-    --font-size-h2: clamp(1.25rem, 3vw, 1.5rem);
-    --font-size-body: 1rem;
-    --font-size-small: 0.875rem;
-    --font-size-xs: 0.75rem;
+    /* Dark theme - matching reference */
+    --background: 228 15% 10%;
+    --foreground: 0 0% 95%;
 
-    /* Neutrals */
-    --background: 220 20% 97%;
-    --foreground: 220 25% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 220 25% 10%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 25% 10%;
+    --card: 228 15% 14%;
+    --card-foreground: 0 0% 95%;
 
-    /* Primary (Navy Blue) */
-    --primary: 220 63% 32%;
-    --primary-foreground: 0 0% 100%;
+    --popover: 228 15% 14%;
+    --popover-foreground: 0 0% 95%;
+
+    /* Primary - teal/green accent */
+    --primary: 160 84% 44%;
+    --primary-foreground: 228 15% 10%;
 
     /* Secondary */
-    --secondary: 220 15% 94%;
-    --secondary-foreground: 220 25% 10%;
+    --secondary: 228 12% 20%;
+    --secondary-foreground: 0 0% 85%;
 
     /* Muted */
-    --muted: 220 15% 94%;
-    --muted-foreground: 220 10% 40%;
+    --muted: 228 12% 20%;
+    --muted-foreground: 228 10% 55%;
 
-    /* Accent (Petroleum Gold) */
-    --accent: 40 90% 44%;
-    --accent-foreground: 220 25% 10%;
+    /* Accent - purple */
+    --accent: 265 80% 60%;
+    --accent-foreground: 0 0% 100%;
 
     /* Destructive */
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
     /* Borders & inputs */
-    --border: 220 15% 90%;
-    --input: 220 15% 90%;
-    --ring: 220 63% 50%;
+    --border: 228 12% 20%;
+    --input: 228 12% 22%;
+    --ring: 160 84% 44%;
 
-    --radius: 0.375rem;
-
-    /* Custom tokens */
-    --header-bg: 220 65% 17%;
-    --header-fg: 220 20% 90%;
+    --radius: 0.75rem;
 
     /* Sidebar */
-    --sidebar-background: 220 65% 17%;
-    --sidebar-foreground: 220 20% 90%;
-    --sidebar-primary: 40 90% 44%;
-    --sidebar-primary-foreground: 220 25% 10%;
-    --sidebar-accent: 220 60% 25%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 220 50% 25%;
-    --sidebar-ring: 220 63% 50%;
-    --sidebar-muted: 220 40% 35%;
+    --sidebar-background: 228 18% 8%;
+    --sidebar-foreground: 228 10% 65%;
+    --sidebar-primary: 160 84% 44%;
+    --sidebar-primary-foreground: 228 15% 10%;
+    --sidebar-accent: 160 84% 44%;
+    --sidebar-accent-foreground: 228 15% 10%;
+    --sidebar-border: 228 12% 16%;
+    --sidebar-ring: 160 84% 44%;
+    --sidebar-muted: 228 10% 40%;
+    --sidebar-active-bg: 160 84% 44%;
 
     /* Status colors */
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
-    --warning-foreground: 220 25% 10%;
+    --warning-foreground: 228 15% 10%;
     --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
 
-    /* Shadows */
-    --shadow-card: 0 0 0 1px rgba(0,0,0,.05), 0 1px 3px 0 rgba(0,0,0,.03);
-    --shadow-card-hover: 0 0 0 1px rgba(0,0,0,.05), 0 4px 6px -1px rgba(0,0,0,.05), 0 2px 4px -2px rgba(0,0,0,.05);
-
-    /* Easing */
-    --ease-out: cubic-bezier(0.25, 0.1, 0.25, 1);
+    /* Chart palette */
+    --chart-purple: 265 80% 60%;
+    --chart-pink: 330 80% 60%;
+    --chart-green: 160 84% 44%;
+    --chart-yellow: 45 96% 58%;
+    --chart-blue: 210 80% 55%;
+    --chart-orange: 25 95% 53%;
+    --chart-teal: 180 70% 45%;
   }
 
   * {
@@ -93,50 +87,93 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-weight: 500;
+    font-weight: 600;
     letter-spacing: -0.02em;
     line-height: 1.2;
-    text-wrap: balance;
   }
 
-  /* Tabular nums for data */
   .tabular-nums {
     font-feature-settings: 'tnum', 'ss01';
   }
 }
 
 @layer components {
-  .kpi-card {
-    @apply bg-card rounded-xl p-6;
-    box-shadow: var(--shadow-card);
-    transition: box-shadow 200ms var(--ease-out);
+  .dash-card {
+    @apply bg-card rounded-2xl p-5 border border-border/50;
+    transition: all 200ms ease;
   }
-  .kpi-card:hover {
-    box-shadow: var(--shadow-card-hover);
+  .dash-card:hover {
+    border-color: hsl(var(--border));
+  }
+
+  .dash-card-header {
+    @apply flex items-center justify-between mb-4;
+  }
+  .dash-card-title {
+    @apply text-sm font-medium text-muted-foreground;
+  }
+  .dash-card-period {
+    @apply text-xs text-muted-foreground/60;
   }
 
   .page-title {
-    font-size: var(--font-size-h1);
-    @apply font-medium tracking-tight text-foreground;
+    @apply text-2xl font-semibold tracking-tight text-foreground;
   }
 
   .section-title {
-    font-size: var(--font-size-h2);
-    @apply font-medium tracking-tight text-foreground;
+    @apply text-base font-semibold text-foreground;
   }
 
   .label-text {
-    font-size: var(--font-size-small);
-    @apply font-medium text-foreground;
+    @apply text-sm font-medium text-foreground;
   }
 
   .meta-text {
-    font-size: var(--font-size-xs);
-    @apply text-muted-foreground;
+    @apply text-xs text-muted-foreground;
   }
 
   .data-table-header {
-    font-size: var(--font-size-xs);
-    @apply uppercase tracking-wider font-medium text-muted-foreground;
+    @apply text-xs uppercase tracking-wider font-medium text-muted-foreground;
+  }
+
+  .kpi-value {
+    @apply text-2xl font-bold tabular-nums text-foreground;
+  }
+
+  .kpi-change-positive {
+    @apply text-xs font-medium;
+    color: hsl(var(--success));
+  }
+
+  .kpi-change-negative {
+    @apply text-xs font-medium;
+    color: hsl(var(--destructive));
+  }
+
+  /* Status badges */
+  .status-new {
+    @apply bg-info/15 text-info;
+  }
+  .status-reviewed {
+    @apply bg-warning/15 text-warning;
+  }
+  .status-closed {
+    @apply bg-success/15 text-success;
+  }
+
+  /* Scrollbar styling for dark theme */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(228, 12%, 25%);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(228, 12%, 35%);
   }
 }

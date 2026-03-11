@@ -18,47 +18,45 @@ const mockUsers = [
   { id: "5", name: "Ibrahim Yakubu", email: "i.yakubu@npa.gov.gh", role: "Collector", department: "Field Operations", status: "Pending", lastLogin: "—" },
 ];
 
-const roleColor: Record<string, string> = {
-  Admin: "bg-destructive/10 text-destructive",
-  Analyst: "bg-primary/10 text-primary",
-  Collector: "bg-info/10 text-info",
+const roleClass: Record<string, string> = {
+  Admin: "bg-destructive/15 text-destructive",
+  Analyst: "bg-chart-purple/15 text-chart-purple",
+  Collector: "bg-info/15 text-info",
 };
 
-const statusColor: Record<string, string> = {
-  Active: "bg-success/10 text-success",
-  Inactive: "bg-muted text-muted-foreground",
-  Pending: "bg-warning/10 text-warning",
+const statusClass: Record<string, string> = {
+  Active: "bg-success/15 text-success",
+  Inactive: "bg-secondary text-muted-foreground",
+  Pending: "bg-warning/15 text-warning",
 };
 
 export default function AdminPanel() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="page-title">Admin Panel</h1>
           <p className="meta-text mt-1">User management, roles, and system oversight.</p>
         </div>
-        <Button variant="accent">
+        <Button variant="default">
           <UserPlus className="h-4 w-4 mr-1" />
           Add User
         </Button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <KPICard title="Total Users" value={42} icon={Users} />
-        <KPICard title="Active Sessions" value={18} icon={Activity} />
-        <KPICard title="Pending Approvals" value={3} icon={Shield} />
+        <KPICard title="Total Users" value={42} icon={Users} iconColor="bg-chart-purple/15" />
+        <KPICard title="Active Sessions" value={18} icon={Activity} iconColor="bg-chart-green/15" />
+        <KPICard title="Pending Approvals" value={3} icon={Shield} iconColor="bg-chart-yellow/15" />
       </div>
 
-      {/* Users Table */}
-      <div className="kpi-card p-0 overflow-hidden">
-        <div className="px-4 py-3 border-b border-border">
+      <div className="dash-card p-0 overflow-hidden">
+        <div className="px-5 py-4 border-b border-border">
           <h3 className="section-title">User Accounts</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-background">
+            <thead className="bg-secondary/30">
               <tr className="border-b border-border">
                 <th className="data-table-header text-left py-3 px-4">Name</th>
                 <th className="data-table-header text-left py-3 px-4">Email</th>
@@ -71,23 +69,23 @@ export default function AdminPanel() {
             </thead>
             <tbody>
               {mockUsers.map((user) => (
-                <tr key={user.id} className="border-b border-border hover:bg-muted/30 transition-colors">
-                  <td className="py-3 px-4 font-medium">{user.name}</td>
+                <tr key={user.id} className="border-b border-border/50 hover:bg-secondary/20 transition-colors">
+                  <td className="py-3 px-4 font-medium text-foreground">{user.name}</td>
                   <td className="py-3 px-4 text-muted-foreground">{user.email}</td>
                   <td className="py-3 px-4">
-                    <Badge className={roleColor[user.role] || ""} variant="secondary">{user.role}</Badge>
+                    <Badge className={roleClass[user.role] || ""} variant="secondary">{user.role}</Badge>
                   </td>
-                  <td className="py-3 px-4">{user.department}</td>
+                  <td className="py-3 px-4 text-muted-foreground">{user.department}</td>
                   <td className="py-3 px-4">
-                    <Badge className={statusColor[user.status] || ""} variant="secondary">{user.status}</Badge>
+                    <Badge className={statusClass[user.status] || ""} variant="secondary">{user.status}</Badge>
                   </td>
-                  <td className="py-3 px-4 tabular-nums">{user.lastLogin}</td>
+                  <td className="py-3 px-4 tabular-nums text-muted-foreground">{user.lastLogin}</td>
                   <td className="py-3 px-4">
                     <Select>
-                      <SelectTrigger className="h-8 w-28 text-xs bg-background">
+                      <SelectTrigger className="h-8 w-28 text-xs bg-secondary border-border rounded-lg">
                         <SelectValue placeholder="Actions" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-card border-border">
                         <SelectItem value="edit">Edit User</SelectItem>
                         <SelectItem value="role">Change Role</SelectItem>
                         <SelectItem value="deactivate">Deactivate</SelectItem>

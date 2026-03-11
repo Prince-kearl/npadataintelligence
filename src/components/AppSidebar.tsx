@@ -10,6 +10,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Bell,
 } from "lucide-react";
 import { SidebarNavLink } from "@/components/SidebarNavLink";
 import npaLogo from "@/assets/npa-logo.png";
@@ -23,8 +24,8 @@ const mainNav = [
   { to: "/reports", icon: FileText, label: "Reports" },
 ];
 
-const adminNav = [
-  { to: "/admin", icon: Shield, label: "Admin Panel" },
+const systemNav = [
+  { to: "/admin", icon: Shield, label: "Admin" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 
@@ -34,45 +35,51 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "flex flex-col bg-sidebar border-r border-sidebar-border h-screen sticky top-0 transition-all duration-300",
-        collapsed ? "w-16" : "w-60"
+        "flex flex-col bg-sidebar h-screen sticky top-0 transition-all duration-300 border-r border-sidebar-border",
+        collapsed ? "w-[68px]" : "w-[220px]"
       )}
     >
-      {/* Logo area */}
-      <div className="flex items-center gap-3 px-3 py-4 border-b border-sidebar-border">
-        <img src={npaLogo} alt="NPA Logo" className="h-9 w-9 shrink-0 rounded" />
+      {/* Logo */}
+      <div className="flex items-center gap-3 px-4 py-5">
+        <div className="h-8 w-8 shrink-0 rounded-lg bg-primary flex items-center justify-center">
+          <img src={npaLogo} alt="NPA" className="h-6 w-6" />
+        </div>
         {!collapsed && (
-          <div className="flex flex-col min-w-0">
-            <span className="text-sm font-semibold text-sidebar-foreground truncate">NPA</span>
-            <span className="text-[10px] text-sidebar-foreground/60 truncate">Field Data Intelligence</span>
-          </div>
+          <span className="text-sm font-bold text-foreground tracking-tight">NPA System</span>
         )}
       </div>
 
-      {/* Main nav */}
-      <nav className="flex-1 px-2 py-3 space-y-1 overflow-y-auto">
-        <div className="mb-3">
-          {!collapsed && <p className="px-3 mb-2 text-[10px] uppercase tracking-widest text-sidebar-muted">Main</p>}
-          {mainNav.map((item) => (
-            <SidebarNavLink key={item.to} {...item} collapsed={collapsed} />
-          ))}
-        </div>
-        <div>
-          {!collapsed && <p className="px-3 mb-2 text-[10px] uppercase tracking-widest text-sidebar-muted">System</p>}
-          {adminNav.map((item) => (
-            <SidebarNavLink key={item.to} {...item} collapsed={collapsed} />
-          ))}
-        </div>
+      {/* Nav */}
+      <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
+        {mainNav.map((item) => (
+          <SidebarNavLink key={item.to} {...item} collapsed={collapsed} />
+        ))}
+
+        <div className="my-4 border-t border-sidebar-border" />
+
+        {systemNav.map((item) => (
+          <SidebarNavLink key={item.to} {...item} collapsed={collapsed} />
+        ))}
       </nav>
 
-      {/* Collapse toggle */}
-      <div className="px-2 py-3 border-t border-sidebar-border">
+      {/* Bottom */}
+      <div className="px-3 py-3 border-t border-sidebar-border space-y-1">
+        <button className="flex items-center gap-3 px-3 py-2 w-full text-sm text-sidebar-foreground/60 hover:text-foreground rounded-lg hover:bg-secondary transition-colors">
+          <Bell className="h-4 w-4 shrink-0" />
+          {!collapsed && <span>Notifications</span>}
+          {!collapsed && (
+            <span className="ml-auto h-5 min-w-[20px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">3</span>
+          )}
+        </button>
+        <button className="flex items-center gap-3 px-3 py-2 w-full text-sm text-sidebar-foreground/60 hover:text-foreground rounded-lg hover:bg-secondary transition-colors">
+          <LogOut className="h-4 w-4 shrink-0" />
+          {!collapsed && <span>Sign out</span>}
+        </button>
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center justify-center w-full gap-2 px-3 py-2 text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground rounded-md hover:bg-sidebar-accent transition-colors"
+          className="flex items-center justify-center w-full p-2 text-sidebar-foreground/40 hover:text-foreground rounded-lg hover:bg-secondary transition-colors"
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-          {!collapsed && <span>Collapse</span>}
         </button>
       </div>
     </aside>

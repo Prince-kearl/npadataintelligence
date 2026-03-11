@@ -12,10 +12,10 @@ import {
 } from "@/components/ui/select";
 import { Search, Download, Filter, Eye } from "lucide-react";
 
-const statusColor: Record<string, string> = {
-  New: "bg-info text-info-foreground",
-  Reviewed: "bg-warning text-warning-foreground",
-  Closed: "bg-success text-success-foreground",
+const statusClass: Record<string, string> = {
+  New: "status-new",
+  Reviewed: "status-reviewed",
+  Closed: "status-closed",
 };
 
 export default function Records() {
@@ -30,20 +30,20 @@ export default function Records() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="page-title">Incident Records</h1>
           <p className="meta-text mt-1">{filtered.length} records found</p>
         </div>
-        <Button variant="accent">
+        <Button variant="default">
           <Download className="h-4 w-4 mr-1" />
           Export Data
         </Button>
       </div>
 
       {/* Filters */}
-      <div className="kpi-card">
+      <div className="dash-card">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -51,14 +51,14 @@ export default function Records() {
               placeholder="Search by ID, region, category, location..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 bg-background"
+              className="pl-9 bg-secondary border-border rounded-xl"
             />
           </div>
           <Select>
-            <SelectTrigger className="w-40 bg-background">
+            <SelectTrigger className="w-36 bg-secondary border-border rounded-xl">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-card border-border">
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="New">New</SelectItem>
               <SelectItem value="Reviewed">Reviewed</SelectItem>
@@ -66,15 +66,14 @@ export default function Records() {
             </SelectContent>
           </Select>
           <Select>
-            <SelectTrigger className="w-40 bg-background">
+            <SelectTrigger className="w-36 bg-secondary border-border rounded-xl">
               <SelectValue placeholder="Region" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-card border-border">
               <SelectItem value="all">All Regions</SelectItem>
               <SelectItem value="Greater Accra">Greater Accra</SelectItem>
               <SelectItem value="Western">Western</SelectItem>
               <SelectItem value="Ashanti">Ashanti</SelectItem>
-              <SelectItem value="Northern">Northern</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" size="sm">
@@ -85,10 +84,10 @@ export default function Records() {
       </div>
 
       {/* Table */}
-      <div className="kpi-card p-0 overflow-hidden">
+      <div className="dash-card p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-background">
+            <thead className="bg-secondary/30">
               <tr className="border-b border-border">
                 <th className="data-table-header text-left py-3 px-4">ID</th>
                 <th className="data-table-header text-left py-3 px-4">Date</th>
@@ -105,20 +104,18 @@ export default function Records() {
             </thead>
             <tbody>
               {filtered.map((inc) => (
-                <tr key={inc.id} className="border-b border-border hover:bg-muted/30 transition-colors">
-                  <td className="py-3 px-4 font-medium tabular-nums">{inc.id}</td>
-                  <td className="py-3 px-4 tabular-nums">{inc.incident_date}</td>
-                  <td className="py-3 px-4">{inc.region}</td>
-                  <td className="py-3 px-4 max-w-[180px] truncate">{inc.location_name}</td>
-                  <td className="py-3 px-4">{inc.category}</td>
-                  <td className="py-3 px-4">{inc.incident_type}</td>
-                  <td className="py-3 px-4">{inc.product_type}</td>
-                  <td className="py-3 px-4 text-right tabular-nums">{inc.casualties}</td>
-                  <td className="py-3 px-4 text-right tabular-nums">{inc.fatalities}</td>
+                <tr key={inc.id} className="border-b border-border/50 hover:bg-secondary/20 transition-colors">
+                  <td className="py-3 px-4 font-medium tabular-nums text-foreground">{inc.id}</td>
+                  <td className="py-3 px-4 tabular-nums text-muted-foreground">{inc.incident_date}</td>
+                  <td className="py-3 px-4 text-muted-foreground">{inc.region}</td>
+                  <td className="py-3 px-4 max-w-[160px] truncate text-muted-foreground">{inc.location_name}</td>
+                  <td className="py-3 px-4 text-muted-foreground">{inc.category}</td>
+                  <td className="py-3 px-4 text-muted-foreground">{inc.incident_type}</td>
+                  <td className="py-3 px-4 text-muted-foreground">{inc.product_type}</td>
+                  <td className="py-3 px-4 text-right tabular-nums text-muted-foreground">{inc.casualties}</td>
+                  <td className="py-3 px-4 text-right tabular-nums text-muted-foreground">{inc.fatalities}</td>
                   <td className="py-3 px-4">
-                    <Badge className={statusColor[inc.status] || ""} variant="secondary">
-                      {inc.status}
-                    </Badge>
+                    <Badge className={statusClass[inc.status] || ""} variant="secondary">{inc.status}</Badge>
                   </td>
                   <td className="py-3 px-4">
                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -130,7 +127,7 @@ export default function Records() {
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/20">
+        <div className="flex items-center justify-between px-4 py-3 border-t border-border">
           <p className="meta-text">Showing {filtered.length} of {mockIncidents.length} records</p>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" disabled>Previous</Button>
