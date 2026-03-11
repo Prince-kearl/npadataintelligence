@@ -36,28 +36,28 @@ export default function SubmitIncident() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-5 max-w-4xl">
       <div>
         <h1 className="page-title">Submit Incident Report</h1>
         <p className="meta-text mt-1">Complete all required fields to submit a new incident report.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {/* Location & Date */}
-        <div className="kpi-card space-y-4">
+        <div className="dash-card space-y-4">
           <h3 className="section-title">Location & Date</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="label-text">Incident Date *</Label>
-              <Input type="date" required className="bg-background" />
+              <Input type="date" required className="bg-secondary border-border rounded-xl" />
             </div>
             <div className="space-y-2">
               <Label className="label-text">Region *</Label>
               <Select required>
-                <SelectTrigger className="bg-background">
+                <SelectTrigger className="bg-secondary border-border rounded-xl">
                   <SelectValue placeholder="Select region" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-card border-border">
                   {REGIONS.map((r) => (
                     <SelectItem key={r} value={r}>{r}</SelectItem>
                   ))}
@@ -67,10 +67,10 @@ export default function SubmitIncident() {
             <div className="space-y-2">
               <Label className="label-text">District *</Label>
               <Select required>
-                <SelectTrigger className="bg-background">
+                <SelectTrigger className="bg-secondary border-border rounded-xl">
                   <SelectValue placeholder="Select district" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-card border-border">
                   {DISTRICTS.map((d) => (
                     <SelectItem key={d} value={d}>{d}</SelectItem>
                   ))}
@@ -79,26 +79,26 @@ export default function SubmitIncident() {
             </div>
             <div className="space-y-2">
               <Label className="label-text">Location / Facility Name *</Label>
-              <Input placeholder="Enter facility or location name" required className="bg-background" />
+              <Input placeholder="Enter facility or location name" required className="bg-secondary border-border rounded-xl" />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label className="label-text">GPS Coordinates</Label>
-              <Input placeholder="e.g., 5.6037, -0.1870 (auto-captured if allowed)" className="bg-background" />
+              <Input placeholder="e.g., 5.6037, -0.1870" className="bg-secondary border-border rounded-xl" />
             </div>
           </div>
         </div>
 
         {/* Incident Details */}
-        <div className="kpi-card space-y-4">
+        <div className="dash-card space-y-4">
           <h3 className="section-title">Incident Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="label-text">Incident Category *</Label>
               <Select required>
-                <SelectTrigger className="bg-background">
+                <SelectTrigger className="bg-secondary border-border rounded-xl">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-card border-border">
                   {INCIDENT_CATEGORIES.map((c) => (
                     <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
@@ -108,10 +108,10 @@ export default function SubmitIncident() {
             <div className="space-y-2">
               <Label className="label-text">Incident Type *</Label>
               <Select required>
-                <SelectTrigger className="bg-background">
+                <SelectTrigger className="bg-secondary border-border rounded-xl">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-card border-border">
                   {INCIDENT_TYPES.map((t) => (
                     <SelectItem key={t} value={t}>{t}</SelectItem>
                   ))}
@@ -121,10 +121,10 @@ export default function SubmitIncident() {
             <div className="space-y-2">
               <Label className="label-text">Petroleum Product Type *</Label>
               <Select required>
-                <SelectTrigger className="bg-background">
+                <SelectTrigger className="bg-secondary border-border rounded-xl">
                   <SelectValue placeholder="Select product type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-card border-border">
                   {PRODUCT_TYPES.map((p) => (
                     <SelectItem key={p} value={p}>{p}</SelectItem>
                   ))}
@@ -134,10 +134,10 @@ export default function SubmitIncident() {
             <div className="space-y-2">
               <Label className="label-text">Nature of Injury</Label>
               <Select>
-                <SelectTrigger className="bg-background">
+                <SelectTrigger className="bg-secondary border-border rounded-xl">
                   <SelectValue placeholder="Select injury type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-card border-border">
                   {INJURY_TYPES.map((i) => (
                     <SelectItem key={i} value={i}>{i}</SelectItem>
                   ))}
@@ -146,61 +146,51 @@ export default function SubmitIncident() {
             </div>
             <div className="space-y-2">
               <Label className="label-text">Casualties</Label>
-              <Input type="number" min={0} defaultValue={0} className="bg-background" />
+              <Input type="number" min={0} defaultValue={0} className="bg-secondary border-border rounded-xl" />
             </div>
             <div className="space-y-2">
               <Label className="label-text">Fatalities</Label>
-              <Input type="number" min={0} defaultValue={0} className="bg-background" />
+              <Input type="number" min={0} defaultValue={0} className="bg-secondary border-border rounded-xl" />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label className="label-text">Incident Description *</Label>
-              <Textarea
-                placeholder="Provide a detailed description of the incident..."
-                required
-                rows={4}
-                className="bg-background"
-              />
+              <Textarea placeholder="Provide a detailed description..." required rows={4} className="bg-secondary border-border rounded-xl" />
             </div>
           </div>
         </div>
 
         {/* Attachments */}
-        <div className="kpi-card space-y-4">
+        <div className="dash-card space-y-4">
           <h3 className="section-title">Attachments</h3>
-          <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+          <div className="border-2 border-dashed border-border rounded-2xl p-8 text-center">
             <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">
-              Drag & drop files here, or click to browse
-            </p>
+            <p className="text-sm text-muted-foreground">Drag & drop files here, or click to browse</p>
             <p className="meta-text mt-1">Photos, documents (max 10MB each)</p>
-            <Button variant="outline" size="sm" className="mt-3" type="button">
-              Browse Files
-            </Button>
+            <Button variant="outline" size="sm" className="mt-3" type="button">Browse Files</Button>
           </div>
         </div>
 
-        {/* Reporter Info (auto-filled) */}
-        <div className="kpi-card space-y-4">
+        {/* Reporter */}
+        <div className="dash-card space-y-4">
           <h3 className="section-title">Reporter Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="label-text">Reporter Name</Label>
-              <Input value="Admin User" disabled className="bg-muted" />
+              <Input value="Admin User" disabled className="bg-secondary/50 border-border rounded-xl" />
             </div>
             <div className="space-y-2">
               <Label className="label-text">Department</Label>
-              <Input value="System Administration" disabled className="bg-muted" />
+              <Input value="System Administration" disabled className="bg-secondary/50 border-border rounded-xl" />
             </div>
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex items-center gap-3 justify-end">
           <Button variant="outline" type="button">
             <Save className="h-4 w-4 mr-1" />
             Save Draft
           </Button>
-          <Button variant="accent" type="submit" disabled={isSubmitting}>
+          <Button variant="default" type="submit" disabled={isSubmitting}>
             <SendHorizonal className="h-4 w-4 mr-1" />
             {isSubmitting ? "Submitting..." : "Submit Report"}
           </Button>

@@ -23,9 +23,10 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8">
-        {/* Header */}
         <div className="text-center space-y-4">
-          <img src={npaLogo} alt="NPA Logo" className="h-16 w-16 mx-auto" />
+          <div className="h-16 w-16 mx-auto rounded-2xl bg-primary/15 flex items-center justify-center">
+            <img src={npaLogo} alt="NPA Logo" className="h-10 w-10" />
+          </div>
           <div>
             <h1 className="text-xl font-semibold text-foreground">
               NPA Incident & Field Data Intelligence System
@@ -36,28 +37,17 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Form */}
-        <div className="kpi-card">
+        <div className="dash-card">
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label className="label-text">Work Email</Label>
-              <Input
-                type="email"
-                placeholder="name@npa.gov.gh"
-                required
-                className="bg-background"
-              />
+              <Input type="email" placeholder="name@npa.gov.gh" required className="bg-secondary border-border rounded-xl" />
             </div>
             <div className="space-y-2">
               <Label className="label-text">Password</Label>
-              <Input
-                type="password"
-                placeholder="Enter your password"
-                required
-                className="bg-background"
-              />
+              <Input type="password" placeholder="Enter your password" required className="bg-secondary border-border rounded-xl" />
             </div>
-            <Button variant="accent" className="w-full" type="submit" disabled={isLoading}>
+            <Button variant="default" className="w-full" type="submit" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
