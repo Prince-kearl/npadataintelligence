@@ -10,10 +10,9 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Bell,
 } from "lucide-react";
 import { SidebarNavLink } from "@/components/SidebarNavLink";
-import npaLogo from "@/assets/npa-logo.png";
+import npaIcon from "@/assets/npa-icon.png";
 import { cn } from "@/lib/utils";
 
 const mainNav = [
@@ -25,7 +24,7 @@ const mainNav = [
 ];
 
 const systemNav = [
-  { to: "/admin", icon: Shield, label: "Admin" },
+  { to: "/admin", icon: Shield, label: "Admin Panel" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 
@@ -35,28 +34,33 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "flex flex-col bg-sidebar h-screen sticky top-0 transition-all duration-300 border-r border-sidebar-border",
-        collapsed ? "w-[68px]" : "w-[220px]"
+        "flex flex-col bg-sidebar h-screen sticky top-0 transition-all duration-300",
+        collapsed ? "w-[64px]" : "w-[230px]"
       )}
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 py-5">
-        <div className="h-8 w-8 shrink-0 rounded-lg bg-primary flex items-center justify-center">
-          <img src={npaLogo} alt="NPA" className="h-6 w-6" />
+      <div className="flex items-center gap-3 px-4 py-4 border-b border-sidebar-border">
+        <div className="h-9 w-9 shrink-0 rounded-lg bg-navy-foreground/10 flex items-center justify-center p-1">
+          <img src={npaIcon} alt="NPA" className="h-7 w-7" />
         </div>
         {!collapsed && (
-          <span className="text-sm font-bold text-foreground tracking-tight">NPA System</span>
+          <div className="flex flex-col">
+            <span className="text-sm font-bold text-navy-foreground tracking-tight">NPA</span>
+            <span className="text-[10px] text-sidebar-foreground/60">Data Intelligence</span>
+          </div>
         )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
+        {!collapsed && <p className="px-3 py-1.5 text-[10px] uppercase tracking-widest font-semibold text-sidebar-foreground/40">Main Menu</p>}
         {mainNav.map((item) => (
           <SidebarNavLink key={item.to} {...item} collapsed={collapsed} />
         ))}
 
-        <div className="my-4 border-t border-sidebar-border" />
+        <div className="my-3 border-t border-sidebar-border" />
 
+        {!collapsed && <p className="px-3 py-1.5 text-[10px] uppercase tracking-widest font-semibold text-sidebar-foreground/40">System</p>}
         {systemNav.map((item) => (
           <SidebarNavLink key={item.to} {...item} collapsed={collapsed} />
         ))}
@@ -64,20 +68,13 @@ export function AppSidebar() {
 
       {/* Bottom */}
       <div className="px-3 py-3 border-t border-sidebar-border space-y-1">
-        <button className="flex items-center gap-3 px-3 py-2 w-full text-sm text-sidebar-foreground/60 hover:text-foreground rounded-lg hover:bg-secondary transition-colors">
-          <Bell className="h-4 w-4 shrink-0" />
-          {!collapsed && <span>Notifications</span>}
-          {!collapsed && (
-            <span className="ml-auto h-5 min-w-[20px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">3</span>
-          )}
-        </button>
-        <button className="flex items-center gap-3 px-3 py-2 w-full text-sm text-sidebar-foreground/60 hover:text-foreground rounded-lg hover:bg-secondary transition-colors">
+        <button className="flex items-center gap-3 px-3 py-2 w-full text-sm text-sidebar-foreground/60 hover:text-navy-foreground rounded-lg hover:bg-sidebar-accent transition-colors">
           <LogOut className="h-4 w-4 shrink-0" />
-          {!collapsed && <span>Sign out</span>}
+          {!collapsed && <span>Sign Out</span>}
         </button>
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center justify-center w-full p-2 text-sidebar-foreground/40 hover:text-foreground rounded-lg hover:bg-secondary transition-colors"
+          className="flex items-center justify-center w-full p-2 text-sidebar-foreground/40 hover:text-navy-foreground rounded-lg hover:bg-sidebar-accent transition-colors"
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>

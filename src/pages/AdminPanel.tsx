@@ -19,15 +19,15 @@ const mockUsers = [
 ];
 
 const roleClass: Record<string, string> = {
-  Admin: "bg-destructive/15 text-destructive",
-  Analyst: "bg-chart-purple/15 text-chart-purple",
-  Collector: "bg-info/15 text-info",
+  Admin: "bg-destructive/10 text-destructive",
+  Analyst: "bg-accent/10 text-accent",
+  Collector: "bg-info/10 text-info",
 };
 
 const statusClass: Record<string, string> = {
-  Active: "bg-success/15 text-success",
-  Inactive: "bg-secondary text-muted-foreground",
-  Pending: "bg-warning/15 text-warning",
+  Active: "bg-success/10 text-success",
+  Inactive: "bg-muted text-muted-foreground",
+  Pending: "bg-warning/10 text-warning",
 };
 
 export default function AdminPanel() {
@@ -45,9 +45,9 @@ export default function AdminPanel() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <KPICard title="Total Users" value={42} icon={Users} iconColor="bg-chart-purple/15" />
-        <KPICard title="Active Sessions" value={18} icon={Activity} iconColor="bg-chart-green/15" />
-        <KPICard title="Pending Approvals" value={3} icon={Shield} iconColor="bg-chart-yellow/15" />
+        <KPICard title="Total Users" value={42} icon={Users} iconBg="bg-accent/10" iconClass="text-accent" />
+        <KPICard title="Active Sessions" value={18} icon={Activity} iconBg="bg-success/10" iconClass="text-success" />
+        <KPICard title="Pending Approvals" value={3} icon={Shield} iconBg="bg-warning/10" iconClass="text-warning" />
       </div>
 
       <div className="dash-card p-0 overflow-hidden">
@@ -56,7 +56,7 @@ export default function AdminPanel() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-secondary/30">
+            <thead className="bg-muted/50">
               <tr className="border-b border-border">
                 <th className="data-table-header text-left py-3 px-4">Name</th>
                 <th className="data-table-header text-left py-3 px-4">Email</th>
@@ -69,7 +69,7 @@ export default function AdminPanel() {
             </thead>
             <tbody>
               {mockUsers.map((user) => (
-                <tr key={user.id} className="border-b border-border/50 hover:bg-secondary/20 transition-colors">
+                <tr key={user.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                   <td className="py-3 px-4 font-medium text-foreground">{user.name}</td>
                   <td className="py-3 px-4 text-muted-foreground">{user.email}</td>
                   <td className="py-3 px-4">
@@ -82,7 +82,7 @@ export default function AdminPanel() {
                   <td className="py-3 px-4 tabular-nums text-muted-foreground">{user.lastLogin}</td>
                   <td className="py-3 px-4">
                     <Select>
-                      <SelectTrigger className="h-8 w-28 text-xs bg-secondary border-border rounded-lg">
+                      <SelectTrigger className="h-8 w-28 text-xs bg-muted/50 border-border rounded-lg">
                         <SelectValue placeholder="Actions" />
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border">

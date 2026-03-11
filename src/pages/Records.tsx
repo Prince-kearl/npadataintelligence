@@ -51,11 +51,11 @@ export default function Records() {
               placeholder="Search by ID, region, category, location..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 bg-secondary border-border rounded-xl"
+              className="pl-9 bg-muted/50 border-border rounded-lg"
             />
           </div>
           <Select>
-            <SelectTrigger className="w-36 bg-secondary border-border rounded-xl">
+            <SelectTrigger className="w-36 bg-muted/50 border-border rounded-lg">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent className="bg-card border-border">
@@ -66,7 +66,7 @@ export default function Records() {
             </SelectContent>
           </Select>
           <Select>
-            <SelectTrigger className="w-36 bg-secondary border-border rounded-xl">
+            <SelectTrigger className="w-36 bg-muted/50 border-border rounded-lg">
               <SelectValue placeholder="Region" />
             </SelectTrigger>
             <SelectContent className="bg-card border-border">
@@ -87,7 +87,7 @@ export default function Records() {
       <div className="dash-card p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-secondary/30">
+            <thead className="bg-muted/50">
               <tr className="border-b border-border">
                 <th className="data-table-header text-left py-3 px-4">ID</th>
                 <th className="data-table-header text-left py-3 px-4">Date</th>
@@ -104,7 +104,7 @@ export default function Records() {
             </thead>
             <tbody>
               {filtered.map((inc) => (
-                <tr key={inc.id} className="border-b border-border/50 hover:bg-secondary/20 transition-colors">
+                <tr key={inc.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                   <td className="py-3 px-4 font-medium tabular-nums text-foreground">{inc.id}</td>
                   <td className="py-3 px-4 tabular-nums text-muted-foreground">{inc.incident_date}</td>
                   <td className="py-3 px-4 text-muted-foreground">{inc.region}</td>

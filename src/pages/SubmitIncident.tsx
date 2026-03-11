@@ -49,12 +49,12 @@ export default function SubmitIncident() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="label-text">Incident Date *</Label>
-              <Input type="date" required className="bg-secondary border-border rounded-xl" />
+              <Input type="date" required className="bg-muted/50 border-border rounded-lg" />
             </div>
             <div className="space-y-2">
               <Label className="label-text">Region *</Label>
               <Select required>
-                <SelectTrigger className="bg-secondary border-border rounded-xl">
+                <SelectTrigger className="bg-muted/50 border-border rounded-lg">
                   <SelectValue placeholder="Select region" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
@@ -67,7 +67,7 @@ export default function SubmitIncident() {
             <div className="space-y-2">
               <Label className="label-text">District *</Label>
               <Select required>
-                <SelectTrigger className="bg-secondary border-border rounded-xl">
+                <SelectTrigger className="bg-muted/50 border-border rounded-lg">
                   <SelectValue placeholder="Select district" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
@@ -79,11 +79,11 @@ export default function SubmitIncident() {
             </div>
             <div className="space-y-2">
               <Label className="label-text">Location / Facility Name *</Label>
-              <Input placeholder="Enter facility or location name" required className="bg-secondary border-border rounded-xl" />
+              <Input placeholder="Enter facility or location name" required className="bg-muted/50 border-border rounded-lg" />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label className="label-text">GPS Coordinates</Label>
-              <Input placeholder="e.g., 5.6037, -0.1870" className="bg-secondary border-border rounded-xl" />
+              <Input placeholder="e.g., 5.6037, -0.1870" className="bg-muted/50 border-border rounded-lg" />
             </div>
           </div>
         </div>
@@ -95,7 +95,7 @@ export default function SubmitIncident() {
             <div className="space-y-2">
               <Label className="label-text">Incident Category *</Label>
               <Select required>
-                <SelectTrigger className="bg-secondary border-border rounded-xl">
+                <SelectTrigger className="bg-muted/50 border-border rounded-lg">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
@@ -108,7 +108,7 @@ export default function SubmitIncident() {
             <div className="space-y-2">
               <Label className="label-text">Incident Type *</Label>
               <Select required>
-                <SelectTrigger className="bg-secondary border-border rounded-xl">
+                <SelectTrigger className="bg-muted/50 border-border rounded-lg">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
@@ -121,7 +121,7 @@ export default function SubmitIncident() {
             <div className="space-y-2">
               <Label className="label-text">Petroleum Product Type *</Label>
               <Select required>
-                <SelectTrigger className="bg-secondary border-border rounded-xl">
+                <SelectTrigger className="bg-muted/50 border-border rounded-lg">
                   <SelectValue placeholder="Select product type" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
@@ -134,7 +134,7 @@ export default function SubmitIncident() {
             <div className="space-y-2">
               <Label className="label-text">Nature of Injury</Label>
               <Select>
-                <SelectTrigger className="bg-secondary border-border rounded-xl">
+                <SelectTrigger className="bg-muted/50 border-border rounded-lg">
                   <SelectValue placeholder="Select injury type" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
@@ -146,15 +146,15 @@ export default function SubmitIncident() {
             </div>
             <div className="space-y-2">
               <Label className="label-text">Casualties</Label>
-              <Input type="number" min={0} defaultValue={0} className="bg-secondary border-border rounded-xl" />
+              <Input type="number" min={0} defaultValue={0} className="bg-muted/50 border-border rounded-lg" />
             </div>
             <div className="space-y-2">
               <Label className="label-text">Fatalities</Label>
-              <Input type="number" min={0} defaultValue={0} className="bg-secondary border-border rounded-xl" />
+              <Input type="number" min={0} defaultValue={0} className="bg-muted/50 border-border rounded-lg" />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label className="label-text">Incident Description *</Label>
-              <Textarea placeholder="Provide a detailed description..." required rows={4} className="bg-secondary border-border rounded-xl" />
+              <Textarea placeholder="Provide a detailed description..." required rows={4} className="bg-muted/50 border-border rounded-lg" />
             </div>
           </div>
         </div>
@@ -162,7 +162,7 @@ export default function SubmitIncident() {
         {/* Attachments */}
         <div className="dash-card space-y-4">
           <h3 className="section-title">Attachments</h3>
-          <div className="border-2 border-dashed border-border rounded-2xl p-8 text-center">
+          <div className="border-2 border-dashed border-border rounded-xl p-8 text-center bg-muted/30">
             <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground">Drag & drop files here, or click to browse</p>
             <p className="meta-text mt-1">Photos, documents (max 10MB each)</p>
@@ -176,11 +176,11 @@ export default function SubmitIncident() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="label-text">Reporter Name</Label>
-              <Input value="Admin User" disabled className="bg-secondary/50 border-border rounded-xl" />
+              <Input value="Admin User" disabled className="bg-muted/30 border-border rounded-lg" />
             </div>
             <div className="space-y-2">
               <Label className="label-text">Department</Label>
-              <Input value="System Administration" disabled className="bg-secondary/50 border-border rounded-xl" />
+              <Input value="System Administration" disabled className="bg-muted/30 border-border rounded-lg" />
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -8,30 +8,30 @@
   :root {
     --font-sans: 'Inter', system-ui, sans-serif;
 
-    /* Dark theme - matching reference */
-    --background: 228 15% 10%;
-    --foreground: 0 0% 95%;
+    /* Light government-grade theme */
+    --background: 220 20% 97%;
+    --foreground: 224 50% 18%;
 
-    --card: 228 15% 14%;
-    --card-foreground: 0 0% 95%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 50% 18%;
 
-    --popover: 228 15% 14%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 50% 18%;
 
-    /* Primary - teal/green accent */
-    --primary: 160 84% 44%;
-    --primary-foreground: 228 15% 10%;
+    /* Primary - Petroleum Gold */
+    --primary: 40 82% 52%;
+    --primary-foreground: 224 50% 18%;
 
     /* Secondary */
-    --secondary: 228 12% 20%;
-    --secondary-foreground: 0 0% 85%;
+    --secondary: 220 20% 94%;
+    --secondary-foreground: 224 40% 30%;
 
     /* Muted */
-    --muted: 228 12% 20%;
-    --muted-foreground: 228 10% 55%;
+    --muted: 220 16% 92%;
+    --muted-foreground: 220 15% 50%;
 
-    /* Accent - purple */
-    --accent: 265 80% 60%;
+    /* Accent - Primary Blue */
+    --accent: 224 52% 34%;
     --accent-foreground: 0 0% 100%;
 
     /* Destructive */
@@ -39,40 +39,44 @@
     --destructive-foreground: 0 0% 100%;
 
     /* Borders & inputs */
-    --border: 228 12% 20%;
-    --input: 228 12% 22%;
-    --ring: 160 84% 44%;
+    --border: 220 16% 88%;
+    --input: 220 16% 90%;
+    --ring: 224 52% 34%;
 
-    --radius: 0.75rem;
+    --radius: 0.625rem;
+
+    /* Navy colors for header/sidebar */
+    --navy: 228 62% 26%;
+    --navy-foreground: 0 0% 100%;
+    --navy-light: 224 52% 34%;
 
     /* Sidebar */
-    --sidebar-background: 228 18% 8%;
-    --sidebar-foreground: 228 10% 65%;
-    --sidebar-primary: 160 84% 44%;
-    --sidebar-primary-foreground: 228 15% 10%;
-    --sidebar-accent: 160 84% 44%;
-    --sidebar-accent-foreground: 228 15% 10%;
-    --sidebar-border: 228 12% 16%;
-    --sidebar-ring: 160 84% 44%;
-    --sidebar-muted: 228 10% 40%;
-    --sidebar-active-bg: 160 84% 44%;
+    --sidebar-background: 224 52% 34%;
+    --sidebar-foreground: 220 30% 85%;
+    --sidebar-primary: 40 82% 52%;
+    --sidebar-primary-foreground: 224 50% 18%;
+    --sidebar-accent: 224 52% 42%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 224 52% 28%;
+    --sidebar-ring: 40 82% 52%;
+    --sidebar-muted: 224 30% 55%;
 
     /* Status colors */
-    --success: 142 71% 45%;
+    --success: 152 60% 38%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
-    --warning-foreground: 228 15% 10%;
-    --info: 199 89% 48%;
+    --warning-foreground: 224 50% 18%;
+    --info: 210 75% 48%;
     --info-foreground: 0 0% 100%;
 
     /* Chart palette */
-    --chart-purple: 265 80% 60%;
-    --chart-pink: 330 80% 60%;
-    --chart-green: 160 84% 44%;
-    --chart-yellow: 45 96% 58%;
-    --chart-blue: 210 80% 55%;
-    --chart-orange: 25 95% 53%;
-    --chart-teal: 180 70% 45%;
+    --chart-navy: 228 62% 26%;
+    --chart-blue: 224 52% 34%;
+    --chart-gold: 40 82% 52%;
+    --chart-green: 152 60% 38%;
+    --chart-red: 0 72% 51%;
+    --chart-orange: 25 90% 50%;
+    --chart-teal: 180 55% 40%;
   }
 
   * {
@@ -87,7 +91,7 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: -0.02em;
     line-height: 1.2;
   }
@@ -99,11 +103,11 @@
 
 @layer components {
   .dash-card {
-    @apply bg-card rounded-2xl p-5 border border-border/50;
-    transition: all 200ms ease;
+    @apply bg-card rounded-xl p-5 border border-border;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
   }
   .dash-card:hover {
-    border-color: hsl(var(--border));
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
   }
 
   .dash-card-header {
@@ -117,7 +121,7 @@
   }
 
   .page-title {
-    @apply text-2xl font-semibold tracking-tight text-foreground;
+    @apply text-2xl font-bold tracking-tight text-foreground;
   }
 
   .section-title {
@@ -133,7 +137,7 @@
   }
 
   .data-table-header {
-    @apply text-xs uppercase tracking-wider font-medium text-muted-foreground;
+    @apply text-xs uppercase tracking-wider font-semibold text-muted-foreground;
   }
 
   .kpi-value {
@@ -152,16 +156,16 @@
 
   /* Status badges */
   .status-new {
-    @apply bg-info/15 text-info;
+    @apply bg-info/15 text-info font-medium;
   }
   .status-reviewed {
-    @apply bg-warning/15 text-warning;
+    @apply bg-warning/15 text-warning font-medium;
   }
   .status-closed {
-    @apply bg-success/15 text-success;
+    @apply bg-success/15 text-success font-medium;
   }
 
-  /* Scrollbar styling for dark theme */
+  /* Scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -170,10 +174,10 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: hsl(228, 12%, 25%);
+    background: hsl(220, 16%, 82%);
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(228, 12%, 35%);
+    background: hsl(220, 16%, 70%);
   }
 }

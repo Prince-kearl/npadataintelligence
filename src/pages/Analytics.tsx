@@ -22,23 +22,24 @@ import {
   Legend,
 } from "recharts";
 
-const CHART_COLORS = [
-  "hsl(265, 80%, 60%)",
-  "hsl(330, 80%, 60%)",
-  "hsl(160, 84%, 44%)",
-  "hsl(45, 96%, 58%)",
-  "hsl(210, 80%, 55%)",
-  "hsl(25, 95%, 53%)",
-  "hsl(180, 70%, 45%)",
+const COLORS = [
+  "hsl(228, 62%, 26%)",
+  "hsl(224, 52%, 34%)",
+  "hsl(40, 82%, 52%)",
+  "hsl(152, 60%, 38%)",
+  "hsl(0, 72%, 51%)",
+  "hsl(25, 90%, 50%)",
+  "hsl(180, 55%, 40%)",
 ];
 
 const tooltipStyle = {
   contentStyle: {
-    background: "hsl(228, 15%, 14%)",
-    border: "1px solid hsl(228, 12%, 20%)",
-    borderRadius: "12px",
-    color: "hsl(0, 0%, 95%)",
+    background: "#ffffff",
+    border: "1px solid hsl(220, 16%, 88%)",
+    borderRadius: "8px",
+    color: "hsl(224, 50%, 18%)",
     fontSize: "12px",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
   },
 };
 
@@ -58,13 +59,13 @@ export default function Analytics() {
           </div>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={mockByRegion}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(228, 12%, 20%)" />
-              <XAxis dataKey="region" tick={{ fontSize: 10, fill: "hsl(228, 10%, 55%)" }} angle={-35} textAnchor="end" height={60} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: "hsl(228, 10%, 55%)" }} axisLine={false} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 90%)" />
+              <XAxis dataKey="region" tick={{ fontSize: 10, fill: "hsl(220, 15%, 50%)" }} angle={-35} textAnchor="end" height={60} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
               <Tooltip {...tooltipStyle} />
-              <Bar dataKey="incidents" radius={[6, 6, 0, 0]} barSize={24}>
+              <Bar dataKey="incidents" radius={[4, 4, 0, 0]} barSize={24}>
                 {mockByRegion.map((_, i) => (
-                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Bar>
             </BarChart>
@@ -78,11 +79,11 @@ export default function Analytics() {
           </div>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie data={mockByType} cx="50%" cy="50%" outerRadius={110} innerRadius={65} dataKey="value" strokeWidth={0}
+              <Pie data={mockByType} cx="50%" cy="50%" outerRadius={110} innerRadius={65} dataKey="value" strokeWidth={2} stroke="#fff"
                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} fontSize={11}
               >
                 {mockByType.map((_, i) => (
-                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip {...tooltipStyle} />
@@ -99,15 +100,15 @@ export default function Analytics() {
             <AreaChart data={mockMonthlyTrend}>
               <defs>
                 <linearGradient id="analyticsGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(160, 84%, 44%)" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="hsl(160, 84%, 44%)" stopOpacity={0} />
+                  <stop offset="0%" stopColor="hsl(224, 52%, 34%)" stopOpacity={0.2} />
+                  <stop offset="100%" stopColor="hsl(224, 52%, 34%)" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(228, 12%, 20%)" />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: "hsl(228, 10%, 55%)" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: "hsl(228, 10%, 55%)" }} axisLine={false} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 90%)" />
+              <XAxis dataKey="month" tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
               <Tooltip {...tooltipStyle} />
-              <Area type="monotone" dataKey="incidents" stroke="hsl(160, 84%, 44%)" strokeWidth={2} fill="url(#analyticsGrad)" />
+              <Area type="monotone" dataKey="incidents" stroke="hsl(224, 52%, 34%)" strokeWidth={2} fill="url(#analyticsGrad)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -119,14 +120,14 @@ export default function Analytics() {
           </div>
           <ResponsiveContainer width="100%" height={300}>
             <ComposedChart data={mockByProduct}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(228, 12%, 20%)" />
-              <XAxis dataKey="product" tick={{ fontSize: 12, fill: "hsl(228, 10%, 55%)" }} axisLine={false} tickLine={false} />
-              <YAxis yAxisId="left" tick={{ fontSize: 12, fill: "hsl(228, 10%, 55%)" }} axisLine={false} tickLine={false} />
-              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12, fill: "hsl(228, 10%, 55%)" }} axisLine={false} tickLine={false} domain={[0, 6]} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 90%)" />
+              <XAxis dataKey="product" tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
+              <YAxis yAxisId="left" tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} domain={[0, 6]} />
               <Tooltip {...tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: "12px", color: "hsl(228, 10%, 55%)" }} />
-              <Bar yAxisId="left" dataKey="incidents" fill="hsl(265, 80%, 60%)" radius={[6, 6, 0, 0]} name="Incidents" />
-              <Line yAxisId="right" type="monotone" dataKey="severity" stroke="hsl(330, 80%, 60%)" strokeWidth={2} dot={{ r: 4, fill: "hsl(330, 80%, 60%)" }} name="Severity" />
+              <Legend wrapperStyle={{ fontSize: "12px", color: "hsl(220, 15%, 50%)" }} />
+              <Bar yAxisId="left" dataKey="incidents" fill="hsl(228, 62%, 26%)" radius={[4, 4, 0, 0]} name="Incidents" />
+              <Line yAxisId="right" type="monotone" dataKey="severity" stroke="hsl(40, 82%, 52%)" strokeWidth={2} dot={{ r: 4, fill: "hsl(40, 82%, 52%)" }} name="Severity" />
             </ComposedChart>
           </ResponsiveContainer>
         </div>

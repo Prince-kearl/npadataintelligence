@@ -61,6 +61,11 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
           muted: "hsl(var(--sidebar-muted))",
         },
+        navy: {
+          DEFAULT: "hsl(var(--navy))",
+          foreground: "hsl(var(--navy-foreground))",
+          light: "hsl(var(--navy-light))",
+        },
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
@@ -74,11 +79,11 @@ export default {
           foreground: "hsl(var(--info-foreground))",
         },
         chart: {
-          purple: "hsl(var(--chart-purple))",
-          pink: "hsl(var(--chart-pink))",
-          green: "hsl(var(--chart-green))",
-          yellow: "hsl(var(--chart-yellow))",
+          navy: "hsl(var(--chart-navy))",
           blue: "hsl(var(--chart-blue))",
+          gold: "hsl(var(--chart-gold))",
+          green: "hsl(var(--chart-green))",
+          red: "hsl(var(--chart-red))",
           orange: "hsl(var(--chart-orange))",
           teal: "hsl(var(--chart-teal))",
         },

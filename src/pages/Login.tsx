@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import npaLogo from "@/assets/npa-logo.png";
+import npaLogoFull from "@/assets/npa-logo-full.png";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -24,12 +24,12 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-4">
-          <div className="h-16 w-16 mx-auto rounded-2xl bg-primary/15 flex items-center justify-center">
-            <img src={npaLogo} alt="NPA Logo" className="h-10 w-10" />
+          <div className="flex justify-center">
+            <img src={npaLogoFull} alt="NPA Logo" className="h-20" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-foreground">
-              NPA Incident & Field Data Intelligence System
+            <h1 className="text-xl font-bold text-foreground">
+              Incident & Field Data Intelligence System
             </h1>
             <p className="meta-text mt-2">
               Authorized personnel only. Please sign in with your work credentials.
@@ -41,11 +41,11 @@ export default function Login() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label className="label-text">Work Email</Label>
-              <Input type="email" placeholder="name@npa.gov.gh" required className="bg-secondary border-border rounded-xl" />
+              <Input type="email" placeholder="name@npa.gov.gh" required className="bg-muted/50 border-border rounded-lg" />
             </div>
             <div className="space-y-2">
               <Label className="label-text">Password</Label>
-              <Input type="password" placeholder="Enter your password" required className="bg-secondary border-border rounded-xl" />
+              <Input type="password" placeholder="Enter your password" required className="bg-muted/50 border-border rounded-lg" />
             </div>
             <Button variant="default" className="w-full" type="submit" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}

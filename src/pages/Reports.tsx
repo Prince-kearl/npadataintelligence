@@ -11,7 +11,7 @@ export default function Reports() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="dash-card flex flex-col items-center text-center space-y-3">
-          <div className="h-12 w-12 rounded-xl bg-success/15 flex items-center justify-center">
+          <div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center">
             <FileSpreadsheet className="h-6 w-6 text-success" />
           </div>
           <h3 className="font-medium text-foreground">Excel Export</h3>
@@ -23,7 +23,7 @@ export default function Reports() {
         </div>
 
         <div className="dash-card flex flex-col items-center text-center space-y-3">
-          <div className="h-12 w-12 rounded-xl bg-info/15 flex items-center justify-center">
+          <div className="h-12 w-12 rounded-xl bg-info/10 flex items-center justify-center">
             <File className="h-6 w-6 text-info" />
           </div>
           <h3 className="font-medium text-foreground">CSV Export</h3>
@@ -35,7 +35,7 @@ export default function Reports() {
         </div>
 
         <div className="dash-card flex flex-col items-center text-center space-y-3">
-          <div className="h-12 w-12 rounded-xl bg-destructive/15 flex items-center justify-center">
+          <div className="h-12 w-12 rounded-xl bg-destructive/10 flex items-center justify-center">
             <FileText className="h-6 w-6 text-destructive" />
           </div>
           <h3 className="font-medium text-foreground">PDF Report</h3>
