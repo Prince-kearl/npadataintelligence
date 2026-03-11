@@ -41,7 +41,7 @@ export function AppSidebar() {
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 py-4 border-b border-sidebar-border">
         <div className="h-9 w-9 shrink-0 rounded-lg bg-navy-foreground/10 flex items-center justify-center p-1">
-          <img src={npaIcon} alt="NPA" className="h-7 w-7" />
+          <img src={npaIconWhite} alt="NPA" className="h-7 w-7" />
         </div>
         {!collapsed && (
           <div className="flex flex-col">
