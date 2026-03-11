@@ -12,7 +12,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { SidebarNavLink } from "@/components/SidebarNavLink";
-import npaIcon from "@/assets/npa-icon.png";
+import npaIconWhite from "@/assets/npa-icon-white.png";
 import { cn } from "@/lib/utils";
 
 const mainNav = [
