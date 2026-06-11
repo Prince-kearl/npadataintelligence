@@ -328,31 +328,48 @@ export default function Dashboard() {
         <div className="dash-card">
           <div className="dash-card-header">
             <span className="section-title">Threat Distribution</span>
-            <span className="dash-card-period">all time</span>
+            <span className="dash-card-period">live · {mockIncidents.length} incidents</span>
           </div>
           <div className="flex items-center gap-3">
             <ResponsiveContainer width="55%" height={200}>
               <PieChart>
-                <Pie data={threatDistribution} cx="50%" cy="50%" outerRadius={75} innerRadius={48} dataKey="value" strokeWidth={2} stroke="#fff">
+                <Pie
+                  data={threatDistribution}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={75}
+                  innerRadius={48}
+                  dataKey="value"
+                  strokeWidth={2}
+                  stroke="#fff"
+                  onClick={(d: any) => drillDown(d.name)}
+                  className="cursor-pointer"
+                >
                   {threatDistribution.map((d, i) => (
                     <Cell key={i} fill={d.fill} />
                   ))}
                 </Pie>
-                <Tooltip {...tooltipStyle} />
+                <Tooltip content={<CategoryTooltip />} />
               </PieChart>
             </ResponsiveContainer>
-            <div className="flex-1 space-y-2">
+            <div className="flex-1 space-y-1.5">
               {threatDistribution.map((d) => (
-                <div key={d.name} className="flex items-center gap-2 text-xs">
+                <button
+                  key={d.name}
+                  onClick={() => drillDown(d.name)}
+                  className="w-full flex items-center gap-2 text-xs py-1 px-1.5 rounded hover:bg-muted/60 transition-colors text-left"
+                >
                   <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: d.fill }} />
-                  <span className="text-muted-foreground flex-1">{d.name}</span>
-                  <span className="tabular-nums font-medium">{d.value}%</span>
-                </div>
+                  <span className="text-muted-foreground flex-1 truncate">{d.name}</span>
+                  <span className="tabular-nums font-medium text-foreground">{d.value}</span>
+                  <span className="tabular-nums text-muted-foreground text-[10px] w-9 text-right">{d.pct}%</span>
+                </button>
               ))}
             </div>
           </div>
         </div>
       </div>
+
 
       {/* Row: By Region + Recent table */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
