@@ -39,6 +39,9 @@ import {
 } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { useMemo } from "react";
+import { HotspotMap } from "@/components/HotspotMap";
 
 const statusClass: Record<string, string> = {
   New: "status-new",
@@ -113,14 +116,6 @@ const hotspots = [
   { name: "Sunyani", x: 36, y: 50, intensity: "low" },
 ];
 
-const threatDistribution = [
-  { name: "Spills", value: 30, fill: COLORS.blue },
-  { name: "Fires", value: 22, fill: COLORS.red },
-  { name: "Explosions", value: 14, fill: COLORS.gold },
-  { name: "Leakage", value: 18, fill: COLORS.teal },
-  { name: "Other", value: 16, fill: COLORS.navy },
-];
-
 const severityBarClass: Record<string, string> = {
   Critical: "bg-destructive",
   Major: "bg-warning",
@@ -128,7 +123,51 @@ const severityBarClass: Record<string, string> = {
   Low: "bg-success",
 };
 
+const CATEGORY_COLORS: Record<string, string> = {
+  Spill: COLORS.blue,
+  Fire: COLORS.red,
+  Explosion: COLORS.gold,
+  Leakage: COLORS.teal,
+  "Equipment Failure": COLORS.orange,
+  "Transportation Accident": COLORS.green,
+  "Illegal Activity": COLORS.navy,
+};
+
+function CategoryTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  return (
+    <div className="bg-card border border-border rounded-lg shadow-md px-3 py-2 text-xs">
+      <p className="font-semibold text-foreground">{d.name}</p>
+      <p className="text-muted-foreground tabular-nums">{d.value} incidents · {d.pct}%</p>
+      <p className="text-[10px] text-accent mt-0.5">Click to view filtered records →</p>
+    </div>
+  );
+}
+
 export default function Dashboard() {
+  const navigate = useNavigate();
+
+  const threatDistribution = useMemo(() => {
+    const counts = new Map<string, number>();
+    mockIncidents.forEach((inc) => {
+      counts.set(inc.category, (counts.get(inc.category) || 0) + 1);
+    });
+    const total = mockIncidents.length || 1;
+    return Array.from(counts.entries())
+      .map(([name, value]) => ({
+        name,
+        value,
+        pct: Math.round((value / total) * 100),
+        fill: CATEGORY_COLORS[name] || COLORS.navy,
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, []);
+
+  const drillDown = (category: string) => {
+    navigate(`/records?category=${encodeURIComponent(category)}`);
+  };
+
   return (
     <div className="space-y-5">
       {/* Executive Overview header */}
@@ -245,54 +284,22 @@ export default function Dashboard() {
               <MapPin className="h-4 w-4 text-primary" />
               <span className="section-title">Incident Hotspot Heatmap</span>
             </div>
-            <span className="dash-card-period">Ghana</span>
+            <span className="dash-card-period">live GPS · {mockIncidents.length} sites</span>
           </div>
-          <div className="relative w-full aspect-[3/4] bg-gradient-to-br from-accent/5 via-muted/30 to-background rounded-lg border border-border overflow-hidden">
-            {/* Stylized country outline */}
-            <svg viewBox="0 0 100 130" className="absolute inset-0 w-full h-full">
-              <path
-                d="M30 8 L70 10 L78 28 L82 55 L78 80 L72 100 L68 118 L55 122 L42 120 L32 110 L28 90 L22 70 L20 45 L24 22 Z"
-                fill="hsl(224, 52%, 34%, 0.08)"
-                stroke="hsl(224, 52%, 34%, 0.35)"
-                strokeWidth="0.6"
-                strokeDasharray="1.5 1"
-              />
-            </svg>
-            {hotspots.map((h) => {
-              const size = h.intensity === "high" ? 26 : h.intensity === "med" ? 20 : 14;
-              const color = h.intensity === "high" ? COLORS.red : h.intensity === "med" ? COLORS.orange : COLORS.gold;
-              return (
-                <div
-                  key={h.name}
-                  className="absolute -translate-x-1/2 -translate-y-1/2"
-                  style={{ left: `${h.x}%`, top: `${h.y}%` }}
-                  title={h.name}
-                >
-                  <span
-                    className="block rounded-full animate-pulse"
-                    style={{
-                      width: size,
-                      height: size,
-                      background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
-                      opacity: 0.85,
-                    }}
-                  />
-                  <MapPin
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-                    style={{ color, width: 12, height: 12 }}
-                  />
-                </div>
-              );
-            })}
-          </div>
+          <HotspotMap
+            incidents={mockIncidents}
+            height={340}
+            onSelect={(inc) => navigate(`/records?id=${encodeURIComponent(inc.id)}`)}
+          />
           <div className="flex items-center justify-between mt-3 text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-destructive" /> High</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: COLORS.orange }} /> Medium</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> Low</span>
-            <span>GIS module · preview</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-destructive" /> Major</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: COLORS.orange }} /> Minor</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> Near miss / Obs</span>
+            <span>Click a hotspot for details</span>
           </div>
         </div>
       </div>
+
 
       {/* Row: Trends + Threat distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -321,31 +328,48 @@ export default function Dashboard() {
         <div className="dash-card">
           <div className="dash-card-header">
             <span className="section-title">Threat Distribution</span>
-            <span className="dash-card-period">all time</span>
+            <span className="dash-card-period">live · {mockIncidents.length} incidents</span>
           </div>
           <div className="flex items-center gap-3">
             <ResponsiveContainer width="55%" height={200}>
               <PieChart>
-                <Pie data={threatDistribution} cx="50%" cy="50%" outerRadius={75} innerRadius={48} dataKey="value" strokeWidth={2} stroke="#fff">
+                <Pie
+                  data={threatDistribution}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={75}
+                  innerRadius={48}
+                  dataKey="value"
+                  strokeWidth={2}
+                  stroke="#fff"
+                  onClick={(d: any) => drillDown(d.name)}
+                  className="cursor-pointer"
+                >
                   {threatDistribution.map((d, i) => (
                     <Cell key={i} fill={d.fill} />
                   ))}
                 </Pie>
-                <Tooltip {...tooltipStyle} />
+                <Tooltip content={<CategoryTooltip />} />
               </PieChart>
             </ResponsiveContainer>
-            <div className="flex-1 space-y-2">
+            <div className="flex-1 space-y-1.5">
               {threatDistribution.map((d) => (
-                <div key={d.name} className="flex items-center gap-2 text-xs">
+                <button
+                  key={d.name}
+                  onClick={() => drillDown(d.name)}
+                  className="w-full flex items-center gap-2 text-xs py-1 px-1.5 rounded hover:bg-muted/60 transition-colors text-left"
+                >
                   <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: d.fill }} />
-                  <span className="text-muted-foreground flex-1">{d.name}</span>
-                  <span className="tabular-nums font-medium">{d.value}%</span>
-                </div>
+                  <span className="text-muted-foreground flex-1 truncate">{d.name}</span>
+                  <span className="tabular-nums font-medium text-foreground">{d.value}</span>
+                  <span className="tabular-nums text-muted-foreground text-[10px] w-9 text-right">{d.pct}%</span>
+                </button>
               ))}
             </div>
           </div>
         </div>
       </div>
+
 
       {/* Row: By Region + Recent table */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">

@@ -181,3 +181,24 @@
     background: hsl(220, 16%, 70%);
   }
 }
+
+/* Leaflet hotspot pulse */
+@keyframes hotspot-pulse-anim {
+  0% { stroke-opacity: 0.9; stroke-width: 2; }
+  50% { stroke-opacity: 0.2; stroke-width: 10; }
+  100% { stroke-opacity: 0.9; stroke-width: 2; }
+}
+.hotspot-pulse {
+  animation: hotspot-pulse-anim 2.2s ease-in-out infinite;
+  cursor: pointer;
+}
+.leaflet-container {
+  font-family: inherit;
+}
+.leaflet-tooltip {
+  border-radius: 8px !important;
+  border: 1px solid hsl(220, 16%, 88%) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+  padding: 6px 10px !important;
+}
+
