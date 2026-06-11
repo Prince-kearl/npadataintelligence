@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { mockIncidents } from "@/lib/mock-data";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Download, Filter, Eye } from "lucide-react";
+import { Search, Download, Filter, Eye, X } from "lucide-react";
 
 const statusClass: Record<string, string> = {
   New: "status-new",
@@ -20,14 +21,26 @@ const statusClass: Record<string, string> = {
 
 export default function Records() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const categoryFilter = searchParams.get("category");
+  const idFilter = searchParams.get("id");
 
-  const filtered = mockIncidents.filter(
-    (inc) =>
-      inc.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inc.region.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inc.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inc.location_name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    return mockIncidents.filter((inc) => {
+      if (idFilter && inc.id !== idFilter) return false;
+      if (categoryFilter && inc.category !== categoryFilter) return false;
+      const q = searchTerm.toLowerCase();
+      if (!q) return true;
+      return (
+        inc.id.toLowerCase().includes(q) ||
+        inc.region.toLowerCase().includes(q) ||
+        inc.category.toLowerCase().includes(q) ||
+        inc.location_name.toLowerCase().includes(q)
+      );
+    });
+  }, [searchTerm, categoryFilter, idFilter]);
+
+  const clearUrlFilters = () => setSearchParams({});
 
   return (
     <div className="space-y-5">
@@ -41,6 +54,28 @@ export default function Records() {
           Export Data
         </Button>
       </div>
+
+      {(categoryFilter || idFilter) && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {categoryFilter && (
+            <Badge variant="secondary" className="bg-accent/10 text-accent border border-accent/20 gap-1.5 pl-2.5">
+              Category: {categoryFilter}
+              <button onClick={clearUrlFilters} className="hover:bg-accent/20 rounded p-0.5">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          {idFilter && (
+            <Badge variant="secondary" className="bg-accent/10 text-accent border border-accent/20 gap-1.5 pl-2.5">
+              ID: {idFilter}
+              <button onClick={clearUrlFilters} className="hover:bg-accent/20 rounded p-0.5">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+        </div>
+      )}
+
 
       {/* Filters */}
       <div className="dash-card">
