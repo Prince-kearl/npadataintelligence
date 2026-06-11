@@ -1,8 +1,18 @@
-import { Search, Bell, User } from "lucide-react";
+import { Search, Bell, User, Calendar } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import npaLogoWhite from "@/assets/npa-logo-white.png";
 
 export function AppHeader() {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000 * 30);
+    return () => clearInterval(t);
+  }, []);
+
+  const dateLabel = now.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const timeLabel = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
   return (
     <header className="h-14 bg-navy text-navy-foreground flex items-center justify-between px-6 sticky top-0 z-30 shadow-md">
       <div className="flex items-center gap-4">
@@ -22,6 +32,14 @@ export function AppHeader() {
           />
         </div>
 
+        <div className="hidden md:flex items-center gap-2 px-3 h-8 rounded-lg bg-navy-foreground/10 border border-navy-foreground/15">
+          <Calendar className="h-3.5 w-3.5 text-primary" />
+          <div className="flex flex-col leading-tight">
+            <span className="text-[11px] font-medium text-navy-foreground">{dateLabel}, {timeLabel}</span>
+            <span className="text-[9px] text-navy-foreground/60">GMT (UTC+0)</span>
+          </div>
+        </div>
+
         <button className="relative h-8 w-8 rounded-lg hover:bg-navy-foreground/10 flex items-center justify-center transition-colors">
           <Bell className="h-4 w-4 text-navy-foreground/80" />
           <span className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">3</span>
@@ -31,9 +49,9 @@ export function AppHeader() {
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
             <User className="h-4 w-4 text-primary-foreground" />
           </div>
-          <div className="hidden md:flex flex-col">
-            <span className="text-xs font-medium text-navy-foreground">Admin User</span>
-            <span className="text-[10px] text-navy-foreground/60">System Administrator</span>
+          <div className="hidden md:flex flex-col leading-tight">
+            <span className="text-[10px] text-navy-foreground/60">Welcome,</span>
+            <span className="text-xs font-semibold text-navy-foreground">Director, Data Analytics Unit</span>
           </div>
         </div>
       </div>
