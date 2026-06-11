@@ -116,14 +116,6 @@ const hotspots = [
   { name: "Sunyani", x: 36, y: 50, intensity: "low" },
 ];
 
-const threatDistribution = [
-  { name: "Spills", value: 30, fill: COLORS.blue },
-  { name: "Fires", value: 22, fill: COLORS.red },
-  { name: "Explosions", value: 14, fill: COLORS.gold },
-  { name: "Leakage", value: 18, fill: COLORS.teal },
-  { name: "Other", value: 16, fill: COLORS.navy },
-];
-
 const severityBarClass: Record<string, string> = {
   Critical: "bg-destructive",
   Major: "bg-warning",
@@ -131,7 +123,51 @@ const severityBarClass: Record<string, string> = {
   Low: "bg-success",
 };
 
+const CATEGORY_COLORS: Record<string, string> = {
+  Spill: COLORS.blue,
+  Fire: COLORS.red,
+  Explosion: COLORS.gold,
+  Leakage: COLORS.teal,
+  "Equipment Failure": COLORS.orange,
+  "Transportation Accident": COLORS.green,
+  "Illegal Activity": COLORS.navy,
+};
+
+function CategoryTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  return (
+    <div className="bg-card border border-border rounded-lg shadow-md px-3 py-2 text-xs">
+      <p className="font-semibold text-foreground">{d.name}</p>
+      <p className="text-muted-foreground tabular-nums">{d.value} incidents · {d.pct}%</p>
+      <p className="text-[10px] text-accent mt-0.5">Click to view filtered records →</p>
+    </div>
+  );
+}
+
 export default function Dashboard() {
+  const navigate = useNavigate();
+
+  const threatDistribution = useMemo(() => {
+    const counts = new Map<string, number>();
+    mockIncidents.forEach((inc) => {
+      counts.set(inc.category, (counts.get(inc.category) || 0) + 1);
+    });
+    const total = mockIncidents.length || 1;
+    return Array.from(counts.entries())
+      .map(([name, value]) => ({
+        name,
+        value,
+        pct: Math.round((value / total) * 100),
+        fill: CATEGORY_COLORS[name] || COLORS.navy,
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, []);
+
+  const drillDown = (category: string) => {
+    navigate(`/records?category=${encodeURIComponent(category)}`);
+  };
+
   return (
     <div className="space-y-5">
       {/* Executive Overview header */}
