@@ -1,17 +1,9 @@
-import { Search, Bell, User, Calendar } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Search, Bell, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import npaLogoWhite from "@/assets/npa-logo-white.png";
 
 export function AppHeader() {
-  const [now, setNow] = useState(new Date());
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000 * 30);
-    return () => clearInterval(t);
-  }, []);
 
-  const dateLabel = now.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-  const timeLabel = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
   return (
     <header className="h-14 bg-navy text-navy-foreground flex items-center justify-between px-6 sticky top-0 z-30 shadow-md">
