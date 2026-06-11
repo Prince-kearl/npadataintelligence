@@ -284,54 +284,22 @@ export default function Dashboard() {
               <MapPin className="h-4 w-4 text-primary" />
               <span className="section-title">Incident Hotspot Heatmap</span>
             </div>
-            <span className="dash-card-period">Ghana</span>
+            <span className="dash-card-period">live GPS · {mockIncidents.length} sites</span>
           </div>
-          <div className="relative w-full aspect-[3/4] bg-gradient-to-br from-accent/5 via-muted/30 to-background rounded-lg border border-border overflow-hidden">
-            {/* Stylized country outline */}
-            <svg viewBox="0 0 100 130" className="absolute inset-0 w-full h-full">
-              <path
-                d="M30 8 L70 10 L78 28 L82 55 L78 80 L72 100 L68 118 L55 122 L42 120 L32 110 L28 90 L22 70 L20 45 L24 22 Z"
-                fill="hsl(224, 52%, 34%, 0.08)"
-                stroke="hsl(224, 52%, 34%, 0.35)"
-                strokeWidth="0.6"
-                strokeDasharray="1.5 1"
-              />
-            </svg>
-            {hotspots.map((h) => {
-              const size = h.intensity === "high" ? 26 : h.intensity === "med" ? 20 : 14;
-              const color = h.intensity === "high" ? COLORS.red : h.intensity === "med" ? COLORS.orange : COLORS.gold;
-              return (
-                <div
-                  key={h.name}
-                  className="absolute -translate-x-1/2 -translate-y-1/2"
-                  style={{ left: `${h.x}%`, top: `${h.y}%` }}
-                  title={h.name}
-                >
-                  <span
-                    className="block rounded-full animate-pulse"
-                    style={{
-                      width: size,
-                      height: size,
-                      background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
-                      opacity: 0.85,
-                    }}
-                  />
-                  <MapPin
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-                    style={{ color, width: 12, height: 12 }}
-                  />
-                </div>
-              );
-            })}
-          </div>
+          <HotspotMap
+            incidents={mockIncidents}
+            height={340}
+            onSelect={(inc) => navigate(`/records?id=${encodeURIComponent(inc.id)}`)}
+          />
           <div className="flex items-center justify-between mt-3 text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-destructive" /> High</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: COLORS.orange }} /> Medium</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> Low</span>
-            <span>GIS module · preview</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-destructive" /> Major</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: COLORS.orange }} /> Minor</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> Near miss / Obs</span>
+            <span>Click a hotspot for details</span>
           </div>
         </div>
       </div>
+
 
       {/* Row: Trends + Threat distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
