@@ -39,6 +39,9 @@ import {
 } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { useMemo } from "react";
+import { HotspotMap } from "@/components/HotspotMap";
 
 const statusClass: Record<string, string> = {
   New: "status-new",
