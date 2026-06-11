@@ -4,6 +4,15 @@ import {
   Skull,
   Activity,
   CheckCircle,
+  Radio,
+  MapPin,
+  Clock,
+  Send,
+  Flame,
+  ShieldAlert,
+  Lock,
+  PhoneCall,
+  MoreHorizontal,
 } from "lucide-react";
 import { KPICard } from "@/components/KPICard";
 import {
@@ -29,6 +38,7 @@ import {
   AreaChart,
 } from "recharts";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 const statusClass: Record<string, string> = {
   New: "status-new",
@@ -59,70 +69,243 @@ const tooltipStyle = {
   },
 };
 
+const liveFeed = [
+  {
+    severity: "Critical",
+    title: "Critical Alert: Major Spill - Tema Oil Depot",
+    time: "14:31",
+    tag: "Urgent",
+    meta: "Response Unit 3 dispatched",
+    color: "destructive",
+  },
+  {
+    severity: "Major",
+    title: "Major Incident: LPG Explosion - Tamale",
+    time: "13:55",
+    tag: "High",
+    meta: "HAZMAT Response",
+    color: "warning",
+  },
+  {
+    severity: "Medium",
+    title: "Medium Alert: Pipeline Pressure Anomaly - Western",
+    time: "12:40",
+    tag: "Area Verified",
+    color: "info",
+  },
+  {
+    severity: "Low",
+    title: "Low Alert: Suspicious Storage Activity - Volta",
+    time: "11:18",
+    tag: "Monitored",
+    color: "success",
+  },
+];
+
+const hotspots = [
+  { name: "Tema", x: 62, y: 78, intensity: "high" },
+  { name: "Accra", x: 55, y: 82, intensity: "high" },
+  { name: "Takoradi", x: 30, y: 86, intensity: "med" },
+  { name: "Kumasi", x: 48, y: 60, intensity: "high" },
+  { name: "Tamale", x: 50, y: 32, intensity: "med" },
+  { name: "Bolgatanga", x: 52, y: 14, intensity: "low" },
+  { name: "Ho", x: 72, y: 70, intensity: "med" },
+  { name: "Sunyani", x: 36, y: 50, intensity: "low" },
+];
+
+const threatDistribution = [
+  { name: "Spills", value: 30, fill: COLORS.blue },
+  { name: "Fires", value: 22, fill: COLORS.red },
+  { name: "Explosions", value: 14, fill: COLORS.gold },
+  { name: "Leakage", value: 18, fill: COLORS.teal },
+  { name: "Other", value: 16, fill: COLORS.navy },
+];
+
+const severityBarClass: Record<string, string> = {
+  Critical: "bg-destructive",
+  Major: "bg-warning",
+  Medium: "bg-info",
+  Low: "bg-success",
+};
+
 export default function Dashboard() {
   return (
     <div className="space-y-5">
+      {/* Executive Overview header */}
+      <div className="flex items-end justify-between flex-wrap gap-2">
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Executive Overview</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Real-time petroleum sector incident intelligence
+          </p>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-success/10 text-success font-medium">
+            <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
+            Live
+          </span>
+          <span className="text-muted-foreground">Auto-refresh 30s</span>
+        </div>
+      </div>
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <KPICard
-          title="Total Incidents"
-          value={mockKPIs.totalIncidents}
+          title="Total Incidents Today"
+          value={438}
           icon={AlertTriangle}
-          change="↑ 12% this month"
+          change="↑ 12.1% vs yesterday"
           changeType="negative"
           iconBg="bg-destructive/10"
           iconClass="text-destructive"
         />
         <KPICard
-          title="Total Casualties"
-          value={mockKPIs.totalCasualties}
-          icon={Users}
-          change="↓ 5% this month"
+          title="Active Security Alerts"
+          value={57}
+          icon={ShieldAlert}
+          change="↓ 3.4% this week"
           changeType="positive"
           iconBg="bg-warning/10"
           iconClass="text-warning"
         />
         <KPICard
-          title="Total Fatalities"
-          value={mockKPIs.totalFatalities}
-          icon={Skull}
-          change="↓ 8% this month"
-          changeType="positive"
-          iconBg="bg-chart-navy/10"
-          iconClass="text-chart-navy"
-        />
-        <KPICard
-          title="Active Cases"
-          value={mockKPIs.activeCases}
-          icon={Activity}
-          change="89 pending review"
-          changeType="neutral"
-          iconBg="bg-info/10"
-          iconClass="text-info"
-        />
-        <KPICard
-          title="Closed Cases"
-          value={mockKPIs.closedCases}
+          title="Resolved Cases"
+          value={381}
           icon={CheckCircle}
-          change="95.8% resolved"
+          change="↑ 15.5% this week"
           changeType="positive"
           iconBg="bg-success/10"
           iconClass="text-success"
         />
+        <KPICard
+          title="Emergency Response Rate"
+          value="98.4%"
+          icon={Activity}
+          change="Optimal"
+          changeType="positive"
+          iconBg="bg-info/10"
+          iconClass="text-info"
+        />
+        <KPICard
+          title="High Risk Incidents"
+          value={9}
+          icon={Flame}
+          change="Warning"
+          changeType="negative"
+          iconBg="bg-primary/15"
+          iconClass="text-primary"
+        />
       </div>
 
-      {/* Row 2: Area trend + Pie type */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <div className="dash-card lg:col-span-3">
+      {/* Row: Real-time Feed + Hotspot Heatmap */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="dash-card lg:col-span-2 p-0 overflow-hidden">
+          <div className="flex items-center justify-between px-5 pt-5 pb-3">
+            <div className="flex items-center gap-2">
+              <Radio className="h-4 w-4 text-destructive" />
+              <span className="section-title">Real-time Incident Feed</span>
+              <span className="text-xs text-muted-foreground">· Updates continuously</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-md bg-destructive/10 text-destructive font-medium">
+                <span className="h-1.5 w-1.5 rounded-full bg-destructive animate-pulse" />
+                Live Incidents
+              </span>
+              <button className="text-muted-foreground hover:text-foreground"><MoreHorizontal className="h-4 w-4" /></button>
+            </div>
+          </div>
+          <div className="divide-y divide-border">
+            {liveFeed.map((f, i) => (
+              <div key={i} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors">
+                <span className={`w-1 h-10 rounded-full ${severityBarClass[f.severity]}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{f.title}</p>
+                  {f.meta && <p className="text-[11px] text-muted-foreground mt-0.5">{f.meta}</p>}
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-xs tabular-nums text-muted-foreground flex items-center gap-1">
+                    <Clock className="h-3 w-3" /> {f.time}
+                  </span>
+                  <Badge variant="secondary" className={
+                    f.severity === "Critical" ? "status-new" :
+                    f.severity === "Major" ? "bg-warning/15 text-warning border border-warning/20" :
+                    f.severity === "Medium" ? "status-reviewed" : "status-closed"
+                  }>
+                    {f.tag}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="dash-card">
           <div className="dash-card-header">
-            <span className="section-title">Incident Trend</span>
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-primary" />
+              <span className="section-title">Incident Hotspot Heatmap</span>
+            </div>
+            <span className="dash-card-period">Ghana</span>
+          </div>
+          <div className="relative w-full aspect-[3/4] bg-gradient-to-br from-accent/5 via-muted/30 to-background rounded-lg border border-border overflow-hidden">
+            {/* Stylized country outline */}
+            <svg viewBox="0 0 100 130" className="absolute inset-0 w-full h-full">
+              <path
+                d="M30 8 L70 10 L78 28 L82 55 L78 80 L72 100 L68 118 L55 122 L42 120 L32 110 L28 90 L22 70 L20 45 L24 22 Z"
+                fill="hsl(224, 52%, 34%, 0.08)"
+                stroke="hsl(224, 52%, 34%, 0.35)"
+                strokeWidth="0.6"
+                strokeDasharray="1.5 1"
+              />
+            </svg>
+            {hotspots.map((h) => {
+              const size = h.intensity === "high" ? 26 : h.intensity === "med" ? 20 : 14;
+              const color = h.intensity === "high" ? COLORS.red : h.intensity === "med" ? COLORS.orange : COLORS.gold;
+              return (
+                <div
+                  key={h.name}
+                  className="absolute -translate-x-1/2 -translate-y-1/2"
+                  style={{ left: `${h.x}%`, top: `${h.y}%` }}
+                  title={h.name}
+                >
+                  <span
+                    className="block rounded-full animate-pulse"
+                    style={{
+                      width: size,
+                      height: size,
+                      background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
+                      opacity: 0.85,
+                    }}
+                  />
+                  <MapPin
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                    style={{ color, width: 12, height: 12 }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center justify-between mt-3 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-destructive" /> High</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: COLORS.orange }} /> Medium</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> Low</span>
+            <span>GIS module · preview</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Row: Trends + Threat distribution */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="dash-card lg:col-span-2">
+          <div className="dash-card-header">
+            <span className="section-title">Incident Trends</span>
             <span className="dash-card-period">last 6 months</span>
           </div>
-          <ResponsiveContainer width="100%" height={260}>
+          <ResponsiveContainer width="100%" height={240}>
             <AreaChart data={mockMonthlyTrend}>
               <defs>
                 <linearGradient id="gradientBlue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={COLORS.blue} stopOpacity={0.2} />
+                  <stop offset="0%" stopColor={COLORS.blue} stopOpacity={0.25} />
                   <stop offset="100%" stopColor={COLORS.blue} stopOpacity={0} />
                 </linearGradient>
               </defs>
@@ -135,30 +318,28 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
 
-        <div className="dash-card lg:col-span-2">
+        <div className="dash-card">
           <div className="dash-card-header">
-            <span className="section-title">By Category</span>
+            <span className="section-title">Threat Distribution</span>
             <span className="dash-card-period">all time</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <ResponsiveContainer width="55%" height={200}>
               <PieChart>
-                <Pie data={mockByType} cx="50%" cy="50%" outerRadius={80} innerRadius={50} dataKey="value" strokeWidth={2} stroke="#fff">
-                  {mockByType.map((_, i) => (
-                    <Cell key={i} fill={pieColors[i % pieColors.length]} />
+                <Pie data={threatDistribution} cx="50%" cy="50%" outerRadius={75} innerRadius={48} dataKey="value" strokeWidth={2} stroke="#fff">
+                  {threatDistribution.map((d, i) => (
+                    <Cell key={i} fill={d.fill} />
                   ))}
                 </Pie>
                 <Tooltip {...tooltipStyle} />
               </PieChart>
             </ResponsiveContainer>
             <div className="flex-1 space-y-2">
-              {mockByType.slice(0, 5).map((item, i) => (
-                <div key={item.name} className="flex items-center gap-2 text-xs">
-                  <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: pieColors[i] }} />
-                  <span className="text-muted-foreground flex-1">{item.name}</span>
-                  <span className="tabular-nums text-foreground font-medium">
-                    {Math.round((item.value / mockByType.reduce((a, b) => a + b.value, 0)) * 100)}%
-                  </span>
+              {threatDistribution.map((d) => (
+                <div key={d.name} className="flex items-center gap-2 text-xs">
+                  <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: d.fill }} />
+                  <span className="text-muted-foreground flex-1">{d.name}</span>
+                  <span className="tabular-nums font-medium">{d.value}%</span>
                 </div>
               ))}
             </div>
@@ -166,7 +347,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Row 3: By Region + Recent Incidents */}
+      {/* Row: By Region + Recent table */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         <div className="dash-card lg:col-span-2">
           <div className="dash-card-header">
@@ -222,54 +403,52 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Row 4: Product risk + Severity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="dash-card">
-          <div className="dash-card-header">
-            <span className="section-title">Product Risk Exposure</span>
-            <span className="dash-card-period">all time</span>
-          </div>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={mockByProduct}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 90%)" />
-              <XAxis dataKey="product" tick={{ fontSize: 11, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
-              <Tooltip {...tooltipStyle} />
-              <Bar dataKey="incidents" radius={[4, 4, 0, 0]} barSize={28}>
-                {mockByProduct.map((_, i) => (
-                  <Cell key={i} fill={pieColors[i % pieColors.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+      {/* Row: Product risk */}
+      <div className="dash-card">
+        <div className="dash-card-header">
+          <span className="section-title">Product Risk Exposure</span>
+          <span className="dash-card-period">all time</span>
         </div>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={mockByProduct}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 90%)" />
+            <XAxis dataKey="product" tick={{ fontSize: 11, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
+            <Tooltip {...tooltipStyle} />
+            <Bar dataKey="incidents" radius={[4, 4, 0, 0]} barSize={28}>
+              {mockByProduct.map((_, i) => (
+                <Cell key={i} fill={pieColors[i % pieColors.length]} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
 
-        <div className="dash-card">
-          <div className="dash-card-header">
-            <span className="section-title">Severity Parameters</span>
-            <span className="dash-card-period">last month</span>
+      {/* Regulatory Command Panel */}
+      <div className="dash-card bg-gradient-to-r from-navy via-accent to-navy text-navy-foreground border-0">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center">
+              <ShieldAlert className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold">Regulatory Command Panel</p>
+              <p className="text-[11px] text-navy-foreground/70">Quick actions for incident response & enforcement</p>
+            </div>
           </div>
-          <div className="grid grid-cols-3 gap-3 mt-2">
-            {[
-              { label: "Spills", pct: "57%", color: COLORS.navy, trend: "↑ 3.1%" },
-              { label: "Fires", pct: "76%", color: COLORS.red, trend: "↑ 1.5%" },
-              { label: "Leaks", pct: "21%", color: COLORS.green, trend: "↓ 10.7%" },
-              { label: "Explosions", pct: "34%", color: COLORS.gold, trend: "↓ 5.2%" },
-              { label: "Transport", pct: "10%", color: COLORS.blue, trend: "↑ 23.1%" },
-              { label: "Equipment", pct: "45%", color: COLORS.orange, trend: "↓ 2.8%" },
-            ].map((item) => (
-              <div key={item.label} className="bg-muted/50 rounded-lg p-3 text-center border border-border/50">
-                <div className="relative h-14 w-14 mx-auto mb-2">
-                  <svg className="h-14 w-14 -rotate-90" viewBox="0 0 56 56">
-                    <circle cx="28" cy="28" r="24" fill="none" stroke="hsl(220, 16%, 90%)" strokeWidth="4" />
-                    <circle cx="28" cy="28" r="24" fill="none" stroke={item.color} strokeWidth="4" strokeLinecap="round" strokeDasharray={`${parseFloat(item.pct) * 1.508} 150.8`} />
-                  </svg>
-                  <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-foreground">{item.pct}</span>
-                </div>
-                <p className="text-xs font-medium text-foreground">{item.label}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{item.trend}</p>
-              </div>
-            ))}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 h-8">
+              <Send className="h-3.5 w-3.5 mr-1.5" /> Dispatch Team
+            </Button>
+            <Button size="sm" variant="secondary" className="bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-8">
+              <AlertTriangle className="h-3.5 w-3.5 mr-1.5" /> Escalate Alert
+            </Button>
+            <Button size="sm" variant="secondary" className="bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-8">
+              <Lock className="h-3.5 w-3.5 mr-1.5" /> Lockdown Protocol
+            </Button>
+            <Button size="sm" variant="secondary" className="bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-8">
+              <PhoneCall className="h-3.5 w-3.5 mr-1.5" /> Request Reinforcement
+            </Button>
           </div>
         </div>
       </div>
