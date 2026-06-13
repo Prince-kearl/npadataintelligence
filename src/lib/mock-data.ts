@@ -141,7 +141,7 @@ export const mockIncidents: Incident[] = [
     district: "Cape Coast Metropolitan",
     location_name: "Cape Coast Fuel Station",
     gps_coordinates: "5.1036, -1.2437",
-    category: "Transportation Accident",
+    category: "BRV Crash/Accident",
     incident_type: "Major",
     description: "Fuel tanker overturned on highway near Cape Coast. Road blocked, spill containment in progress.",
     product_type: "Petrol (PMS)",
