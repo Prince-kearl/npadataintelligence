@@ -12,7 +12,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { SidebarNavLink } from "@/components/SidebarNavLink";
-import npaIconWhite from "@/assets/npa-icon-white.png";
 import { cn } from "@/lib/utils";
 
 const mainNav = [
@@ -38,21 +37,7 @@ export function AppSidebar() {
         collapsed ? "w-[64px]" : "w-[230px]"
       )}
     >
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-4 py-4 border-b border-sidebar-border">
-        <div className="h-9 w-9 shrink-0 rounded-lg bg-navy-foreground/10 flex items-center justify-center p-1">
-          <img src={npaIconWhite} alt="NPA" className="h-7 w-7" />
-        </div>
-        {!collapsed && (
-          <div className="flex flex-col">
-            <span className="text-sm font-bold text-navy-foreground tracking-tight">NPA</span>
-            <span className="text-[10px] text-sidebar-foreground/60">Data Intelligence</span>
-          </div>
-        )}
-      </div>
-
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 pt-4 pb-3 space-y-1 overflow-y-auto">
         {!collapsed && <p className="px-3 py-1.5 text-[10px] uppercase tracking-widest font-semibold text-sidebar-foreground/40">Main Menu</p>}
         {mainNav.map((item) => (
           <SidebarNavLink key={item.to} {...item} collapsed={collapsed} />
@@ -66,7 +51,6 @@ export function AppSidebar() {
         ))}
       </nav>
 
-      {/* Bottom */}
       <div className="px-3 py-3 border-t border-sidebar-border space-y-1">
         <button className="flex items-center gap-3 px-3 py-2 w-full text-sm text-sidebar-foreground/60 hover:text-navy-foreground rounded-lg hover:bg-sidebar-accent transition-colors">
           <LogOut className="h-4 w-4 shrink-0" />
