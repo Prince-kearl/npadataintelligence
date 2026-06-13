@@ -4,6 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/AppLayout";
+import { RoleProvider } from "@/hooks/useRole";
+import { RequireRole } from "@/components/RequireRole";
 import Dashboard from "@/pages/Dashboard";
 import SubmitIncident from "@/pages/SubmitIncident";
 import Records from "@/pages/Records";
@@ -21,21 +23,58 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/submit" element={<SubmitIncident />} />
-            <Route path="/records" element={<Records />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/admin" element={<AdminPanel />} />
-            <Route path="/settings" element={<SettingsPage />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <RoleProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route element={<AppLayout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route
+                path="/submit"
+                element={
+                  <RequireRole permission="submit_incident">
+                    <SubmitIncident />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/records"
+                element={
+                  <RequireRole permission="view_own_records">
+                    <Records />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/analytics"
+                element={
+                  <RequireRole permission="view_analytics">
+                    <Analytics />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/reports"
+                element={
+                  <RequireRole permission="view_reports">
+                    <Reports />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <RequireRole permission="manage_users">
+                    <AdminPanel />
+                  </RequireRole>
+                }
+              />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </RoleProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

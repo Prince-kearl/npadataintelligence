@@ -1,8 +1,15 @@
-import { Search, Bell, User } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Bell, User } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useRole, ROLE_LABELS, Role } from "@/hooks/useRole";
 
 export function AppHeader() {
-
+  const { role, setRole } = useRole();
 
   return (
     <header className="h-14 bg-navy text-navy-foreground flex items-center justify-between px-6 sticky top-0 z-30 shadow-md">
@@ -13,16 +20,19 @@ export function AppHeader() {
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="relative hidden lg:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-navy-foreground/50" />
-          <Input
-            placeholder="Search..."
-            className="pl-9 w-52 h-8 bg-navy-foreground/10 border-navy-foreground/20 rounded-lg text-sm text-navy-foreground placeholder:text-navy-foreground/40 focus:bg-navy-foreground/15"
-          />
+        <div className="hidden md:flex items-center gap-2">
+          <span className="text-[10px] uppercase tracking-wider text-navy-foreground/60">Active Role</span>
+          <Select value={role} onValueChange={(v) => setRole(v as Role)}>
+            <SelectTrigger className="h-8 w-[200px] bg-navy-foreground/10 border-navy-foreground/20 text-xs text-navy-foreground">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border">
+              {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
+                <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-
-
-
 
         <button className="relative h-8 w-8 rounded-lg hover:bg-navy-foreground/10 flex items-center justify-center transition-colors">
           <Bell className="h-4 w-4 text-navy-foreground/80" />
@@ -35,7 +45,7 @@ export function AppHeader() {
           </div>
           <div className="hidden md:flex flex-col leading-tight">
             <span className="text-[10px] text-navy-foreground/60">Welcome,</span>
-            <span className="text-xs font-semibold text-navy-foreground">Director, Data Analytics Unit</span>
+            <span className="text-xs font-semibold text-navy-foreground">{ROLE_LABELS[role]}</span>
           </div>
         </div>
       </div>

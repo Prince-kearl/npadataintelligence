@@ -14,22 +14,28 @@ import {
 import { SidebarNavLink } from "@/components/SidebarNavLink";
 import { cn } from "@/lib/utils";
 import npaLogoWhite from "@/assets/npa-logo-white.png";
+import { useRole, Permission } from "@/hooks/useRole";
 
-const mainNav = [
+type NavItem = { to: string; icon: typeof LayoutDashboard; label: string; perm?: Permission };
+
+const mainNav: NavItem[] = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/submit", icon: FileEdit, label: "Submit Incident" },
-  { to: "/records", icon: Database, label: "Records" },
-  { to: "/analytics", icon: BarChart3, label: "Analytics" },
-  { to: "/reports", icon: FileText, label: "Reports" },
+  { to: "/submit", icon: FileEdit, label: "Submit Incident", perm: "submit_incident" },
+  { to: "/records", icon: Database, label: "Records", perm: "view_own_records" },
+  { to: "/analytics", icon: BarChart3, label: "Analytics", perm: "view_analytics" },
+  { to: "/reports", icon: FileText, label: "Reports", perm: "view_reports" },
 ];
 
-const systemNav = [
-  { to: "/admin", icon: Shield, label: "Admin Panel" },
+const systemNav: NavItem[] = [
+  { to: "/admin", icon: Shield, label: "Admin Panel", perm: "manage_users" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const { can } = useRole();
+  const visibleMain = mainNav.filter((i) => !i.perm || can(i.perm));
+  const visibleSystem = systemNav.filter((i) => !i.perm || can(i.perm));
 
   return (
     <aside
@@ -47,14 +53,14 @@ export function AppSidebar() {
       </div>
       <nav className="flex-1 px-3 pt-4 pb-3 space-y-1 overflow-y-auto">
         {!collapsed && <p className="px-3 py-1.5 text-[10px] uppercase tracking-widest font-semibold text-sidebar-foreground/40">Main Menu</p>}
-        {mainNav.map((item) => (
+        {visibleMain.map((item) => (
           <SidebarNavLink key={item.to} {...item} collapsed={collapsed} />
         ))}
 
         <div className="my-3 border-t border-sidebar-border" />
 
         {!collapsed && <p className="px-3 py-1.5 text-[10px] uppercase tracking-widest font-semibold text-sidebar-foreground/40">System</p>}
-        {systemNav.map((item) => (
+        {visibleSystem.map((item) => (
           <SidebarNavLink key={item.to} {...item} collapsed={collapsed} />
         ))}
       </nav>
