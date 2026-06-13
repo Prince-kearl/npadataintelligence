@@ -129,7 +129,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   Explosion: COLORS.gold,
   Leakage: COLORS.teal,
   "Equipment Failure": COLORS.orange,
-  "Transportation Accident": COLORS.green,
+  "BRV Crash/Accident": COLORS.green,
   "Illegal Activity": COLORS.navy,
 };
 
