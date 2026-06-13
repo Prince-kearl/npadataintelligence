@@ -13,7 +13,7 @@ export const DISTRICTS = [
 
 export const INCIDENT_CATEGORIES = [
   "Spill", "Explosion", "Fire", "Leakage", "Equipment Failure",
-  "Transportation Accident", "Storage Incident", "Pipeline Breach",
+  "BRV Crash/Accident", "Storage Incident", "Pipeline Breach",
   "Illegal Activity", "Environmental Contamination", "Other"
 ] as const;
 
