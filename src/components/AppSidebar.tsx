@@ -33,6 +33,9 @@ const systemNav: NavItem[] = [
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const { can } = useRole();
+  const visibleMain = mainNav.filter((i) => !i.perm || can(i.perm));
+  const visibleSystem = systemNav.filter((i) => !i.perm || can(i.perm));
 
   return (
     <aside
@@ -50,14 +53,14 @@ export function AppSidebar() {
       </div>
       <nav className="flex-1 px-3 pt-4 pb-3 space-y-1 overflow-y-auto">
         {!collapsed && <p className="px-3 py-1.5 text-[10px] uppercase tracking-widest font-semibold text-sidebar-foreground/40">Main Menu</p>}
-        {mainNav.map((item) => (
+        {visibleMain.map((item) => (
           <SidebarNavLink key={item.to} {...item} collapsed={collapsed} />
         ))}
 
         <div className="my-3 border-t border-sidebar-border" />
 
         {!collapsed && <p className="px-3 py-1.5 text-[10px] uppercase tracking-widest font-semibold text-sidebar-foreground/40">System</p>}
-        {systemNav.map((item) => (
+        {visibleSystem.map((item) => (
           <SidebarNavLink key={item.to} {...item} collapsed={collapsed} />
         ))}
       </nav>
