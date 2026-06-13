@@ -1,6 +1,5 @@
 import { Search, Bell, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import npaIconWhite from "@/assets/npa-icon-white.png";
 
 export function AppHeader() {
 
