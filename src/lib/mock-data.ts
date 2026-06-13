@@ -32,6 +32,18 @@ export const INJURY_TYPES = [
 
 export const RECORD_STATUSES = ["New", "Reviewed", "Closed"] as const;
 
+export const REPORT_SOURCES = [
+  "Field Inspection",
+  "Public Complaint",
+  "Industry Operator Report",
+  "Media / News Report",
+  "Law Enforcement",
+  "Internal NPA Patrol",
+  "Anonymous Tip",
+  "Regulatory Audit",
+  "Other",
+] as const;
+
 export interface Incident {
   id: string;
   incident_date: string;
