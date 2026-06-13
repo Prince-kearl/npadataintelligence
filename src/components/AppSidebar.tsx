@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { SidebarNavLink } from "@/components/SidebarNavLink";
 import { cn } from "@/lib/utils";
+import npaLogoWhite from "@/assets/npa-logo-white.png";
 
 const mainNav = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
