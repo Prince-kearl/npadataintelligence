@@ -14,17 +14,20 @@ import {
 import { SidebarNavLink } from "@/components/SidebarNavLink";
 import { cn } from "@/lib/utils";
 import npaLogoWhite from "@/assets/npa-logo-white.png";
+import { useRole, Permission } from "@/hooks/useRole";
 
-const mainNav = [
+type NavItem = { to: string; icon: typeof LayoutDashboard; label: string; perm?: Permission };
+
+const mainNav: NavItem[] = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/submit", icon: FileEdit, label: "Submit Incident" },
-  { to: "/records", icon: Database, label: "Records" },
-  { to: "/analytics", icon: BarChart3, label: "Analytics" },
-  { to: "/reports", icon: FileText, label: "Reports" },
+  { to: "/submit", icon: FileEdit, label: "Submit Incident", perm: "submit_incident" },
+  { to: "/records", icon: Database, label: "Records", perm: "view_own_records" },
+  { to: "/analytics", icon: BarChart3, label: "Analytics", perm: "view_analytics" },
+  { to: "/reports", icon: FileText, label: "Reports", perm: "view_reports" },
 ];
 
-const systemNav = [
-  { to: "/admin", icon: Shield, label: "Admin Panel" },
+const systemNav: NavItem[] = [
+  { to: "/admin", icon: Shield, label: "Admin Panel", perm: "manage_users" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 
