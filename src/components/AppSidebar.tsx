@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { SidebarNavLink } from "@/components/SidebarNavLink";
 import { cn } from "@/lib/utils";
+import npaLogoWhite from "@/assets/npa-logo-white.png";
 
 const mainNav = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -37,6 +38,13 @@ export function AppSidebar() {
         collapsed ? "w-[64px]" : "w-[230px]"
       )}
     >
+      <div className={cn("flex items-center justify-center border-b border-sidebar-border", collapsed ? "px-2 py-3" : "px-4 py-4")}>
+        <img
+          src={npaLogoWhite}
+          alt="NPA"
+          className={cn("w-auto object-contain", collapsed ? "h-8" : "h-14")}
+        />
+      </div>
       <nav className="flex-1 px-3 pt-4 pb-3 space-y-1 overflow-y-auto">
         {!collapsed && <p className="px-3 py-1.5 text-[10px] uppercase tracking-widest font-semibold text-sidebar-foreground/40">Main Menu</p>}
         {mainNav.map((item) => (
