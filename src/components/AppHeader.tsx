@@ -8,17 +8,7 @@ export function AppHeader() {
   return (
     <header className="h-14 bg-navy text-navy-foreground flex items-center justify-between px-6 sticky top-0 z-30 shadow-md">
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2.5">
-          <div className="h-9 w-9 shrink-0 rounded-lg bg-navy-foreground/10 flex items-center justify-center p-1">
-            <img src={npaIconWhite} alt="NPA" className="h-7 w-7" />
-          </div>
-          <div className="hidden md:flex flex-col leading-tight">
-            <span className="text-sm font-bold text-navy-foreground tracking-tight">NPA</span>
-            <span className="text-[10px] text-navy-foreground/60">Data Intelligence</span>
-          </div>
-        </div>
-        <div className="h-6 w-px bg-navy-foreground/20 hidden md:block" />
-        <h2 className="text-sm font-medium text-navy-foreground/90 hidden md:block">
+        <h2 className="text-sm font-medium text-navy-foreground/90">
           Incident & Field Data Intelligence System
         </h2>
       </div>
