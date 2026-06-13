@@ -186,6 +186,38 @@ export default function SubmitIncident() {
           </div>
         </div>
 
+        {/* Source of Report */}
+        <div className="dash-card space-y-4">
+          <h3 className="section-title">Source of Report</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="label-text">Report Source *</Label>
+              <Select required>
+                <SelectTrigger className="bg-muted/50 border-border rounded-lg">
+                  <SelectValue placeholder="Select source of report" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  {REPORT_SOURCES.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="label-text">Source Contact / Reference</Label>
+              <Input placeholder="Name, phone, agency, or reference ID" className="bg-muted/50 border-border rounded-lg" />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label className="label-text">Source Details / Notes</Label>
+              <Textarea
+                placeholder="Provide additional context about how this incident was reported (e.g., complaint reference, news article link, patrol log number)..."
+                rows={3}
+                className="bg-muted/50 border-border rounded-lg"
+              />
+            </div>
+          </div>
+        </div>
+
         <div className="flex items-center gap-3 justify-end">
           <Button variant="outline" type="button">
             <Save className="h-4 w-4 mr-1" />
