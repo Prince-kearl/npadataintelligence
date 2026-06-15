@@ -1,4 +1,4 @@
-import { mockIncidents, type Incident } from "./mock-data";
+import type { IncidentRow } from "./incidents";
 
 export interface CandidateIncident {
   incident_date: string;
@@ -11,7 +11,7 @@ export interface CandidateIncident {
 }
 
 export interface DuplicateMatch {
-  incident: Incident;
+  incident: IncidentRow;
   score: number; // 0-100
   reasons: string[];
 }
@@ -38,14 +38,9 @@ function daysBetween(a: string, b: string): number {
   return ms / (1000 * 60 * 60 * 24);
 }
 
-/**
- * Cross-references a candidate incident against existing records to flag
- * potential duplicates or previously-reported (outdated) entries.
- * Returns matches with score >= 40.
- */
 export function findPotentialDuplicates(
   candidate: CandidateIncident,
-  pool: Incident[] = mockIncidents
+  pool: IncidentRow[]
 ): DuplicateMatch[] {
   const cTokens = tokens(candidate.description);
   const matches: DuplicateMatch[] = [];
@@ -54,7 +49,6 @@ export function findPotentialDuplicates(
     let score = 0;
     const reasons: string[] = [];
 
-    // Date proximity (within 7 days)
     if (candidate.incident_date && inc.incident_date) {
       const diff = daysBetween(candidate.incident_date, inc.incident_date);
       if (diff === 0) {
@@ -69,7 +63,6 @@ export function findPotentialDuplicates(
       }
     }
 
-    // Location
     if (
       candidate.location_name &&
       inc.location_name.toLowerCase().trim() === candidate.location_name.toLowerCase().trim()
@@ -84,13 +77,11 @@ export function findPotentialDuplicates(
       score += 5;
     }
 
-    // Category
     if (candidate.category && inc.category === candidate.category) {
       score += 15;
       reasons.push("Same incident category");
     }
 
-    // Description similarity
     const sim = jaccard(cTokens, tokens(inc.description));
     if (sim > 0.15) {
       const desc = Math.round(sim * 25);

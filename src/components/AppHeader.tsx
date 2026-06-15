@@ -1,9 +1,12 @@
 import { Bell, User, ShieldCheck } from "lucide-react";
 import { useRole, ROLE_LABELS } from "@/hooks/useRole";
+import { useAuth } from "@/hooks/useAuth";
 
 export function AppHeader() {
   const { role } = useRole();
-  const roleLabel = ROLE_LABELS[role];
+  const { profile } = useAuth();
+  const roleLabel = role ? ROLE_LABELS[role] : "No role";
+  const displayName = profile?.full_name || profile?.email || "User";
 
   return (
     <header className="h-14 bg-navy text-navy-foreground flex items-center justify-between px-6 sticky top-0 z-30 shadow-md">
@@ -30,9 +33,6 @@ export function AppHeader() {
 
         <button className="relative h-8 w-8 rounded-lg hover:bg-navy-foreground/10 flex items-center justify-center transition-colors">
           <Bell className="h-4 w-4 text-navy-foreground/80" />
-          <span className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
-            3
-          </span>
         </button>
 
         <div className="flex items-center gap-2 pl-2 border-l border-navy-foreground/20">
@@ -41,7 +41,7 @@ export function AppHeader() {
           </div>
           <div className="hidden md:flex flex-col leading-tight">
             <span className="text-[10px] text-navy-foreground/60">Welcome,</span>
-            <span className="text-xs font-semibold text-navy-foreground">{roleLabel}</span>
+            <span className="text-xs font-semibold text-navy-foreground">{displayName}</span>
           </div>
         </div>
       </div>

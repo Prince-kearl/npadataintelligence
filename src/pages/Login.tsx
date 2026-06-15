@@ -1,28 +1,63 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import npaLogoStandard from "@/assets/npa-logo-standard.png";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ShieldAlert } from "lucide-react";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user, profile, loading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const pendingNotice = (location.state as any)?.pending;
 
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!loading && user && profile?.status === "active") {
+      navigate("/", { replace: true });
+    }
+  }, [loading, user, profile, navigate]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
       setIsLoading(false);
-      toast.success("Login successful");
-      navigate("/");
-    }, 1000);
+      toast.error(error.message);
+      return;
+    }
+    // Check account status
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("status")
+      .eq("id", data.user!.id)
+      .maybeSingle();
+    setIsLoading(false);
+    if (!prof || prof.status === "pending") {
+      await supabase.auth.signOut();
+      toast.warning("Your account is awaiting administrator approval.");
+      return;
+    }
+    if (prof.status === "suspended") {
+      await supabase.auth.signOut();
+      toast.error("Your account has been suspended. Contact an administrator.");
+      return;
+    }
+    toast.success("Welcome back");
+    navigate("/", { replace: true });
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-8">
+      <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-4">
           <div className="flex justify-center">
             <img src={npaLogoStandard} alt="NPA Logo" className="h-20" />
@@ -37,22 +72,34 @@ export default function Login() {
           </div>
         </div>
 
+        {pendingNotice && (
+          <Alert className="border-warning/40 bg-warning/10">
+            <ShieldAlert className="h-4 w-4 text-warning" />
+            <AlertDescription className="text-xs">
+              Your account is still pending approval by a System Administrator.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="dash-card">
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label className="label-text">Work Email</Label>
-              <Input type="email" placeholder="name@npa.gov.gh" required className="bg-muted/50 border-border rounded-lg" />
+              <Input type="email" placeholder="name@npa.gov.gh" required value={email} onChange={(e) => setEmail(e.target.value)} className="bg-muted/50 border-border rounded-lg" />
             </div>
             <div className="space-y-2">
               <Label className="label-text">Password</Label>
-              <Input type="password" placeholder="Enter your password" required className="bg-muted/50 border-border rounded-lg" />
+              <Input type="password" placeholder="Enter your password" required value={password} onChange={(e) => setPassword(e.target.value)} className="bg-muted/50 border-border rounded-lg" />
             </div>
             <Button variant="default" className="w-full" type="submit" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
           <p className="meta-text text-center mt-4">
-            Contact your system administrator for access.
+            No account yet?{" "}
+            <Link to="/signup" className="text-primary font-medium hover:underline">
+              Request access
+            </Link>
           </p>
         </div>
 

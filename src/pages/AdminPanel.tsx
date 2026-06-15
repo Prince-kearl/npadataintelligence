@@ -7,91 +7,190 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shield, UserPlus, Users, Activity } from "lucide-react";
+import { Shield, Users, Activity, Loader2, FileClock } from "lucide-react";
 import { KPICard } from "@/components/KPICard";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { ROLE_LABELS, type Role } from "@/hooks/useRole";
 
-const mockUsers = [
-  { id: "1", name: "Kwame Asante", email: "k.asante@npa.gov.gh", role: "Collector", department: "Field Operations", status: "Active", lastLogin: "2026-03-11" },
-  { id: "2", name: "Ama Mensah", email: "a.mensah@npa.gov.gh", role: "Analyst", department: "Safety & Compliance", status: "Active", lastLogin: "2026-03-10" },
-  { id: "3", name: "Kofi Owusu", email: "k.owusu@npa.gov.gh", role: "Collector", department: "Field Operations", status: "Active", lastLogin: "2026-03-09" },
-  { id: "4", name: "Grace Appiah", email: "g.appiah@npa.gov.gh", role: "Analyst", department: "Transport Safety", status: "Inactive", lastLogin: "2026-02-28" },
-  { id: "5", name: "Ibrahim Yakubu", email: "i.yakubu@npa.gov.gh", role: "Collector", department: "Field Operations", status: "Pending", lastLogin: "—" },
-];
+type AccountStatus = "pending" | "active" | "suspended";
+
+interface AdminUser {
+  id: string;
+  email: string;
+  full_name: string | null;
+  department: string | null;
+  status: AccountStatus;
+  created_at: string;
+  role: Role | null;
+}
+
+async function fetchUsers(): Promise<AdminUser[]> {
+  const [{ data: profiles, error: pErr }, { data: roles, error: rErr }] = await Promise.all([
+    supabase.from("profiles").select("id,email,full_name,department,status,created_at").order("created_at", { ascending: false }),
+    supabase.from("user_roles").select("user_id,role"),
+  ]);
+  if (pErr) throw pErr;
+  if (rErr) throw rErr;
+  const roleMap = new Map<string, Role>();
+  const priority: Record<Role, number> = { admin: 1, analyst: 2, collector: 3 };
+  for (const r of roles ?? []) {
+    const cur = roleMap.get(r.user_id);
+    if (!cur || priority[r.role as Role] < priority[cur]) roleMap.set(r.user_id, r.role as Role);
+  }
+  return (profiles ?? []).map((p) => ({ ...(p as any), role: roleMap.get(p.id) ?? null }));
+}
+
+async function fetchAuditLogs() {
+  const { data, error } = await supabase
+    .from("audit_logs")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(25);
+  if (error) throw error;
+  return data;
+}
 
 const roleClass: Record<string, string> = {
-  Admin: "bg-destructive/10 text-destructive",
-  Analyst: "bg-accent/10 text-accent",
-  Collector: "bg-info/10 text-info",
+  admin: "bg-destructive/10 text-destructive",
+  analyst: "bg-accent/10 text-accent",
+  collector: "bg-info/10 text-info",
 };
-
 const statusClass: Record<string, string> = {
-  Active: "bg-success/10 text-success",
-  Inactive: "bg-muted text-muted-foreground",
-  Pending: "bg-warning/10 text-warning",
+  active: "bg-success/10 text-success",
+  suspended: "bg-muted text-muted-foreground",
+  pending: "bg-warning/10 text-warning",
 };
 
 export default function AdminPanel() {
+  const qc = useQueryClient();
+  const { data: users = [], isLoading } = useQuery({ queryKey: ["admin-users"], queryFn: fetchUsers });
+  const { data: audit = [] } = useQuery({ queryKey: ["audit-logs"], queryFn: fetchAuditLogs });
+
+  const updateStatus = async (id: string, status: AccountStatus) => {
+    const { error } = await supabase.from("profiles").update({ status }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success(`Account ${status}`);
+    qc.invalidateQueries({ queryKey: ["admin-users"] });
+  };
+
+  const setUserRole = async (userId: string, newRole: Role) => {
+    // Remove existing roles then add new one
+    const { error: delErr } = await supabase.from("user_roles").delete().eq("user_id", userId);
+    if (delErr) return toast.error(delErr.message);
+    const { error: insErr } = await supabase.from("user_roles").insert({ user_id: userId, role: newRole });
+    if (insErr) return toast.error(insErr.message);
+    toast.success(`Role set to ${ROLE_LABELS[newRole]}`);
+    qc.invalidateQueries({ queryKey: ["admin-users"] });
+  };
+
+  const counts = {
+    total: users.length,
+    active: users.filter((u) => u.status === "active").length,
+    pending: users.filter((u) => u.status === "pending").length,
+  };
+
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="page-title">Admin Panel</h1>
-          <p className="meta-text mt-1">User management, roles, and system oversight.</p>
-        </div>
-        <Button variant="default">
-          <UserPlus className="h-4 w-4 mr-1" />
-          Add User
-        </Button>
+      <div>
+        <h1 className="page-title">Admin Panel</h1>
+        <p className="meta-text mt-1">User management, roles, approvals, and audit oversight.</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <KPICard title="Total Users" value={42} icon={Users} iconBg="bg-accent/10" iconClass="text-accent" />
-        <KPICard title="Active Sessions" value={18} icon={Activity} iconBg="bg-success/10" iconClass="text-success" />
-        <KPICard title="Pending Approvals" value={3} icon={Shield} iconBg="bg-warning/10" iconClass="text-warning" />
+        <KPICard title="Total Users" value={counts.total} icon={Users} iconBg="bg-accent/10" iconClass="text-accent" />
+        <KPICard title="Active Accounts" value={counts.active} icon={Activity} iconBg="bg-success/10" iconClass="text-success" />
+        <KPICard title="Pending Approvals" value={counts.pending} icon={Shield} iconBg="bg-warning/10" iconClass="text-warning" />
       </div>
 
       <div className="dash-card p-0 overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
           <h3 className="section-title">User Accounts</h3>
         </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr className="border-b border-border">
+                  <th className="data-table-header text-left py-3 px-4">Name</th>
+                  <th className="data-table-header text-left py-3 px-4">Email</th>
+                  <th className="data-table-header text-left py-3 px-4">Role</th>
+                  <th className="data-table-header text-left py-3 px-4">Department</th>
+                  <th className="data-table-header text-left py-3 px-4">Status</th>
+                  <th className="data-table-header text-left py-3 px-4">Joined</th>
+                  <th className="data-table-header text-left py-3 px-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                    <td className="py-3 px-4 font-medium text-foreground">{u.full_name || "—"}</td>
+                    <td className="py-3 px-4 text-muted-foreground">{u.email}</td>
+                    <td className="py-3 px-4">
+                      <Select value={u.role ?? ""} onValueChange={(v) => setUserRole(u.id, v as Role)}>
+                        <SelectTrigger className="h-8 w-32 text-xs bg-muted/50 border-border rounded-lg">
+                          <SelectValue placeholder="Set role">
+                            {u.role ? <Badge className={roleClass[u.role]} variant="secondary">{ROLE_LABELS[u.role]}</Badge> : "No role"}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="bg-card border-border">
+                          <SelectItem value="collector">Collector</SelectItem>
+                          <SelectItem value="analyst">Analyst</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="py-3 px-4 text-muted-foreground">{u.department || "—"}</td>
+                    <td className="py-3 px-4">
+                      <Badge className={statusClass[u.status]} variant="secondary">{u.status}</Badge>
+                    </td>
+                    <td className="py-3 px-4 tabular-nums text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</td>
+                    <td className="py-3 px-4">
+                      <div className="flex gap-1">
+                        {u.status !== "active" && (
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus(u.id, "active")}>Approve</Button>
+                        )}
+                        {u.status !== "suspended" && (
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus(u.id, "suspended")}>Suspend</Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="dash-card p-0 overflow-hidden">
+        <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+          <FileClock className="h-4 w-4 text-primary" />
+          <h3 className="section-title">Recent Activity (Audit Log)</h3>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr className="border-b border-border">
-                <th className="data-table-header text-left py-3 px-4">Name</th>
-                <th className="data-table-header text-left py-3 px-4">Email</th>
-                <th className="data-table-header text-left py-3 px-4">Role</th>
-                <th className="data-table-header text-left py-3 px-4">Department</th>
-                <th className="data-table-header text-left py-3 px-4">Status</th>
-                <th className="data-table-header text-left py-3 px-4">Last Login</th>
-                <th className="data-table-header text-left py-3 px-4">Actions</th>
+                <th className="data-table-header text-left py-2 px-4">When</th>
+                <th className="data-table-header text-left py-2 px-4">User</th>
+                <th className="data-table-header text-left py-2 px-4">Action</th>
+                <th className="data-table-header text-left py-2 px-4">Record</th>
               </tr>
             </thead>
             <tbody>
-              {mockUsers.map((user) => (
-                <tr key={user.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                  <td className="py-3 px-4 font-medium text-foreground">{user.name}</td>
-                  <td className="py-3 px-4 text-muted-foreground">{user.email}</td>
-                  <td className="py-3 px-4">
-                    <Badge className={roleClass[user.role] || ""} variant="secondary">{user.role}</Badge>
-                  </td>
-                  <td className="py-3 px-4 text-muted-foreground">{user.department}</td>
-                  <td className="py-3 px-4">
-                    <Badge className={statusClass[user.status] || ""} variant="secondary">{user.status}</Badge>
-                  </td>
-                  <td className="py-3 px-4 tabular-nums text-muted-foreground">{user.lastLogin}</td>
-                  <td className="py-3 px-4">
-                    <Select>
-                      <SelectTrigger className="h-8 w-28 text-xs bg-muted/50 border-border rounded-lg">
-                        <SelectValue placeholder="Actions" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card border-border">
-                        <SelectItem value="edit">Edit User</SelectItem>
-                        <SelectItem value="role">Change Role</SelectItem>
-                        <SelectItem value="deactivate">Deactivate</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </td>
+              {audit.length === 0 && (
+                <tr><td colSpan={4} className="text-center py-6 text-muted-foreground">No activity yet.</td></tr>
+              )}
+              {audit.map((a: any) => (
+                <tr key={a.id} className="border-b border-border/50">
+                  <td className="py-2 px-4 tabular-nums text-muted-foreground">{new Date(a.created_at).toLocaleString()}</td>
+                  <td className="py-2 px-4 text-muted-foreground">{a.user_email || "system"}</td>
+                  <td className="py-2 px-4 font-medium">{a.action}</td>
+                  <td className="py-2 px-4 text-muted-foreground">{a.details?.reference_code || a.record_id}</td>
                 </tr>
               ))}
             </tbody>

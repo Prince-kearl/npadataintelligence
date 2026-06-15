@@ -1,4 +1,4 @@
-import { mockIncidents, type Incident } from "./mock-data";
+import type { IncidentRow } from "./incidents";
 
 function csvEscape(v: unknown): string {
   const s = v === null || v === undefined ? "" : String(v);
@@ -6,12 +6,33 @@ function csvEscape(v: unknown): string {
   return s;
 }
 
-export function incidentsToCSV(rows: Incident[] = mockIncidents): string {
-  if (!rows.length) return "";
-  const headers = Object.keys(rows[0]) as (keyof Incident)[];
-  const lines = [headers.join(",")];
+const EXPORT_COLUMNS: (keyof IncidentRow)[] = [
+  "reference_code",
+  "incident_date",
+  "region",
+  "district",
+  "location_name",
+  "gps_coordinates",
+  "category",
+  "incident_type",
+  "description",
+  "product_type",
+  "injury_type",
+  "casualties",
+  "fatalities",
+  "reporter_name",
+  "department",
+  "source",
+  "status",
+  "created_at",
+  "updated_at",
+];
+
+export function incidentsToCSV(rows: IncidentRow[]): string {
+  if (!rows.length) return EXPORT_COLUMNS.join(",");
+  const lines = [EXPORT_COLUMNS.join(",")];
   for (const r of rows) {
-    lines.push(headers.map((h) => csvEscape(r[h])).join(","));
+    lines.push(EXPORT_COLUMNS.map((h) => csvEscape((r as any)[h])).join(","));
   }
   return lines.join("\n");
 }
@@ -22,14 +43,14 @@ function sqlEscape(v: unknown): string {
   return `'${String(v).replace(/'/g, "''")}'`;
 }
 
-export function incidentsToSQLDump(rows: Incident[] = mockIncidents): string {
+export function incidentsToSQLDump(rows: IncidentRow[]): string {
   const header = `-- NPA Incident & Field Data Intelligence System
 -- SQL Dump generated ${new Date().toISOString()}
 -- Records: ${rows.length}
 
 DROP TABLE IF EXISTS incidents;
 CREATE TABLE incidents (
-  id VARCHAR(32) PRIMARY KEY,
+  reference_code VARCHAR(32) PRIMARY KEY,
   incident_date DATE NOT NULL,
   region VARCHAR(64),
   district VARCHAR(64),
@@ -44,24 +65,19 @@ CREATE TABLE incidents (
   fatalities INTEGER DEFAULT 0,
   reporter_name VARCHAR(128),
   department VARCHAR(128),
+  source VARCHAR(64),
   status VARCHAR(32),
   created_at TIMESTAMP,
   updated_at TIMESTAMP
 );
 
 `;
-  const cols = [
-    "id","incident_date","region","district","location_name","gps_coordinates",
-    "category","incident_type","description","product_type","injury_type",
-    "casualties","fatalities","reporter_name","department","status",
-    "created_at","updated_at",
-  ] as const;
   const inserts = rows
     .map(
       (r) =>
-        `INSERT INTO incidents (${cols.join(", ")}) VALUES (${cols
-          .map((c) => sqlEscape(r[c]))
-          .join(", ")});`
+        `INSERT INTO incidents (${EXPORT_COLUMNS.join(", ")}) VALUES (${EXPORT_COLUMNS.map(
+          (c) => sqlEscape((r as any)[c])
+        ).join(", ")});`
     )
     .join("\n");
   return header + inserts + "\n";
