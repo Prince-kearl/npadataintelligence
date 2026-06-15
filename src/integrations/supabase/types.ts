@@ -14,16 +14,196 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          record_id: string | null
+          table_name: string
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          record_id?: string | null
+          table_name: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          record_id?: string | null
+          table_name?: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      incidents: {
+        Row: {
+          attachments: Json
+          casualties: number
+          category: string
+          created_at: string
+          deleted_at: string | null
+          department: string | null
+          description: string
+          district: string | null
+          fatalities: number
+          gps_coordinates: string | null
+          id: string
+          incident_date: string
+          incident_type: string | null
+          injury_type: string | null
+          location_name: string
+          product_type: string | null
+          reference_code: string | null
+          region: string
+          reporter_id: string | null
+          reporter_name: string | null
+          source: string | null
+          source_contact: string | null
+          source_notes: string | null
+          status: Database["public"]["Enums"]["incident_status"]
+          updated_at: string
+        }
+        Insert: {
+          attachments?: Json
+          casualties?: number
+          category: string
+          created_at?: string
+          deleted_at?: string | null
+          department?: string | null
+          description: string
+          district?: string | null
+          fatalities?: number
+          gps_coordinates?: string | null
+          id?: string
+          incident_date: string
+          incident_type?: string | null
+          injury_type?: string | null
+          location_name: string
+          product_type?: string | null
+          reference_code?: string | null
+          region: string
+          reporter_id?: string | null
+          reporter_name?: string | null
+          source?: string | null
+          source_contact?: string | null
+          source_notes?: string | null
+          status?: Database["public"]["Enums"]["incident_status"]
+          updated_at?: string
+        }
+        Update: {
+          attachments?: Json
+          casualties?: number
+          category?: string
+          created_at?: string
+          deleted_at?: string | null
+          department?: string | null
+          description?: string
+          district?: string | null
+          fatalities?: number
+          gps_coordinates?: string | null
+          id?: string
+          incident_date?: string
+          incident_type?: string | null
+          injury_type?: string | null
+          location_name?: string
+          product_type?: string | null
+          reference_code?: string | null
+          region?: string
+          reporter_id?: string | null
+          reporter_name?: string | null
+          source?: string | null
+          source_contact?: string | null
+          source_notes?: string | null
+          status?: Database["public"]["Enums"]["incident_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          department: string | null
+          email: string
+          full_name: string | null
+          id: string
+          status: Database["public"]["Enums"]["account_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+          status?: Database["public"]["Enums"]["account_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["account_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      current_role_level: {
+        Args: never
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_active_user: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      account_status: "pending" | "active" | "suspended"
+      app_role: "collector" | "analyst" | "admin"
+      incident_status: "New" | "Reviewed" | "Closed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +330,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      account_status: ["pending", "active", "suspended"],
+      app_role: ["collector", "analyst", "admin"],
+      incident_status: ["New", "Reviewed", "Closed"],
+    },
   },
 } as const
