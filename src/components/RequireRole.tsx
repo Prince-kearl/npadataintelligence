@@ -1,6 +1,7 @@
 import { Navigate } from "react-router-dom";
-import { useRole, Permission } from "@/hooks/useRole";
-import { ShieldAlert } from "lucide-react";
+import { useRole, Permission, ROLE_LABELS } from "@/hooks/useRole";
+import { useAuth } from "@/hooks/useAuth";
+import { ShieldAlert, Loader2 } from "lucide-react";
 
 interface Props {
   permission: Permission;
@@ -9,7 +10,17 @@ interface Props {
 }
 
 export function RequireRole({ permission, children, redirect }: Props) {
+  const { loading } = useAuth();
   const { can, role } = useRole();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   if (can(permission)) return <>{children}</>;
   if (redirect) return <Navigate to={redirect} replace />;
   return (
@@ -17,8 +28,8 @@ export function RequireRole({ permission, children, redirect }: Props) {
       <ShieldAlert className="h-10 w-10 mx-auto text-destructive" />
       <h2 className="page-title">Access Restricted</h2>
       <p className="meta-text">
-        Your current role <span className="font-semibold">({role})</span> does not have
-        permission to view this page. Contact the System Administrator if you need access.
+        Your current role <span className="font-semibold">({role ? ROLE_LABELS[role] : "none assigned"})</span> does
+        not have permission to view this page. Contact the System Administrator if you need access.
       </p>
     </div>
   );

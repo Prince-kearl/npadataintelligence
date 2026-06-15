@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   FileEdit,
@@ -15,6 +16,8 @@ import { SidebarNavLink } from "@/components/SidebarNavLink";
 import { cn } from "@/lib/utils";
 import npaLogoWhite from "@/assets/npa-logo-white.png";
 import { useRole, Permission } from "@/hooks/useRole";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 type NavItem = { to: string; icon: typeof LayoutDashboard; label: string; perm?: Permission };
 
@@ -34,8 +37,16 @@ const systemNav: NavItem[] = [
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const { can } = useRole();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
   const visibleMain = mainNav.filter((i) => !i.perm || can(i.perm));
   const visibleSystem = systemNav.filter((i) => !i.perm || can(i.perm));
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("Signed out");
+    navigate("/login", { replace: true });
+  };
 
   return (
     <aside
@@ -66,7 +77,10 @@ export function AppSidebar() {
       </nav>
 
       <div className="px-3 py-3 border-t border-sidebar-border space-y-1">
-        <button className="flex items-center gap-3 px-3 py-2 w-full text-sm text-sidebar-foreground/60 hover:text-navy-foreground rounded-lg hover:bg-sidebar-accent transition-colors">
+        <button
+          onClick={handleSignOut}
+          className="flex items-center gap-3 px-3 py-2 w-full text-sm text-sidebar-foreground/60 hover:text-navy-foreground rounded-lg hover:bg-sidebar-accent transition-colors"
+        >
           <LogOut className="h-4 w-4 shrink-0" />
           {!collapsed && <span>Sign Out</span>}
         </button>
