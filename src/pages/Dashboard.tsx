@@ -16,11 +16,8 @@ import {
 } from "lucide-react";
 import { KPICard } from "@/components/KPICard";
 import {
-  mockKPIs,
   mockMonthlyTrend,
   mockByRegion,
-  mockByType,
-  mockIncidents,
   mockByProduct,
 } from "@/lib/mock-data";
 import {
@@ -42,6 +39,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useMemo } from "react";
 import { HotspotMap } from "@/components/HotspotMap";
+import { useIncidents } from "@/hooks/useIncidents";
 
 const statusClass: Record<string, string> = {
   New: "status-new",
@@ -147,13 +145,14 @@ function CategoryTooltip({ active, payload }: any) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { data: incidents = [] } = useIncidents();
 
   const threatDistribution = useMemo(() => {
     const counts = new Map<string, number>();
-    mockIncidents.forEach((inc) => {
+    incidents.forEach((inc) => {
       counts.set(inc.category, (counts.get(inc.category) || 0) + 1);
     });
-    const total = mockIncidents.length || 1;
+    const total = incidents.length || 1;
     return Array.from(counts.entries())
       .map(([name, value]) => ({
         name,
@@ -162,7 +161,16 @@ export default function Dashboard() {
         fill: CATEGORY_COLORS[name] || COLORS.navy,
       }))
       .sort((a, b) => b.value - a.value);
-  }, []);
+  }, [incidents]);
+
+  const kpis = useMemo(() => {
+    const total = incidents.length;
+    const open = incidents.filter((i) => i.status !== "Closed").length;
+    const closed = incidents.filter((i) => i.status === "Closed").length;
+    const casualties = incidents.reduce((s, i) => s + (i.casualties || 0), 0);
+    const fatalities = incidents.reduce((s, i) => s + (i.fatalities || 0), 0);
+    return { total, open, closed, casualties, fatalities };
+  }, [incidents]);
 
   const drillDown = (category: string) => {
     navigate(`/records?category=${encodeURIComponent(category)}`);
