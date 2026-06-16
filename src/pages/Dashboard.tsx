@@ -418,7 +418,7 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {mockIncidents.slice(0, 5).map((inc) => (
+                {incidents.slice(0, 5).map((inc) => (
                   <tr key={inc.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-5 font-medium tabular-nums text-foreground">{inc.id}</td>
                     <td className="py-3 px-4 tabular-nums text-muted-foreground">{inc.incident_date}</td>
