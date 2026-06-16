@@ -292,12 +292,12 @@ export default function Dashboard() {
               <MapPin className="h-4 w-4 text-primary" />
               <span className="section-title">Incident Hotspot Heatmap</span>
             </div>
-            <span className="dash-card-period">live GPS · {mockIncidents.length} sites</span>
+            <span className="dash-card-period">live GPS · {incidents.length} sites</span>
           </div>
           <HotspotMap
-            incidents={mockIncidents}
+            incidents={incidents as any}
             height={340}
-            onSelect={(inc) => navigate(`/records?id=${encodeURIComponent(inc.id)}`)}
+            onSelect={(inc: any) => navigate(`/records?id=${encodeURIComponent(inc.id)}`)}
           />
           <div className="flex items-center justify-between mt-3 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-destructive" /> Major</span>
