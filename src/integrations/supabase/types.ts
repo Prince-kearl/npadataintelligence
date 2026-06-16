@@ -20,8 +20,12 @@ export type Database = {
           created_at: string
           details: Json | null
           id: string
+          ip_address: unknown
+          new_values: Json | null
+          old_values: Json | null
           record_id: string | null
           table_name: string
+          user_agent: string | null
           user_email: string | null
           user_id: string | null
         }
@@ -30,8 +34,12 @@ export type Database = {
           created_at?: string
           details?: Json | null
           id?: string
+          ip_address?: unknown
+          new_values?: Json | null
+          old_values?: Json | null
           record_id?: string | null
           table_name: string
+          user_agent?: string | null
           user_email?: string | null
           user_id?: string | null
         }
@@ -40,12 +48,188 @@ export type Database = {
           created_at?: string
           details?: Json | null
           id?: string
+          ip_address?: unknown
+          new_values?: Json | null
+          old_values?: Json | null
           record_id?: string | null
           table_name?: string
+          user_agent?: string | null
           user_email?: string | null
           user_id?: string | null
         }
         Relationships: []
+      }
+      auth_events: {
+        Row: {
+          created_at: string
+          email: string | null
+          event_type: string
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          event_type: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      export_history: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size_bytes: number
+          filters: Json | null
+          format: string
+          id: string
+          ip_address: unknown
+          row_count: number
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size_bytes?: number
+          filters?: Json | null
+          format: string
+          id?: string
+          ip_address?: unknown
+          row_count?: number
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size_bytes?: number
+          filters?: Json | null
+          format?: string
+          id?: string
+          ip_address?: unknown
+          row_count?: number
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      incident_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size: number
+          id: string
+          incident_id: string
+          mime_type: string | null
+          scan_notes: string | null
+          scan_status: Database["public"]["Enums"]["attachment_scan_status"]
+          storage_path: string
+          tags: string[]
+          updated_at: string
+          uploaded_by: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size?: number
+          id?: string
+          incident_id: string
+          mime_type?: string | null
+          scan_notes?: string | null
+          scan_status?: Database["public"]["Enums"]["attachment_scan_status"]
+          storage_path: string
+          tags?: string[]
+          updated_at?: string
+          uploaded_by?: string | null
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size?: number
+          id?: string
+          incident_id?: string
+          mime_type?: string | null
+          scan_notes?: string | null
+          scan_status?: Database["public"]["Enums"]["attachment_scan_status"]
+          storage_path?: string
+          tags?: string[]
+          updated_at?: string
+          uploaded_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_attachments_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_status_history: {
+        Row: {
+          changed_by: string | null
+          changed_by_email: string | null
+          created_at: string
+          from_status: Database["public"]["Enums"]["incident_status"] | null
+          id: string
+          incident_id: string
+          note: string | null
+          to_status: Database["public"]["Enums"]["incident_status"]
+        }
+        Insert: {
+          changed_by?: string | null
+          changed_by_email?: string | null
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["incident_status"] | null
+          id?: string
+          incident_id: string
+          note?: string | null
+          to_status: Database["public"]["Enums"]["incident_status"]
+        }
+        Update: {
+          changed_by?: string | null
+          changed_by_email?: string | null
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["incident_status"] | null
+          id?: string
+          incident_id?: string
+          note?: string | null
+          to_status?: Database["public"]["Enums"]["incident_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_status_history_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       incidents: {
         Row: {
@@ -64,16 +248,20 @@ export type Database = {
           incident_type: string | null
           injury_type: string | null
           location_name: string
+          previous_channel: string | null
           product_type: string | null
           reference_code: string | null
           region: string
           reporter_id: string | null
           reporter_name: string | null
+          severity: Database["public"]["Enums"]["incident_severity"]
           source: string | null
           source_contact: string | null
           source_notes: string | null
           status: Database["public"]["Enums"]["incident_status"]
           updated_at: string
+          verification_notes: string | null
+          verification_score: number | null
         }
         Insert: {
           attachments?: Json
@@ -91,16 +279,20 @@ export type Database = {
           incident_type?: string | null
           injury_type?: string | null
           location_name: string
+          previous_channel?: string | null
           product_type?: string | null
           reference_code?: string | null
           region: string
           reporter_id?: string | null
           reporter_name?: string | null
+          severity?: Database["public"]["Enums"]["incident_severity"]
           source?: string | null
           source_contact?: string | null
           source_notes?: string | null
           status?: Database["public"]["Enums"]["incident_status"]
           updated_at?: string
+          verification_notes?: string | null
+          verification_score?: number | null
         }
         Update: {
           attachments?: Json
@@ -118,16 +310,20 @@ export type Database = {
           incident_type?: string | null
           injury_type?: string | null
           location_name?: string
+          previous_channel?: string | null
           product_type?: string | null
           reference_code?: string | null
           region?: string
           reporter_id?: string | null
           reporter_name?: string | null
+          severity?: Database["public"]["Enums"]["incident_severity"]
           source?: string | null
           source_contact?: string | null
           source_notes?: string | null
           status?: Database["public"]["Enums"]["incident_status"]
           updated_at?: string
+          verification_notes?: string | null
+          verification_score?: number | null
         }
         Relationships: []
       }
@@ -157,6 +353,39 @@ export type Database = {
           full_name?: string | null
           id?: string
           status?: Database["public"]["Enums"]["account_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      query_templates: {
+        Row: {
+          created_at: string
+          definition: Json
+          description: string | null
+          id: string
+          is_shared: boolean
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          definition?: Json
+          description?: string | null
+          id?: string
+          is_shared?: boolean
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          definition?: Json
+          description?: string | null
+          id?: string
+          is_shared?: boolean
+          name?: string
+          owner_id?: string
           updated_at?: string
         }
         Relationships: []
@@ -203,7 +432,18 @@ export type Database = {
     Enums: {
       account_status: "pending" | "active" | "suspended"
       app_role: "collector" | "analyst" | "admin"
-      incident_status: "New" | "Reviewed" | "Closed"
+      attachment_scan_status: "pending" | "clean" | "infected" | "skipped"
+      incident_severity: "low" | "medium" | "high" | "critical"
+      incident_status:
+        | "New"
+        | "Reviewed"
+        | "Closed"
+        | "draft"
+        | "submitted"
+        | "under_review"
+        | "returned"
+        | "verified"
+        | "archived"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -333,7 +573,19 @@ export const Constants = {
     Enums: {
       account_status: ["pending", "active", "suspended"],
       app_role: ["collector", "analyst", "admin"],
-      incident_status: ["New", "Reviewed", "Closed"],
+      attachment_scan_status: ["pending", "clean", "infected", "skipped"],
+      incident_severity: ["low", "medium", "high", "critical"],
+      incident_status: [
+        "New",
+        "Reviewed",
+        "Closed",
+        "draft",
+        "submitted",
+        "under_review",
+        "returned",
+        "verified",
+        "archived",
+      ],
     },
   },
 } as const
