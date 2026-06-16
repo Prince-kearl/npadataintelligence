@@ -1,4 +1,5 @@
 import { useAuth, type Role } from "@/hooks/useAuth";
+import type { IncidentStatus } from "@/lib/incidents";
 
 export type { Role };
 
@@ -18,10 +19,12 @@ export type Permission =
   | "view_reports"
   | "manage_users"
   | "view_audit_logs"
+  | "view_auth_events"
+  | "manage_templates"
   | "system_settings";
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-  collector: ["submit_incident", "view_own_records"],
+  collector: ["submit_incident", "view_own_records", "manage_templates"],
   analyst: [
     "submit_incident",
     "view_all_records",
@@ -29,6 +32,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "export_data",
     "view_analytics",
     "view_reports",
+    "manage_templates",
   ],
   admin: [
     "submit_incident",
@@ -39,12 +43,24 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "view_reports",
     "manage_users",
     "view_audit_logs",
+    "view_auth_events",
+    "manage_templates",
     "system_settings",
   ],
+};
+
+/** Lifecycle transitions allowed per role. */
+const LIFECYCLE_PERMS: Record<Role, IncidentStatus[]> = {
+  collector: ["draft", "submitted"],
+  analyst: ["draft", "submitted", "under_review", "returned", "verified"],
+  admin: ["draft", "submitted", "under_review", "returned", "verified", "Closed", "archived"],
 };
 
 export function useRole() {
   const { role } = useAuth();
   const can = (perm: Permission) => (role ? ROLE_PERMISSIONS[role].includes(perm) : false);
-  return { role, can };
+  const canSetStatus = (status: IncidentStatus) =>
+    role ? LIFECYCLE_PERMS[role].includes(status) : false;
+  const allowedStatuses = (): IncidentStatus[] => (role ? LIFECYCLE_PERMS[role] : []);
+  return { role, can, canSetStatus, allowedStatuses };
 }

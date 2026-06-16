@@ -25,12 +25,23 @@ export default function Login() {
     }
   }, [loading, user, profile, navigate]);
 
+  const logEvent = async (event_type: string, payload: Record<string, unknown> = {}) => {
+    try {
+      await supabase.functions.invoke("log-auth-event", {
+        body: { event_type, email, ...payload },
+      });
+    } catch {
+      /* non-fatal */
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setIsLoading(false);
+      await logEvent("login_failed", { reason: error.message });
       toast.error(error.message);
       return;
     }
@@ -43,14 +54,17 @@ export default function Login() {
     setIsLoading(false);
     if (!prof || prof.status === "pending") {
       await supabase.auth.signOut();
+      await logEvent("login_failed", { user_id: data.user!.id, reason: "account_pending" });
       toast.warning("Your account is awaiting administrator approval.");
       return;
     }
     if (prof.status === "suspended") {
       await supabase.auth.signOut();
+      await logEvent("login_failed", { user_id: data.user!.id, reason: "account_suspended" });
       toast.error("Your account has been suspended. Contact an administrator.");
       return;
     }
+    await logEvent("login_success", { user_id: data.user!.id });
     toast.success("Welcome back");
     navigate("/", { replace: true });
   };
