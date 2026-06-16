@@ -15,7 +15,7 @@ export const LIFECYCLE_STATUSES: IncidentStatus[] = [
   "under_review",
   "returned",
   "verified",
-  "closed",
+  "Closed",
   "archived",
 ];
 
@@ -25,9 +25,8 @@ export const STATUS_LABELS: Record<string, string> = {
   under_review: "Under Review",
   returned: "Returned for Clarification",
   verified: "Verified",
-  closed: "Closed",
   archived: "Archived",
-  // legacy
+  // legacy / closed
   New: "New",
   Reviewed: "Reviewed",
   Closed: "Closed",
