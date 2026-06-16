@@ -4,12 +4,49 @@ import type { Database } from "@/integrations/supabase/types";
 export type IncidentRow = Database["public"]["Tables"]["incidents"]["Row"];
 export type IncidentInsert = Database["public"]["Tables"]["incidents"]["Insert"];
 export type IncidentUpdate = Database["public"]["Tables"]["incidents"]["Update"];
+export type IncidentStatus = Database["public"]["Enums"]["incident_status"];
+export type IncidentSeverity = Database["public"]["Enums"]["incident_severity"];
+export type AttachmentRow = Database["public"]["Tables"]["incident_attachments"]["Row"];
+
+/** Full lifecycle (new values) + legacy values kept for backward compat. */
+export const LIFECYCLE_STATUSES: IncidentStatus[] = [
+  "draft",
+  "submitted",
+  "under_review",
+  "returned",
+  "verified",
+  "closed",
+  "archived",
+];
+
+export const STATUS_LABELS: Record<string, string> = {
+  draft: "Draft",
+  submitted: "Submitted",
+  under_review: "Under Review",
+  returned: "Returned for Clarification",
+  verified: "Verified",
+  closed: "Closed",
+  archived: "Archived",
+  // legacy
+  New: "New",
+  Reviewed: "Reviewed",
+  Closed: "Closed",
+};
+
+export const SEVERITY_LABELS: Record<IncidentSeverity, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  critical: "Critical",
+};
 
 export interface AttachmentMeta {
   path: string;
   name: string;
   size: number;
   type: string;
+  tags?: string[];
+  version?: number;
 }
 
 export async function listIncidents(): Promise<IncidentRow[]> {
@@ -34,9 +71,19 @@ export async function createIncident(payload: IncidentInsert): Promise<IncidentR
   return data;
 }
 
-export async function updateIncidentStatus(id: string, status: "New" | "Reviewed" | "Closed") {
+export async function updateIncidentStatus(id: string, status: IncidentStatus, note?: string) {
   const { error } = await supabase.from("incidents").update({ status }).eq("id", id);
   if (error) throw error;
+  // Trigger records history automatically; we just attach the optional note as latest row's update
+  if (note) {
+    await supabase
+      .from("incident_status_history")
+      .update({ note })
+      .eq("incident_id", id)
+      .eq("to_status", status)
+      .order("created_at", { ascending: false })
+      .limit(1);
+  }
 }
 
 export async function softDeleteIncident(id: string) {
@@ -45,6 +92,18 @@ export async function softDeleteIncident(id: string) {
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", id);
   if (error) throw error;
+}
+
+// ============ Attachments (multi-file evidence) ============
+
+const SAFE_MIME = /^(image\/(png|jpe?g|webp|gif)|application\/(pdf|msword|vnd\.openxmlformats-officedocument\..+|vnd\.ms-excel)|text\/(plain|csv))$/;
+const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+
+function quickScan(file: File): { status: "clean" | "skipped"; note?: string } {
+  if (file.size === 0) return { status: "skipped", note: "Empty file" };
+  if (file.size > MAX_SIZE) return { status: "skipped", note: "Exceeds 10MB" };
+  if (!SAFE_MIME.test(file.type)) return { status: "skipped", note: `Unrecognized MIME ${file.type}` };
+  return { status: "clean" };
 }
 
 export async function uploadAttachment(userId: string, file: File): Promise<AttachmentMeta> {
@@ -57,10 +116,166 @@ export async function uploadAttachment(userId: string, file: File): Promise<Atta
   return { path, name: file.name, size: file.size, type: file.type };
 }
 
+export async function attachToIncident(
+  incidentId: string,
+  userId: string,
+  file: File,
+  meta: AttachmentMeta,
+  tags: string[] = []
+): Promise<AttachmentRow> {
+  const scan = quickScan(file);
+  // Determine next version number for same filename within this incident
+  const { data: existing } = await supabase
+    .from("incident_attachments")
+    .select("version")
+    .eq("incident_id", incidentId)
+    .eq("file_name", meta.name)
+    .order("version", { ascending: false })
+    .limit(1);
+  const nextVersion = (existing?.[0]?.version ?? 0) + 1;
+
+  const { data, error } = await supabase
+    .from("incident_attachments")
+    .insert({
+      incident_id: incidentId,
+      storage_path: meta.path,
+      file_name: meta.name,
+      file_size: meta.size,
+      mime_type: meta.type,
+      tags,
+      version: nextVersion,
+      scan_status: scan.status,
+      scan_notes: scan.note ?? null,
+      uploaded_by: userId,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function listAttachments(incidentId: string): Promise<AttachmentRow[]> {
+  const { data, error } = await supabase
+    .from("incident_attachments")
+    .select("*")
+    .eq("incident_id", incidentId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function updateAttachmentTags(id: string, tags: string[]) {
+  const { error } = await supabase.from("incident_attachments").update({ tags }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteAttachment(id: string, storagePath: string) {
+  await supabase.storage.from("incident-attachments").remove([storagePath]);
+  const { error } = await supabase.from("incident_attachments").delete().eq("id", id);
+  if (error) throw error;
+}
+
 export async function getAttachmentSignedUrl(path: string, expiresIn = 3600) {
   const { data, error } = await supabase.storage
     .from("incident-attachments")
     .createSignedUrl(path, expiresIn);
   if (error) throw error;
   return data.signedUrl;
+}
+
+// ============ Status history ============
+
+export async function listStatusHistory(incidentId: string) {
+  const { data, error } = await supabase
+    .from("incident_status_history")
+    .select("*")
+    .eq("incident_id", incidentId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ============ Export history ============
+
+export async function recordExport(input: {
+  userId: string;
+  userEmail: string | null;
+  format: string;
+  fileName: string;
+  rowCount: number;
+  fileSize: number;
+  filters?: unknown;
+}) {
+  const { error } = await supabase.from("export_history").insert({
+    user_id: input.userId,
+    user_email: input.userEmail,
+    format: input.format,
+    file_name: input.fileName,
+    row_count: input.rowCount,
+    file_size_bytes: input.fileSize,
+    filters: (input.filters ?? null) as any,
+    user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+  });
+  if (error) throw error;
+}
+
+export async function listExportHistory(limit = 25) {
+  const { data, error } = await supabase
+    .from("export_history")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ============ Query templates ============
+
+export interface QueryFilters {
+  search?: string;
+  status?: string;
+  region?: string;
+  district?: string;
+  category?: string;
+  product_type?: string;
+  severity?: string;
+  reporter?: string;
+  date_from?: string;
+  date_to?: string;
+}
+
+export async function listQueryTemplates() {
+  const { data, error } = await supabase
+    .from("query_templates")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function saveQueryTemplate(input: {
+  ownerId: string;
+  name: string;
+  description?: string;
+  definition: QueryFilters;
+  isShared?: boolean;
+}) {
+  const { data, error } = await supabase
+    .from("query_templates")
+    .insert({
+      owner_id: input.ownerId,
+      name: input.name,
+      description: input.description ?? null,
+      definition: input.definition as any,
+      is_shared: !!input.isShared,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteQueryTemplate(id: string) {
+  const { error } = await supabase.from("query_templates").delete().eq("id", id);
+  if (error) throw error;
 }
