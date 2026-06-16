@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,12 +29,40 @@ import {
   REPORT_SOURCES,
 } from "@/lib/mock-data";
 import { findPotentialDuplicates, type DuplicateMatch } from "@/lib/incident-verification";
-import { Upload, Save, SendHorizonal, ShieldAlert, X } from "lucide-react";
+import { Upload, Save, SendHorizonal, ShieldAlert, X, Camera, MapPin, RotateCcw, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { createIncident, listIncidents, uploadAttachment, type AttachmentMeta } from "@/lib/incidents";
+import {
+  createIncident,
+  listIncidents,
+  uploadAttachment,
+  attachToIncident,
+  SEVERITY_LABELS,
+  type AttachmentMeta,
+  type IncidentSeverity,
+} from "@/lib/incidents";
+import { saveDraft, loadDraft, deleteDraft } from "@/lib/draft-store";
+
+const DRAFT_ID = "current";
+const PREV_CHANNELS = [
+  "None — first time reported",
+  "Phone call to NPA",
+  "Email to NPA",
+  "Walk-in complaint",
+  "Police / Fire Service",
+  "Social media",
+  "News media",
+  "Industry operator",
+  "Other agency",
+];
+const EVIDENCE_TAGS = ["Photo", "Document", "Video", "Witness statement", "Lab report", "Map", "Other"];
+
+interface PendingFile {
+  file: File;
+  tags: string[];
+}
 
 export default function SubmitIncident() {
   const { user, profile } = useAuth();
@@ -45,6 +73,7 @@ export default function SubmitIncident() {
   const [verifying, setVerifying] = useState(false);
   const [matches, setMatches] = useState<DuplicateMatch[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [online, setOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
 
   const [incidentDate, setIncidentDate] = useState("");
   const [region, setRegion] = useState("");
@@ -53,6 +82,7 @@ export default function SubmitIncident() {
   const [gps, setGps] = useState("");
   const [category, setCategory] = useState("");
   const [incidentType, setIncidentType] = useState("");
+  const [severity, setSeverity] = useState<IncidentSeverity>("medium");
   const [productType, setProductType] = useState("");
   const [injuryType, setInjuryType] = useState("");
   const [casualties, setCasualties] = useState(0);
@@ -61,43 +91,105 @@ export default function SubmitIncident() {
   const [source, setSource] = useState("");
   const [sourceContact, setSourceContact] = useState("");
   const [sourceNotes, setSourceNotes] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
+  const [previousChannel, setPreviousChannel] = useState("None — first time reported");
+  const [files, setFiles] = useState<PendingFile[]>([]);
+
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Online/offline indicator
+  useEffect(() => {
+    const onOnline = () => setOnline(true);
+    const onOffline = () => setOnline(false);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, []);
+
+  // Restore draft on mount
+  useEffect(() => {
+    (async () => {
+      const d = await loadDraft(DRAFT_ID);
+      if (d && Object.keys(d.payload).length) {
+        const p = d.payload as any;
+        if (p.incidentDate) setIncidentDate(p.incidentDate);
+        if (p.region) setRegion(p.region);
+        if (p.district) setDistrict(p.district);
+        if (p.locationName) setLocationName(p.locationName);
+        if (p.gps) setGps(p.gps);
+        if (p.category) setCategory(p.category);
+        if (p.incidentType) setIncidentType(p.incidentType);
+        if (p.severity) setSeverity(p.severity);
+        if (p.productType) setProductType(p.productType);
+        if (p.injuryType) setInjuryType(p.injuryType);
+        if (typeof p.casualties === "number") setCasualties(p.casualties);
+        if (typeof p.fatalities === "number") setFatalities(p.fatalities);
+        if (p.description) setDescription(p.description);
+        if (p.source) setSource(p.source);
+        if (p.sourceContact) setSourceContact(p.sourceContact);
+        if (p.sourceNotes) setSourceNotes(p.sourceNotes);
+        if (p.previousChannel) setPreviousChannel(p.previousChannel);
+        toast.message("Draft restored from last session", {
+          description: `Saved ${new Date(d.updatedAt).toLocaleString()}`,
+        });
+      }
+    })();
+  }, []);
+
+  // Auto-save every 8s (no files — those are too large for IDB drafts)
+  useEffect(() => {
+    const t = setInterval(() => {
+      saveDraft(DRAFT_ID, {
+        incidentDate, region, district, locationName, gps, category, incidentType, severity,
+        productType, injuryType, casualties, fatalities, description, source, sourceContact,
+        sourceNotes, previousChannel,
+      }).catch(() => {});
+    }, 8000);
+    return () => clearInterval(t);
+  }, [
+    incidentDate, region, district, locationName, gps, category, incidentType, severity,
+    productType, injuryType, casualties, fatalities, description, source, sourceContact,
+    sourceNotes, previousChannel,
+  ]);
 
   const addFiles = (list: FileList | null) => {
     if (!list) return;
-    const next = Array.from(list).filter((f) => f.size <= 10 * 1024 * 1024);
+    const next = Array.from(list)
+      .filter((f) => f.size <= 10 * 1024 * 1024)
+      .map<PendingFile>((f) => ({ file: f, tags: [f.type.startsWith("image/") ? "Photo" : "Document"] }));
     if (next.length !== list.length) toast.warning("Some files exceeded 10MB and were skipped");
     setFiles((prev) => [...prev, ...next]);
   };
 
   const removeFile = (idx: number) => setFiles((p) => p.filter((_, i) => i !== idx));
+  const toggleTag = (idx: number, tag: string) =>
+    setFiles((p) =>
+      p.map((f, i) =>
+        i === idx
+          ? { ...f, tags: f.tags.includes(tag) ? f.tags.filter((t) => t !== tag) : [...f.tags, tag] }
+          : f
+      )
+    );
 
   const captureGps = () => {
-    if (!navigator.geolocation) {
-      toast.error("Geolocation is not supported on this device");
-      return;
-    }
+    if (!navigator.geolocation) return toast.error("Geolocation not supported");
     navigator.geolocation.getCurrentPosition(
-      (pos) => setGps(`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`),
+      (pos) => {
+        setGps(`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`);
+        toast.success("GPS captured");
+      },
       (err) => toast.error(err.message)
     );
   };
 
-  const finalizeSubmit = async () => {
+  const finalizeSubmit = async (verificationScore?: number, verificationNotes?: string) => {
     setDialogOpen(false);
-    if (!user) {
-      toast.error("You must be signed in");
-      return;
-    }
+    if (!user) return toast.error("You must be signed in");
     setIsSubmitting(true);
     try {
-      // 1. Upload attachments first
-      const attachments: AttachmentMeta[] = [];
-      for (const f of files) {
-        const meta = await uploadAttachment(user.id, f);
-        attachments.push(meta);
-      }
-      // 2. Insert incident
+      // 1. Insert incident first (so attachments can reference its id)
       const inc = await createIncident({
         reporter_id: user.id,
         reporter_name: profile?.full_name || profile?.email || "Unknown",
@@ -109,6 +201,7 @@ export default function SubmitIncident() {
         gps_coordinates: gps || null,
         category,
         incident_type: incidentType || null,
+        severity,
         product_type: productType || null,
         injury_type: injuryType || null,
         casualties,
@@ -117,9 +210,20 @@ export default function SubmitIncident() {
         source: source || null,
         source_contact: sourceContact || null,
         source_notes: sourceNotes || null,
-        attachments: attachments as any,
-        status: "New",
+        previous_channel: previousChannel || null,
+        verification_score: verificationScore ?? null,
+        verification_notes: verificationNotes ?? null,
+        attachments: [] as any,
+        status: "submitted",
       });
+
+      // 2. Upload files + register attachment rows
+      for (const pf of files) {
+        const meta: AttachmentMeta = await uploadAttachment(user.id, pf.file);
+        await attachToIncident(inc.id, user.id, pf.file, meta, pf.tags);
+      }
+
+      await deleteDraft(DRAFT_ID);
       toast.success(`Incident submitted as ${inc.reference_code}`);
       qc.invalidateQueries({ queryKey: ["incidents"] });
       navigate("/records");
@@ -133,18 +237,27 @@ export default function SubmitIncident() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (!online) {
+      // Save offline — will need manual retry when back online
+      await saveDraft(DRAFT_ID, {
+        incidentDate, region, district, locationName, gps, category, incidentType, severity,
+        productType, injuryType, casualties, fatalities, description, source, sourceContact,
+        sourceNotes, previousChannel,
+      });
+      return toast.warning("Saved offline. Submit when you reconnect.");
+    }
     setVerifying(true);
     try {
       const pool = await listIncidents();
       const found = findPotentialDuplicates(
-        { incident_date: incidentDate, region, district, location_name: locationName, category, description },
+        { incident_date: incidentDate, region, district, location_name: locationName, category, description, gps_coordinates: gps, previous_channel: previousChannel },
         pool
       );
       setMatches(found);
       if (found.length > 0) {
         setDialogOpen(true);
       } else {
-        await finalizeSubmit();
+        await finalizeSubmit(0, "No duplicates detected");
       }
     } catch (err: any) {
       toast.error(err.message || "Verification failed");
@@ -153,29 +266,57 @@ export default function SubmitIncident() {
     }
   };
 
+  const handleSaveDraft = async () => {
+    await saveDraft(DRAFT_ID, {
+      incidentDate, region, district, locationName, gps, category, incidentType, severity,
+      productType, injuryType, casualties, fatalities, description, source, sourceContact,
+      sourceNotes, previousChannel,
+    });
+    toast.success("Draft saved locally on this device");
+  };
+
+  const handleDiscardDraft = async () => {
+    await deleteDraft(DRAFT_ID);
+    formRef.current?.reset();
+    setIncidentDate(""); setRegion(""); setDistrict(""); setLocationName(""); setGps("");
+    setCategory(""); setIncidentType(""); setSeverity("medium"); setProductType(""); setInjuryType("");
+    setCasualties(0); setFatalities(0); setDescription(""); setSource(""); setSourceContact("");
+    setSourceNotes(""); setPreviousChannel("None — first time reported"); setFiles([]);
+    toast.success("Draft discarded");
+  };
+
+  const topScore = matches[0]?.score ?? 0;
+
   return (
     <div className="space-y-5 max-w-4xl">
-      <div>
-        <h1 className="page-title">Submit Incident Report</h1>
-        <p className="meta-text mt-1">
-          All submissions are cross-checked against existing records to prevent duplicate or outdated entries.
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="page-title">Submit Incident Report</h1>
+          <p className="meta-text mt-1">
+            All submissions are cross-checked against existing records (date, GPS, facility name, description, channel) to prevent duplicates.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {!online && (
+            <Badge variant="secondary" className="bg-warning/10 text-warning border border-warning/20 gap-1">
+              <WifiOff className="h-3 w-3" /> Offline
+            </Badge>
+          )}
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
         <div className="dash-card space-y-4">
           <h3 className="section-title">Location & Date</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="label-text">Incident Date *</Label>
-              <Input type="date" required value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="bg-muted/50 border-border rounded-lg" />
+              <Input type="date" required value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="bg-muted/50 border-border rounded-lg min-h-12" />
             </div>
             <div className="space-y-2">
               <Label className="label-text">Region *</Label>
               <Select required value={region} onValueChange={setRegion}>
-                <SelectTrigger className="bg-muted/50 border-border rounded-lg">
-                  <SelectValue placeholder="Select region" />
-                </SelectTrigger>
+                <SelectTrigger className="bg-muted/50 border-border rounded-lg min-h-12"><SelectValue placeholder="Select region" /></SelectTrigger>
                 <SelectContent className="bg-card border-border">
                   {REGIONS.map((r) => (<SelectItem key={r} value={r}>{r}</SelectItem>))}
                 </SelectContent>
@@ -184,9 +325,7 @@ export default function SubmitIncident() {
             <div className="space-y-2">
               <Label className="label-text">District *</Label>
               <Select required value={district} onValueChange={setDistrict}>
-                <SelectTrigger className="bg-muted/50 border-border rounded-lg">
-                  <SelectValue placeholder="Select district" />
-                </SelectTrigger>
+                <SelectTrigger className="bg-muted/50 border-border rounded-lg min-h-12"><SelectValue placeholder="Select district" /></SelectTrigger>
                 <SelectContent className="bg-card border-border">
                   {DISTRICTS.map((d) => (<SelectItem key={d} value={d}>{d}</SelectItem>))}
                 </SelectContent>
@@ -194,13 +333,15 @@ export default function SubmitIncident() {
             </div>
             <div className="space-y-2">
               <Label className="label-text">Location / Facility Name *</Label>
-              <Input placeholder="Enter facility or location name" required value={locationName} onChange={(e) => setLocationName(e.target.value)} className="bg-muted/50 border-border rounded-lg" />
+              <Input placeholder="Enter facility or location name" required value={locationName} onChange={(e) => setLocationName(e.target.value)} className="bg-muted/50 border-border rounded-lg min-h-12" />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label className="label-text">GPS Coordinates</Label>
-              <div className="flex gap-2">
-                <Input placeholder="e.g., 5.6037, -0.1870" value={gps} onChange={(e) => setGps(e.target.value)} className="bg-muted/50 border-border rounded-lg" />
-                <Button type="button" variant="outline" onClick={captureGps}>Use My Location</Button>
+              <div className="flex gap-2 flex-wrap">
+                <Input placeholder="e.g., 5.6037, -0.1870" value={gps} onChange={(e) => setGps(e.target.value)} className="bg-muted/50 border-border rounded-lg min-h-12 flex-1 min-w-[200px]" />
+                <Button type="button" variant="outline" onClick={captureGps} className="min-h-12">
+                  <MapPin className="h-4 w-4 mr-1" /> Use My Location
+                </Button>
               </div>
             </div>
           </div>
@@ -212,9 +353,7 @@ export default function SubmitIncident() {
             <div className="space-y-2">
               <Label className="label-text">Incident Category *</Label>
               <Select required value={category} onValueChange={setCategory}>
-                <SelectTrigger className="bg-muted/50 border-border rounded-lg">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
+                <SelectTrigger className="bg-muted/50 border-border rounded-lg min-h-12"><SelectValue placeholder="Select category" /></SelectTrigger>
                 <SelectContent className="bg-card border-border">
                   {INCIDENT_CATEGORIES.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
                 </SelectContent>
@@ -223,20 +362,27 @@ export default function SubmitIncident() {
             <div className="space-y-2">
               <Label className="label-text">Incident Type *</Label>
               <Select required value={incidentType} onValueChange={setIncidentType}>
-                <SelectTrigger className="bg-muted/50 border-border rounded-lg">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
+                <SelectTrigger className="bg-muted/50 border-border rounded-lg min-h-12"><SelectValue placeholder="Select type" /></SelectTrigger>
                 <SelectContent className="bg-card border-border">
                   {INCIDENT_TYPES.map((t) => (<SelectItem key={t} value={t}>{t}</SelectItem>))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
+              <Label className="label-text">Severity *</Label>
+              <Select required value={severity} onValueChange={(v) => setSeverity(v as IncidentSeverity)}>
+                <SelectTrigger className="bg-muted/50 border-border rounded-lg min-h-12"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  {(Object.keys(SEVERITY_LABELS) as IncidentSeverity[]).map((s) => (
+                    <SelectItem key={s} value={s}>{SEVERITY_LABELS[s]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label className="label-text">Petroleum Product Type *</Label>
               <Select required value={productType} onValueChange={setProductType}>
-                <SelectTrigger className="bg-muted/50 border-border rounded-lg">
-                  <SelectValue placeholder="Select product type" />
-                </SelectTrigger>
+                <SelectTrigger className="bg-muted/50 border-border rounded-lg min-h-12"><SelectValue placeholder="Select product type" /></SelectTrigger>
                 <SelectContent className="bg-card border-border">
                   {PRODUCT_TYPES.map((p) => (<SelectItem key={p} value={p}>{p}</SelectItem>))}
                 </SelectContent>
@@ -245,9 +391,7 @@ export default function SubmitIncident() {
             <div className="space-y-2">
               <Label className="label-text">Nature of Injury</Label>
               <Select value={injuryType} onValueChange={setInjuryType}>
-                <SelectTrigger className="bg-muted/50 border-border rounded-lg">
-                  <SelectValue placeholder="Select injury type" />
-                </SelectTrigger>
+                <SelectTrigger className="bg-muted/50 border-border rounded-lg min-h-12"><SelectValue placeholder="Select injury type" /></SelectTrigger>
                 <SelectContent className="bg-card border-border">
                   {INJURY_TYPES.map((i) => (<SelectItem key={i} value={i}>{i}</SelectItem>))}
                 </SelectContent>
@@ -255,11 +399,11 @@ export default function SubmitIncident() {
             </div>
             <div className="space-y-2">
               <Label className="label-text">Casualties</Label>
-              <Input type="number" min={0} value={casualties} onChange={(e) => setCasualties(Number(e.target.value))} className="bg-muted/50 border-border rounded-lg" />
+              <Input type="number" min={0} value={casualties} onChange={(e) => setCasualties(Number(e.target.value))} className="bg-muted/50 border-border rounded-lg min-h-12" />
             </div>
             <div className="space-y-2">
               <Label className="label-text">Fatalities</Label>
-              <Input type="number" min={0} value={fatalities} onChange={(e) => setFatalities(Number(e.target.value))} className="bg-muted/50 border-border rounded-lg" />
+              <Input type="number" min={0} value={fatalities} onChange={(e) => setFatalities(Number(e.target.value))} className="bg-muted/50 border-border rounded-lg min-h-12" />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label className="label-text">Incident Description *</Label>
@@ -269,39 +413,56 @@ export default function SubmitIncident() {
         </div>
 
         <div className="dash-card space-y-4">
-          <h3 className="section-title">Attachments</h3>
-          <label className="border-2 border-dashed border-border rounded-xl p-8 text-center bg-muted/30 block cursor-pointer hover:bg-muted/50 transition-colors">
-            <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">Click to browse or drop files</p>
-            <p className="meta-text mt-1">Photos, documents (max 10MB each)</p>
-            <input type="file" multiple className="hidden" onChange={(e) => addFiles(e.target.files)} />
-          </label>
+          <h3 className="section-title">Evidence & Attachments</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <label className="border-2 border-dashed border-border rounded-xl p-6 text-center bg-muted/30 block cursor-pointer hover:bg-muted/50 transition-colors min-h-[120px]">
+              <Upload className="h-7 w-7 mx-auto text-muted-foreground mb-1" />
+              <p className="text-sm text-muted-foreground">Click to browse or drop files</p>
+              <p className="meta-text mt-1">Max 10MB per file</p>
+              <input type="file" multiple className="hidden" onChange={(e) => addFiles(e.target.files)} accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt" />
+            </label>
+            <label className="border-2 border-dashed border-border rounded-xl p-6 text-center bg-muted/30 block cursor-pointer hover:bg-muted/50 transition-colors min-h-[120px]">
+              <Camera className="h-7 w-7 mx-auto text-muted-foreground mb-1" />
+              <p className="text-sm text-muted-foreground">Use camera to capture</p>
+              <p className="meta-text mt-1">Mobile field photo</p>
+              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => addFiles(e.target.files)} />
+            </label>
+          </div>
+
           {files.length > 0 && (
-            <div className="space-y-1.5">
-              {files.map((f, i) => (
-                <div key={i} className="flex items-center justify-between bg-muted/40 rounded-md px-3 py-2 text-xs">
-                  <span className="truncate">{f.name} <span className="text-muted-foreground">({(f.size / 1024).toFixed(1)} KB)</span></span>
-                  <button type="button" onClick={() => removeFile(i)} className="text-muted-foreground hover:text-destructive">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
+            <div className="space-y-2">
+              {files.map((pf, i) => (
+                <div key={i} className="bg-muted/40 rounded-lg px-3 py-2 text-xs space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate font-medium">
+                      {pf.file.name}{" "}
+                      <span className="text-muted-foreground font-normal">({(pf.file.size / 1024).toFixed(1)} KB)</span>
+                    </span>
+                    <button type="button" onClick={() => removeFile(i)} className="text-muted-foreground hover:text-destructive shrink-0">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {EVIDENCE_TAGS.map((t) => {
+                      const on = pf.tags.includes(t);
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => toggleTag(i, t)}
+                          className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
+                            on ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:bg-muted"
+                          }`}
+                        >
+                          {t}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
-
-        <div className="dash-card space-y-4">
-          <h3 className="section-title">Reporter Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="label-text">Reporter Name</Label>
-              <Input value={profile?.full_name || profile?.email || ""} disabled className="bg-muted/30 border-border rounded-lg" />
-            </div>
-            <div className="space-y-2">
-              <Label className="label-text">Department</Label>
-              <Input value={profile?.department || ""} disabled className="bg-muted/30 border-border rounded-lg" />
-            </div>
-          </div>
         </div>
 
         <div className="dash-card space-y-4">
@@ -310,37 +471,40 @@ export default function SubmitIncident() {
             <div className="space-y-2">
               <Label className="label-text">Report Source *</Label>
               <Select required value={source} onValueChange={setSource}>
-                <SelectTrigger className="bg-muted/50 border-border rounded-lg">
-                  <SelectValue placeholder="Select source of report" />
-                </SelectTrigger>
+                <SelectTrigger className="bg-muted/50 border-border rounded-lg min-h-12"><SelectValue placeholder="Select source of report" /></SelectTrigger>
                 <SelectContent className="bg-card border-border">
                   {REPORT_SOURCES.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
+              <Label className="label-text">Previously Reported Via</Label>
+              <Select value={previousChannel} onValueChange={setPreviousChannel}>
+                <SelectTrigger className="bg-muted/50 border-border rounded-lg min-h-12"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  {PREV_CHANNELS.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label className="label-text">Source Contact / Reference</Label>
-              <Input value={sourceContact} onChange={(e) => setSourceContact(e.target.value)} placeholder="Name, phone, agency, or reference ID" className="bg-muted/50 border-border rounded-lg" />
+              <Input value={sourceContact} onChange={(e) => setSourceContact(e.target.value)} placeholder="Name, phone, agency, or reference ID" className="bg-muted/50 border-border rounded-lg min-h-12" />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label className="label-text">Source Details / Notes</Label>
-              <Textarea
-                value={sourceNotes}
-                onChange={(e) => setSourceNotes(e.target.value)}
-                placeholder="Provide additional context about how this incident was reported..."
-                rows={3}
-                className="bg-muted/50 border-border rounded-lg"
-              />
+              <Textarea value={sourceNotes} onChange={(e) => setSourceNotes(e.target.value)} placeholder="Additional context about how this incident was reported..." rows={3} className="bg-muted/50 border-border rounded-lg" />
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 justify-end">
-          <Button variant="outline" type="button" disabled>
-            <Save className="h-4 w-4 mr-1" />
-            Save Draft
+        <div className="flex items-center gap-3 justify-end flex-wrap">
+          <Button variant="ghost" type="button" onClick={handleDiscardDraft} className="min-h-12">
+            <RotateCcw className="h-4 w-4 mr-1" /> Discard
           </Button>
-          <Button variant="default" type="submit" disabled={isSubmitting || verifying}>
+          <Button variant="outline" type="button" onClick={handleSaveDraft} className="min-h-12">
+            <Save className="h-4 w-4 mr-1" /> Save Draft
+          </Button>
+          <Button variant="default" type="submit" disabled={isSubmitting || verifying} className="min-h-12">
             <SendHorizonal className="h-4 w-4 mr-1" />
             {verifying ? "Verifying..." : isSubmitting ? "Submitting..." : "Verify & Submit"}
           </Button>
@@ -355,8 +519,8 @@ export default function SubmitIncident() {
               Possible Duplicate Detected
             </DialogTitle>
             <DialogDescription>
-              The authenticity check found {matches.length} existing record{matches.length === 1 ? "" : "s"} that may match this incident.
-              Please confirm this is a new, current incident before submitting.
+              The authenticity engine flagged {matches.length} existing record{matches.length === 1 ? "" : "s"} that may match this incident.
+              Please confirm before submitting — your decision is recorded in the audit log.
             </DialogDescription>
           </DialogHeader>
 
@@ -388,7 +552,11 @@ export default function SubmitIncident() {
 
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Review & Edit</Button>
-            <Button variant="default" onClick={finalizeSubmit} disabled={isSubmitting}>
+            <Button
+              variant="default"
+              onClick={() => finalizeSubmit(topScore, `User confirmed despite ${matches.length} potential match(es); top score ${topScore}%`)}
+              disabled={isSubmitting}
+            >
               {isSubmitting ? "Submitting..." : "Confirm New Incident & Submit"}
             </Button>
           </DialogFooter>
