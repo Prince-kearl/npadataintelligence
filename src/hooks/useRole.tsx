@@ -53,7 +53,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
 const LIFECYCLE_PERMS: Record<Role, IncidentStatus[]> = {
   collector: ["draft", "submitted"],
   analyst: ["draft", "submitted", "under_review", "returned", "verified"],
-  admin: ["draft", "submitted", "under_review", "returned", "verified", "closed", "archived"],
+  admin: ["draft", "submitted", "under_review", "returned", "verified", "Closed", "archived"],
 };
 
 export function useRole() {
