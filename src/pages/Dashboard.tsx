@@ -336,7 +336,7 @@ export default function Dashboard() {
         <div className="dash-card">
           <div className="dash-card-header">
             <span className="section-title">Threat Distribution</span>
-            <span className="dash-card-period">live · {mockIncidents.length} incidents</span>
+            <span className="dash-card-period">live · {incidents.length} incidents</span>
           </div>
           <div className="flex items-center gap-3">
             <ResponsiveContainer width="55%" height={200}>
