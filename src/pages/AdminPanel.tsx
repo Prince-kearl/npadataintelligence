@@ -52,6 +52,16 @@ async function fetchAuditLogs() {
   return data;
 }
 
+async function fetchAuthEvents() {
+  const { data, error } = await supabase
+    .from("auth_events")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) throw error;
+  return data ?? [];
+}
+
 const roleClass: Record<string, string> = {
   admin: "bg-destructive/10 text-destructive",
   analyst: "bg-accent/10 text-accent",
