@@ -25,7 +25,7 @@ async function fetchExportHistory() {
 async function logExportRow(payload: { file_name: string; format: string; row_count: number; size_bytes: number }) {
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) return;
-  await supabase.from("export_history").insert({
+  await (supabase.from("export_history") as any).insert({
     user_id: u.user.id,
     user_email: u.user.email,
     file_name: payload.file_name,
