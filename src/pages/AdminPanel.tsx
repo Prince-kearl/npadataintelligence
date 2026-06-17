@@ -77,6 +77,7 @@ export default function AdminPanel() {
   const qc = useQueryClient();
   const { data: users = [], isLoading } = useQuery({ queryKey: ["admin-users"], queryFn: fetchUsers });
   const { data: audit = [] } = useQuery({ queryKey: ["audit-logs"], queryFn: fetchAuditLogs });
+  const { data: authEvents = [] } = useQuery({ queryKey: ["auth-events"], queryFn: fetchAuthEvents });
 
   const updateStatus = async (id: string, status: AccountStatus) => {
     const { error } = await supabase.from("profiles").update({ status }).eq("id", id);
