@@ -237,47 +237,47 @@ export default function Dashboard() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <KPICard
-          title="Total Incidents Today"
-          value={438}
+          title="Total Incidents (30d)"
+          value={kpis.last30}
           icon={AlertTriangle}
-          change="↑ 12.1% vs yesterday"
-          changeType="negative"
+          change={kpis.delta === 0 ? "No prior period" : `${kpis.delta > 0 ? "↑" : "↓"} ${Math.abs(kpis.delta)}% vs prev 30d`}
+          changeType={kpis.delta > 0 ? "negative" : kpis.delta < 0 ? "positive" : "neutral"}
           iconBg="bg-destructive/10"
           iconClass="text-destructive"
         />
         <KPICard
-          title="Active Security Alerts"
-          value={57}
+          title="High / Critical Severity"
+          value={kpis.critical}
           icon={ShieldAlert}
-          change="↓ 3.4% this week"
-          changeType="positive"
+          change={kpis.total ? `${Math.round((kpis.critical / kpis.total) * 100)}% of all` : "—"}
+          changeType={kpis.critical > 0 ? "negative" : "positive"}
           iconBg="bg-warning/10"
           iconClass="text-warning"
         />
         <KPICard
           title="Resolved Cases"
-          value={381}
+          value={kpis.closed}
           icon={CheckCircle}
-          change="↑ 15.5% this week"
+          change={`${kpis.resolveRate}% resolve rate`}
           changeType="positive"
           iconBg="bg-success/10"
           iconClass="text-success"
         />
         <KPICard
-          title="Emergency Response Rate"
-          value="98.4%"
+          title="Open Cases"
+          value={kpis.open}
           icon={Activity}
-          change="Optimal"
-          changeType="positive"
+          change="Across all stages"
+          changeType="neutral"
           iconBg="bg-info/10"
           iconClass="text-info"
         />
         <KPICard
-          title="High Risk Incidents"
-          value={9}
+          title="Total On Record"
+          value={kpis.total}
           icon={Flame}
-          change="Warning"
-          changeType="negative"
+          change="All-time"
+          changeType="neutral"
           iconBg="bg-primary/15"
           iconClass="text-primary"
         />
