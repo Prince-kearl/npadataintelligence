@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Download, FileText, FileSpreadsheet, File, Database, Loader2 } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
 import {
   incidentsToCSV,
@@ -10,19 +9,42 @@ import {
 } from "@/lib/exporters";
 import { useRole } from "@/hooks/useRole";
 import { useIncidents } from "@/hooks/useIncidents";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-interface ExportRecord { name: string; format: string; size: string; at: string; }
+async function fetchExportHistory() {
+  const { data, error } = await supabase
+    .from("export_history")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(25);
+  if (error) throw error;
+  return data ?? [];
+}
+
+async function logExportRow(payload: { file_name: string; format: string; row_count: number; size_bytes: number }) {
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) return;
+  await (supabase.from("export_history") as any).insert({
+    user_id: u.user.id,
+    user_email: u.user.email,
+    file_name: payload.file_name,
+    format: payload.format,
+    row_count: payload.row_count,
+    size_bytes: payload.size_bytes,
+  });
+}
 
 export default function Reports() {
   const { can } = useRole();
   const allowed = can("export_data");
   const { data: incidents = [], isLoading } = useIncidents();
-  const [recent, setRecent] = useState<ExportRecord[]>([]);
+  const qc = useQueryClient();
+  const { data: history = [] } = useQuery({ queryKey: ["export-history"], queryFn: fetchExportHistory });
 
-  const logExport = (name: string, format: string, content: string) => {
-    setRecent((r) =>
-      [{ name, format, size: `${(content.length / 1024).toFixed(1)} KB`, at: new Date().toLocaleString() }, ...r].slice(0, 8)
-    );
+  const recordExport = async (name: string, format: string, content: string) => {
+    await logExportRow({ file_name: name, format, row_count: incidents.length, size_bytes: content.length });
+    qc.invalidateQueries({ queryKey: ["export-history"] });
   };
 
   const guard = () => {
@@ -31,34 +53,34 @@ export default function Reports() {
     return true;
   };
 
-  const exportCSV = () => {
+  const exportCSV = async () => {
     if (!guard()) return;
     const content = incidentsToCSV(incidents);
     const name = timestampedName("npa_incidents", "csv");
     downloadBlob(name, content, "text/csv;charset=utf-8");
-    logExport(name, "CSV", content);
+    await recordExport(name, "CSV", content);
     toast.success(`Exported ${incidents.length} records as CSV`);
   };
 
-  const exportExcel = () => {
+  const exportExcel = async () => {
     if (!guard()) return;
     const content = incidentsToCSV(incidents);
     const name = timestampedName("npa_incidents", "xls");
     downloadBlob(name, content, "application/vnd.ms-excel");
-    logExport(name, "Excel", content);
+    await recordExport(name, "Excel", content);
     toast.success("Excel export ready");
   };
 
-  const exportSQL = () => {
+  const exportSQL = async () => {
     if (!guard()) return;
     const content = incidentsToSQLDump(incidents);
     const name = timestampedName("npa_incidents", "sql");
     downloadBlob(name, content, "application/sql");
-    logExport(name, "SQL Dump", content);
+    await recordExport(name, "SQL Dump", content);
     toast.success("SQL dump generated");
   };
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
     if (!guard()) return;
     const win = window.open("", "_blank");
     if (!win) return;
@@ -71,7 +93,7 @@ export default function Reports() {
       <table><thead><tr><th>Reference</th><th>Date</th><th>Region</th><th>Category</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>
       <script>window.onload=()=>window.print()</script></body></html>`);
     win.document.close();
-    logExport(timestampedName("npa_report", "pdf"), "PDF", "0");
+    await recordExport(timestampedName("npa_report", "pdf"), "PDF", "x".repeat(2048));
     toast.success("PDF print view opened");
   };
 
@@ -133,11 +155,11 @@ export default function Reports() {
       )}
 
       <div className="dash-card">
-        <h3 className="section-title mb-4">Recent Exports</h3>
-        {recent.length === 0 ? (
+        <h3 className="section-title mb-4">Export History</h3>
+        {history.length === 0 ? (
           <div className="text-center py-8">
             <FileText className="h-10 w-10 mx-auto text-muted-foreground/30 mb-2" />
-            <p className="text-sm text-muted-foreground">No recent exports. Generate a report to get started.</p>
+            <p className="text-sm text-muted-foreground">No exports yet. Generate a report to get started.</p>
           </div>
         ) : (
           <table className="w-full text-sm">
@@ -145,17 +167,21 @@ export default function Reports() {
               <tr className="border-b border-border">
                 <th className="data-table-header text-left py-2 px-3">File</th>
                 <th className="data-table-header text-left py-2 px-3">Format</th>
+                <th className="data-table-header text-left py-2 px-3">Rows</th>
                 <th className="data-table-header text-left py-2 px-3">Size</th>
-                <th className="data-table-header text-left py-2 px-3">Generated</th>
+                <th className="data-table-header text-left py-2 px-3">By</th>
+                <th className="data-table-header text-left py-2 px-3">When</th>
               </tr>
             </thead>
             <tbody>
-              {recent.map((r, i) => (
-                <tr key={i} className="border-b border-border/50">
-                  <td className="py-2 px-3 font-medium">{r.name}</td>
+              {history.map((r: any) => (
+                <tr key={r.id} className="border-b border-border/50">
+                  <td className="py-2 px-3 font-medium">{r.file_name}</td>
                   <td className="py-2 px-3 text-muted-foreground">{r.format}</td>
-                  <td className="py-2 px-3 tabular-nums text-muted-foreground">{r.size}</td>
-                  <td className="py-2 px-3 text-muted-foreground">{r.at}</td>
+                  <td className="py-2 px-3 tabular-nums text-muted-foreground">{r.row_count ?? "—"}</td>
+                  <td className="py-2 px-3 tabular-nums text-muted-foreground">{r.size_bytes ? `${(r.size_bytes / 1024).toFixed(1)} KB` : "—"}</td>
+                  <td className="py-2 px-3 text-muted-foreground">{r.user_email || "—"}</td>
+                  <td className="py-2 px-3 text-muted-foreground">{new Date(r.created_at).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>

@@ -52,6 +52,16 @@ async function fetchAuditLogs() {
   return data;
 }
 
+async function fetchAuthEvents() {
+  const { data, error } = await supabase
+    .from("auth_events")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) throw error;
+  return data ?? [];
+}
+
 const roleClass: Record<string, string> = {
   admin: "bg-destructive/10 text-destructive",
   analyst: "bg-accent/10 text-accent",
@@ -67,6 +77,7 @@ export default function AdminPanel() {
   const qc = useQueryClient();
   const { data: users = [], isLoading } = useQuery({ queryKey: ["admin-users"], queryFn: fetchUsers });
   const { data: audit = [] } = useQuery({ queryKey: ["audit-logs"], queryFn: fetchAuditLogs });
+  const { data: authEvents = [] } = useQuery({ queryKey: ["auth-events"], queryFn: fetchAuthEvents });
 
   const updateStatus = async (id: string, status: AccountStatus) => {
     const { error } = await supabase.from("profiles").update({ status }).eq("id", id);
@@ -191,6 +202,47 @@ export default function AdminPanel() {
                   <td className="py-2 px-4 text-muted-foreground">{a.user_email || "system"}</td>
                   <td className="py-2 px-4 font-medium">{a.action}</td>
                   <td className="py-2 px-4 text-muted-foreground">{a.details?.reference_code || a.record_id}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="dash-card p-0 overflow-hidden">
+        <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+          <Shield className="h-4 w-4 text-primary" />
+          <h3 className="section-title">Authentication Events</h3>
+          <span className="text-xs text-muted-foreground ml-auto">Last 50 sign-in attempts</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr className="border-b border-border">
+                <th className="data-table-header text-left py-2 px-4">When</th>
+                <th className="data-table-header text-left py-2 px-4">Email</th>
+                <th className="data-table-header text-left py-2 px-4">Event</th>
+                <th className="data-table-header text-left py-2 px-4">Result</th>
+                <th className="data-table-header text-left py-2 px-4">IP</th>
+                <th className="data-table-header text-left py-2 px-4">User Agent</th>
+              </tr>
+            </thead>
+            <tbody>
+              {authEvents.length === 0 && (
+                <tr><td colSpan={6} className="text-center py-6 text-muted-foreground">No authentication events recorded yet.</td></tr>
+              )}
+              {authEvents.map((e: any) => (
+                <tr key={e.id} className="border-b border-border/50">
+                  <td className="py-2 px-4 tabular-nums text-muted-foreground">{new Date(e.created_at).toLocaleString()}</td>
+                  <td className="py-2 px-4 text-muted-foreground">{e.email || "—"}</td>
+                  <td className="py-2 px-4 font-medium">{e.event_type}</td>
+                  <td className="py-2 px-4">
+                    <Badge variant="secondary" className={e.success ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}>
+                      {e.success ? "Success" : "Failed"}
+                    </Badge>
+                  </td>
+                  <td className="py-2 px-4 tabular-nums text-muted-foreground">{e.ip_address || "—"}</td>
+                  <td className="py-2 px-4 text-muted-foreground truncate max-w-xs" title={e.user_agent}>{e.user_agent || "—"}</td>
                 </tr>
               ))}
             </tbody>

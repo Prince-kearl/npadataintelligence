@@ -143,6 +143,13 @@ function CategoryTooltip({ active, payload }: any) {
   );
 }
 
+const SEVERITY_COLORS: Record<string, string> = {
+  critical: COLORS.red,
+  high: COLORS.orange,
+  medium: COLORS.gold,
+  low: COLORS.green,
+};
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { data: incidents = [] } = useIncidents();
@@ -163,13 +170,45 @@ export default function Dashboard() {
       .sort((a, b) => b.value - a.value);
   }, [incidents]);
 
+  const severityDistribution = useMemo(() => {
+    const counts = new Map<string, number>();
+    incidents.forEach((inc) => {
+      const sev = (inc as any).severity || "medium";
+      counts.set(sev, (counts.get(sev) || 0) + 1);
+    });
+    return Array.from(counts.entries()).map(([name, value]) => ({
+      name: name.charAt(0).toUpperCase() + name.slice(1),
+      value,
+      fill: SEVERITY_COLORS[name] || COLORS.navy,
+    }));
+  }, [incidents]);
+
+  const topCauses = useMemo(() => {
+    const counts = new Map<string, number>();
+    incidents.forEach((i) => {
+      const key = `${i.category} · ${i.product_type || "—"}`;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+  }, [incidents]);
+
   const kpis = useMemo(() => {
-    const total = incidents.length;
-    const open = incidents.filter((i) => i.status !== "Closed").length;
+    const now = Date.now();
+    const day = 24 * 60 * 60 * 1000;
+    const last30 = incidents.filter((i) => now - new Date(i.incident_date).getTime() <= 30 * day);
+    const prev30 = incidents.filter((i) => {
+      const t = new Date(i.incident_date).getTime();
+      return now - t > 30 * day && now - t <= 60 * day;
+    });
+    const delta = prev30.length ? Math.round(((last30.length - prev30.length) / prev30.length) * 100) : 0;
+    const critical = incidents.filter((i: any) => i.severity === "critical" || i.severity === "high").length;
+    const open = incidents.filter((i) => !["Closed", "archived"].includes(i.status as any)).length;
     const closed = incidents.filter((i) => i.status === "Closed").length;
-    const casualties = incidents.reduce((s, i) => s + (i.casualties || 0), 0);
-    const fatalities = incidents.reduce((s, i) => s + (i.fatalities || 0), 0);
-    return { total, open, closed, casualties, fatalities };
+    const resolveRate = incidents.length ? Math.round((closed / incidents.length) * 100) : 0;
+    return { total: incidents.length, last30: last30.length, delta, open, closed, critical, resolveRate };
   }, [incidents]);
 
   const drillDown = (category: string) => {
@@ -198,47 +237,47 @@ export default function Dashboard() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <KPICard
-          title="Total Incidents Today"
-          value={438}
+          title="Total Incidents (30d)"
+          value={kpis.last30}
           icon={AlertTriangle}
-          change="↑ 12.1% vs yesterday"
-          changeType="negative"
+          change={kpis.delta === 0 ? "No prior period" : `${kpis.delta > 0 ? "↑" : "↓"} ${Math.abs(kpis.delta)}% vs prev 30d`}
+          changeType={kpis.delta > 0 ? "negative" : kpis.delta < 0 ? "positive" : "neutral"}
           iconBg="bg-destructive/10"
           iconClass="text-destructive"
         />
         <KPICard
-          title="Active Security Alerts"
-          value={57}
+          title="High / Critical Severity"
+          value={kpis.critical}
           icon={ShieldAlert}
-          change="↓ 3.4% this week"
-          changeType="positive"
+          change={kpis.total ? `${Math.round((kpis.critical / kpis.total) * 100)}% of all` : "—"}
+          changeType={kpis.critical > 0 ? "negative" : "positive"}
           iconBg="bg-warning/10"
           iconClass="text-warning"
         />
         <KPICard
           title="Resolved Cases"
-          value={381}
+          value={kpis.closed}
           icon={CheckCircle}
-          change="↑ 15.5% this week"
+          change={`${kpis.resolveRate}% resolve rate`}
           changeType="positive"
           iconBg="bg-success/10"
           iconClass="text-success"
         />
         <KPICard
-          title="Emergency Response Rate"
-          value="98.4%"
+          title="Open Cases"
+          value={kpis.open}
           icon={Activity}
-          change="Optimal"
-          changeType="positive"
+          change="Across all stages"
+          changeType="neutral"
           iconBg="bg-info/10"
           iconClass="text-info"
         />
         <KPICard
-          title="High Risk Incidents"
-          value={9}
+          title="Total On Record"
+          value={kpis.total}
           icon={Flame}
-          change="Warning"
-          changeType="negative"
+          change="All-time"
+          changeType="neutral"
           iconBg="bg-primary/15"
           iconClass="text-primary"
         />
@@ -377,6 +416,65 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Row: Severity distribution + Top recurring causes */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="dash-card">
+          <div className="dash-card-header">
+            <span className="section-title">Severity Distribution</span>
+            <span className="dash-card-period">live</span>
+          </div>
+          {severityDistribution.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-12">No severity data yet</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie data={severityDistribution} cx="50%" cy="50%" outerRadius={75} innerRadius={48} dataKey="value" strokeWidth={2} stroke="#fff">
+                  {severityDistribution.map((d, i) => <Cell key={i} fill={d.fill} />)}
+                </Pie>
+                <Tooltip {...tooltipStyle} />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+          <div className="flex items-center justify-center gap-3 text-[11px] text-muted-foreground mt-1 flex-wrap">
+            {severityDistribution.map((d) => (
+              <span key={d.name} className="flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full" style={{ background: d.fill }} /> {d.name} ({d.value})
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="dash-card lg:col-span-2">
+          <div className="dash-card-header">
+            <span className="section-title">Top Recurring Causes</span>
+            <span className="dash-card-period">category · product</span>
+          </div>
+          {topCauses.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-12">No incident data yet</p>
+          ) : (
+            <div className="space-y-2.5">
+              {topCauses.map((c, i) => {
+                const max = topCauses[0].value || 1;
+                const pct = Math.round((c.value / max) * 100);
+                return (
+                  <div key={c.name}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="font-medium text-foreground truncate">{i + 1}. {c.name}</span>
+                      <span className="tabular-nums text-muted-foreground">{c.value}</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: pieColors[i % pieColors.length] }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+
 
 
       {/* Row: By Region + Recent table */}
