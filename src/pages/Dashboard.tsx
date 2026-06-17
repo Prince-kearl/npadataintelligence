@@ -417,6 +417,65 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Row: Severity distribution + Top recurring causes */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="dash-card">
+          <div className="dash-card-header">
+            <span className="section-title">Severity Distribution</span>
+            <span className="dash-card-period">live</span>
+          </div>
+          {severityDistribution.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-12">No severity data yet</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie data={severityDistribution} cx="50%" cy="50%" outerRadius={75} innerRadius={48} dataKey="value" strokeWidth={2} stroke="#fff">
+                  {severityDistribution.map((d, i) => <Cell key={i} fill={d.fill} />)}
+                </Pie>
+                <Tooltip {...tooltipStyle} />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+          <div className="flex items-center justify-center gap-3 text-[11px] text-muted-foreground mt-1 flex-wrap">
+            {severityDistribution.map((d) => (
+              <span key={d.name} className="flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full" style={{ background: d.fill }} /> {d.name} ({d.value})
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="dash-card lg:col-span-2">
+          <div className="dash-card-header">
+            <span className="section-title">Top Recurring Causes</span>
+            <span className="dash-card-period">category · product</span>
+          </div>
+          {topCauses.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-12">No incident data yet</p>
+          ) : (
+            <div className="space-y-2.5">
+              {topCauses.map((c, i) => {
+                const max = topCauses[0].value || 1;
+                const pct = Math.round((c.value / max) * 100);
+                return (
+                  <div key={c.name}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="font-medium text-foreground truncate">{i + 1}. {c.name}</span>
+                      <span className="tabular-nums text-muted-foreground">{c.value}</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: pieColors[i % pieColors.length] }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+
+
 
       {/* Row: By Region + Recent table */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
