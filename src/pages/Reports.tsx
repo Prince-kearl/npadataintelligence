@@ -6,6 +6,7 @@ import {
   incidentsToSQLDump,
   downloadBlob,
   timestampedName,
+  escapeHtml,
 } from "@/lib/exporters";
 import { useRole } from "@/hooks/useRole";
 import { useIncidents } from "@/hooks/useIncidents";
@@ -22,17 +23,18 @@ async function fetchExportHistory() {
   return data ?? [];
 }
 
-async function logExportRow(payload: { file_name: string; format: string; row_count: number; size_bytes: number }) {
+async function logExportRow(payload: { file_name: string; format: string; row_count: number; file_size_bytes: number }) {
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) return;
-  await (supabase.from("export_history") as any).insert({
+  const { error } = await supabase.from("export_history").insert({
     user_id: u.user.id,
     user_email: u.user.email,
     file_name: payload.file_name,
     format: payload.format,
     row_count: payload.row_count,
-    size_bytes: payload.size_bytes,
+    file_size_bytes: payload.file_size_bytes,
   });
+  if (error) throw error;
 }
 
 export default function Reports() {
@@ -43,7 +45,7 @@ export default function Reports() {
   const { data: history = [] } = useQuery({ queryKey: ["export-history"], queryFn: fetchExportHistory });
 
   const recordExport = async (name: string, format: string, content: string) => {
-    await logExportRow({ file_name: name, format, row_count: incidents.length, size_bytes: content.length });
+    await logExportRow({ file_name: name, format, row_count: incidents.length, file_size_bytes: new Blob([content]).size });
     qc.invalidateQueries({ queryKey: ["export-history"] });
   };
 
@@ -85,7 +87,7 @@ export default function Reports() {
     const win = window.open("", "_blank");
     if (!win) return;
     const rows = incidents
-      .map((i) => `<tr><td>${i.reference_code}</td><td>${i.incident_date}</td><td>${i.region}</td><td>${i.category}</td><td>${i.status}</td></tr>`)
+      .map((i) => `<tr><td>${escapeHtml(i.reference_code)}</td><td>${escapeHtml(i.incident_date)}</td><td>${escapeHtml(i.region)}</td><td>${escapeHtml(i.category)}</td><td>${escapeHtml(i.status)}</td></tr>`)
       .join("");
     win.document.write(`<html><head><title>NPA Incident Report</title>
       <style>body{font-family:Arial;padding:24px}h1{color:#1B2F6B}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:12px}th{background:#1B2F6B;color:white}</style>
@@ -179,7 +181,7 @@ export default function Reports() {
                   <td className="py-2 px-3 font-medium">{r.file_name}</td>
                   <td className="py-2 px-3 text-muted-foreground">{r.format}</td>
                   <td className="py-2 px-3 tabular-nums text-muted-foreground">{r.row_count ?? "—"}</td>
-                  <td className="py-2 px-3 tabular-nums text-muted-foreground">{r.size_bytes ? `${(r.size_bytes / 1024).toFixed(1)} KB` : "—"}</td>
+                  <td className="py-2 px-3 tabular-nums text-muted-foreground">{r.file_size_bytes ? `${(r.file_size_bytes / 1024).toFixed(1)} KB` : "—"}</td>
                   <td className="py-2 px-3 text-muted-foreground">{r.user_email || "—"}</td>
                   <td className="py-2 px-3 text-muted-foreground">{new Date(r.created_at).toLocaleString()}</td>
                 </tr>

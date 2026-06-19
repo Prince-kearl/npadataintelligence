@@ -1,4 +1,7 @@
 project_id = "cduuixhbxagoooinanwq"
 
 [functions.log-auth-event]
-verify_jwt = false
+verify_jwt = true
+
+[functions.scan-attachment]
+verify_jwt = true

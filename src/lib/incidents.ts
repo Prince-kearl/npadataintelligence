@@ -1,9 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
 
 export type IncidentRow = Database["public"]["Tables"]["incidents"]["Row"];
-export type IncidentInsert = Database["public"]["Tables"]["incidents"]["Insert"];
-export type IncidentUpdate = Database["public"]["Tables"]["incidents"]["Update"];
 export type IncidentStatus = Database["public"]["Enums"]["incident_status"];
 export type IncidentSeverity = Database["public"]["Enums"]["incident_severity"];
 export type AttachmentRow = Database["public"]["Tables"]["incident_attachments"]["Row"];
@@ -53,6 +51,7 @@ export async function listIncidents(): Promise<IncidentRow[]> {
     .from("incidents")
     .select("*")
     .is("deleted_at", null)
+    .eq("submission_state", "complete")
     .order("incident_date", { ascending: false });
   if (error) throw error;
   return data ?? [];
@@ -64,33 +63,35 @@ export async function getIncident(id: string): Promise<IncidentRow | null> {
   return data;
 }
 
-export async function createIncident(payload: IncidentInsert): Promise<IncidentRow> {
-  const { data, error } = await supabase.from("incidents").insert(payload).select("*").single();
+export async function updateIncidentStatus(id: string, status: IncidentStatus, note?: string) {
+  const { error } = await supabase.rpc("transition_incident_status", {
+    _incident_id: id,
+    _to_status: status,
+    _note: note ?? null,
+  });
+  if (error) throw error;
+}
+
+export async function beginIncidentSubmission(
+  submissionId: string,
+  payload: Json,
+  expectedAttachments: number
+): Promise<IncidentRow> {
+  const { data, error } = await supabase.rpc("begin_incident_submission", {
+    _submission_id: submissionId,
+    _payload: payload,
+    _expected_attachments: expectedAttachments,
+  });
   if (error) throw error;
   return data;
 }
 
-export async function updateIncidentStatus(id: string, status: IncidentStatus, note?: string) {
-  const { error } = await supabase.from("incidents").update({ status }).eq("id", id);
+export async function finalizeIncidentSubmission(incidentId: string): Promise<IncidentRow> {
+  const { data, error } = await supabase.rpc("finalize_incident_submission", {
+    _incident_id: incidentId,
+  });
   if (error) throw error;
-  // Trigger records history automatically; we just attach the optional note as latest row's update
-  if (note) {
-    await supabase
-      .from("incident_status_history")
-      .update({ note })
-      .eq("incident_id", id)
-      .eq("to_status", status)
-      .order("created_at", { ascending: false })
-      .limit(1);
-  }
-}
-
-export async function softDeleteIncident(id: string) {
-  const { error } = await supabase
-    .from("incidents")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) throw error;
+  return data;
 }
 
 // ============ Attachments (multi-file evidence) ============
@@ -98,18 +99,18 @@ export async function softDeleteIncident(id: string) {
 const SAFE_MIME = /^(image\/(png|jpe?g|webp|gif)|application\/(pdf|msword|vnd\.openxmlformats-officedocument\..+|vnd\.ms-excel)|text\/(plain|csv))$/;
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
-function quickScan(file: File): { status: "clean" | "skipped"; note?: string } {
-  if (file.size === 0) return { status: "skipped", note: "Empty file" };
-  if (file.size > MAX_SIZE) return { status: "skipped", note: "Exceeds 10MB" };
-  if (!SAFE_MIME.test(file.type)) return { status: "skipped", note: `Unrecognized MIME ${file.type}` };
-  return { status: "clean" };
+export function validateAttachment(file: File): void {
+  if (file.size === 0) throw new Error(`${file.name} is empty`);
+  if (file.size > MAX_SIZE) throw new Error(`${file.name} exceeds 10MB`);
+  if (!SAFE_MIME.test(file.type)) throw new Error(`${file.name} has unsupported MIME type ${file.type || "unknown"}`);
 }
 
-export async function uploadAttachment(userId: string, file: File): Promise<AttachmentMeta> {
-  const path = `${userId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+export async function uploadAttachment(userId: string, submissionId: string, index: number, file: File): Promise<AttachmentMeta> {
+  validateAttachment(file);
+  const path = `${userId}/${submissionId}/${index}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
   const { error } = await supabase.storage.from("incident-attachments").upload(path, file, {
     cacheControl: "3600",
-    upsert: false,
+    upsert: true,
   });
   if (error) throw error;
   return { path, name: file.name, size: file.size, type: file.type };
@@ -122,7 +123,15 @@ export async function attachToIncident(
   meta: AttachmentMeta,
   tags: string[] = []
 ): Promise<AttachmentRow> {
-  const scan = quickScan(file);
+  validateAttachment(file);
+  const { data: alreadyRegistered, error: lookupError } = await supabase
+    .from("incident_attachments")
+    .select("*")
+    .eq("storage_path", meta.path)
+    .maybeSingle();
+  if (lookupError) throw lookupError;
+  if (alreadyRegistered) return alreadyRegistered;
+
   // Determine next version number for same filename within this incident
   const { data: existing } = await supabase
     .from("incident_attachments")
@@ -143,14 +152,22 @@ export async function attachToIncident(
       mime_type: meta.type,
       tags,
       version: nextVersion,
-      scan_status: scan.status,
-      scan_notes: scan.note ?? null,
+      scan_status: "pending",
+      scan_notes: null,
       uploaded_by: userId,
     })
     .select("*")
     .single();
   if (error) throw error;
   return data;
+}
+
+export async function scanAttachment(attachmentId: string): Promise<void> {
+  const { data, error } = await supabase.functions.invoke("scan-attachment", {
+    body: { attachment_id: attachmentId },
+  });
+  if (error) throw error;
+  if (!data?.clean) throw new Error(data?.signature || "Attachment did not pass malware scanning");
 }
 
 export async function listAttachments(incidentId: string): Promise<AttachmentRow[]> {

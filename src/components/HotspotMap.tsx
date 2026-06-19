@@ -5,15 +5,17 @@ import "leaflet.markercluster";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "leaflet.heat";
-import type { Incident } from "@/lib/mock-data";
+import type { IncidentRow } from "@/lib/incidents";
+import { escapeHtml } from "@/lib/exporters";
 
 interface HotspotMapProps {
-  incidents: Incident[];
+  incidents: IncidentRow[];
   height?: number | string;
-  onSelect?: (incident: Incident) => void;
+  onSelect?: (incident: IncidentRow) => void;
 }
 
-function parseGps(value: string): [number, number] | null {
+function parseGps(value: string | null): [number, number] | null {
+  if (!value) return null;
   const parts = value.split(",").map((p) => parseFloat(p.trim()));
   if (parts.length !== 2 || parts.some(Number.isNaN)) return null;
   return [parts[0], parts[1]];
@@ -35,7 +37,7 @@ function severityColor(type: string) {
 }
 
 interface PointData {
-  incident: Incident;
+  incident: IncidentRow;
   coords: [number, number];
   weight: number;
 }
@@ -47,7 +49,7 @@ function ClusterAndHeatLayer({
 }: {
   points: PointData[];
   mode: "cluster" | "heat";
-  onSelect?: (i: Incident) => void;
+  onSelect?: (i: IncidentRow) => void;
 }) {
   const map = useMap();
   const clusterRef = useRef<L.MarkerClusterGroup | null>(null);
@@ -99,7 +101,7 @@ function ClusterAndHeatLayer({
       });
 
       points.forEach(({ incident, coords, weight }) => {
-        const color = severityColor(incident.incident_type);
+        const color = severityColor(incident.incident_type ?? "Observation");
         const radius = 6 + weight * 8;
         const marker = L.circleMarker(coords, {
           radius,
@@ -111,9 +113,9 @@ function ClusterAndHeatLayer({
         });
         marker.bindTooltip(
           `<div style="font-size:11px">
-            <div style="font-weight:600">${incident.id} · ${incident.category}</div>
-            <div style="color:#666">${incident.location_name}</div>
-            <div style="color:#666">${incident.region} · ${incident.incident_type}</div>
+            <div style="font-weight:600">${escapeHtml(incident.reference_code)} · ${escapeHtml(incident.category)}</div>
+            <div style="color:#666">${escapeHtml(incident.location_name)}</div>
+            <div style="color:#666">${escapeHtml(incident.region)} · ${escapeHtml(incident.incident_type)}</div>
             ${incident.casualties > 0 ? `<div style="color:#c0392b">Casualties: ${incident.casualties}</div>` : ""}
           </div>`,
           { direction: "top", offset: [0, -radius] }

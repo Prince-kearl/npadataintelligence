@@ -11,7 +11,7 @@ export default function SettingsPage() {
       <div className="dash-card text-center py-12">
         <SettingsIcon className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
         <p className="text-sm text-muted-foreground">
-          System settings will be available once backend integration is connected.
+          Authentication, retention and scanner configuration are managed through the secured deployment environment.
         </p>
       </div>
     </div>

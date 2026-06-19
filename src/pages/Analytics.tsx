@@ -1,9 +1,6 @@
-import {
-  mockMonthlyTrend,
-  mockByRegion,
-  mockByType,
-  mockByProduct,
-} from "@/lib/mock-data";
+import { useMemo } from "react";
+import { useIncidents } from "@/hooks/useIncidents";
+import { incidentsByCategory, incidentsByProduct, incidentsByRegion, monthlyTrend } from "@/lib/analytics";
 import {
   BarChart,
   Bar,
@@ -44,6 +41,12 @@ const tooltipStyle = {
 };
 
 export default function Analytics() {
+  const { data: incidents = [] } = useIncidents();
+  const regionData = useMemo(() => incidentsByRegion(incidents), [incidents]);
+  const categoryData = useMemo(() => incidentsByCategory(incidents), [incidents]);
+  const trendData = useMemo(() => monthlyTrend(incidents), [incidents]);
+  const productData = useMemo(() => incidentsByProduct(incidents), [incidents]);
+
   return (
     <div className="space-y-5">
       <div>
@@ -58,13 +61,13 @@ export default function Analytics() {
             <span className="dash-card-period">all time</span>
           </div>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={mockByRegion}>
+            <BarChart data={regionData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 90%)" />
               <XAxis dataKey="region" tick={{ fontSize: 10, fill: "hsl(220, 15%, 50%)" }} angle={-35} textAnchor="end" height={60} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
               <Tooltip {...tooltipStyle} />
               <Bar dataKey="incidents" radius={[4, 4, 0, 0]} barSize={24}>
-                {mockByRegion.map((_, i) => (
+                {regionData.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Bar>
@@ -79,10 +82,10 @@ export default function Analytics() {
           </div>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie data={mockByType} cx="50%" cy="50%" outerRadius={110} innerRadius={65} dataKey="value" strokeWidth={2} stroke="#fff"
+              <Pie data={categoryData} cx="50%" cy="50%" outerRadius={110} innerRadius={65} dataKey="value" strokeWidth={2} stroke="#fff"
                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} fontSize={11}
               >
-                {mockByType.map((_, i) => (
+                {categoryData.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
@@ -94,10 +97,10 @@ export default function Analytics() {
         <div className="dash-card">
           <div className="dash-card-header">
             <span className="section-title">6-Month Trend</span>
-            <span className="dash-card-period">Oct 2025 — Mar 2026</span>
+            <span className="dash-card-period">rolling six months</span>
           </div>
           <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={mockMonthlyTrend}>
+            <AreaChart data={trendData}>
               <defs>
                 <linearGradient id="analyticsGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="hsl(224, 52%, 34%)" stopOpacity={0.2} />
@@ -119,7 +122,7 @@ export default function Analytics() {
             <span className="dash-card-period">all time</span>
           </div>
           <ResponsiveContainer width="100%" height={300}>
-            <ComposedChart data={mockByProduct}>
+            <ComposedChart data={productData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 90%)" />
               <XAxis dataKey="product" tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
               <YAxis yAxisId="left" tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />

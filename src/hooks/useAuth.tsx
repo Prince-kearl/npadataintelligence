@@ -65,19 +65,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // 1. Register listener first so we never miss an event
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) {
-        // Defer to avoid blocking the auth callback
-        setTimeout(async () => {
-          const { profile, role } = await loadProfileAndRole(s.user.id);
-          setProfile(profile);
-          setRole(role);
-        }, 0);
-      } else {
-        setProfile(null);
-        setRole(null);
-      }
+      setLoading(true);
+      // Defer database work to avoid blocking the Supabase auth callback.
+      setTimeout(() => void hydrate(s), 0);
     });
     // 2. Then load existing session
     supabase.auth.getSession().then(({ data }) => hydrate(data.session));
@@ -94,6 +84,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    try {
+      await supabase.functions.invoke("log-auth-event", { body: { event_type: "logout" } });
+    } catch {
+      // Session termination must not depend on telemetry availability.
+    }
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);

@@ -25,10 +25,10 @@ export default function Login() {
     }
   }, [loading, user, profile, navigate]);
 
-  const logEvent = async (event_type: string, payload: Record<string, unknown> = {}) => {
+  const logEvent = async (event_type: "login_success") => {
     try {
       await supabase.functions.invoke("log-auth-event", {
-        body: { event_type, email, ...payload },
+        body: { event_type },
       });
     } catch {
       /* non-fatal */
@@ -41,7 +41,6 @@ export default function Login() {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setIsLoading(false);
-      await logEvent("login_failed", { reason: error.message });
       toast.error(error.message);
       return;
     }
@@ -54,17 +53,15 @@ export default function Login() {
     setIsLoading(false);
     if (!prof || prof.status === "pending") {
       await supabase.auth.signOut();
-      await logEvent("login_failed", { user_id: data.user!.id, reason: "account_pending" });
       toast.warning("Your account is awaiting administrator approval.");
       return;
     }
     if (prof.status === "suspended") {
       await supabase.auth.signOut();
-      await logEvent("login_failed", { user_id: data.user!.id, reason: "account_suspended" });
       toast.error("Your account has been suspended. Contact an administrator.");
       return;
     }
-    await logEvent("login_success", { user_id: data.user!.id });
+    await logEvent("login_success");
     toast.success("Welcome back");
     navigate("/", { replace: true });
   };
@@ -98,12 +95,12 @@ export default function Login() {
         <div className="dash-card">
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label className="label-text">Work Email</Label>
-              <Input type="email" placeholder="name@npa.gov.gh" required value={email} onChange={(e) => setEmail(e.target.value)} className="bg-muted/50 border-border rounded-lg" />
+              <Label htmlFor="login-email" className="label-text">Work Email</Label>
+              <Input id="login-email" type="email" placeholder="name@npa.gov.gh" required value={email} onChange={(e) => setEmail(e.target.value)} className="bg-muted/50 border-border rounded-lg" />
             </div>
             <div className="space-y-2">
-              <Label className="label-text">Password</Label>
-              <Input type="password" placeholder="Enter your password" required value={password} onChange={(e) => setPassword(e.target.value)} className="bg-muted/50 border-border rounded-lg" />
+              <Label htmlFor="login-password" className="label-text">Password</Label>
+              <Input id="login-password" type="password" placeholder="Enter your password" required value={password} onChange={(e) => setPassword(e.target.value)} className="bg-muted/50 border-border rounded-lg" />
             </div>
             <Button variant="default" className="w-full" type="submit" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}

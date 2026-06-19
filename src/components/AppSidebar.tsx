@@ -31,7 +31,7 @@ const mainNav: NavItem[] = [
 
 const systemNav: NavItem[] = [
   { to: "/admin", icon: Shield, label: "Admin Panel", perm: "manage_users" },
-  { to: "/settings", icon: Settings, label: "Settings" },
+  { to: "/settings", icon: Settings, label: "Settings", perm: "system_settings" },
 ];
 
 export function AppSidebar() {

@@ -73,7 +73,7 @@ const App = () => (
                     </RequireRole>
                   }
                 />
-                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/settings" element={<RequireRole permission="system_settings"><SettingsPage /></RequireRole>} />
               </Route>
             </Route>
             <Route path="*" element={<NotFound />} />

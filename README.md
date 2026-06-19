@@ -1,73 +1,72 @@
-# Welcome to your Lovable project
+# NPA Incident & Field Data Intelligence System
 
-## Project info
+Secure incident collection, evidence handling, lifecycle review, mapping, analytics and export for the National Petroleum Authority.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Architecture
 
-## How can I edit this code?
+- React 18, TypeScript and Vite
+- Supabase Auth, Postgres/RLS, Storage, Realtime and Edge Functions
+- Server-authoritative incident submission and lifecycle RPCs
+- Private evidence quarantine with mandatory external malware scanning
+- Vitest, pgTAP and Playwright verification
 
-There are several ways of editing your application.
+The browser controls presentation only. Authorization, active-account enforcement, lifecycle transitions and scan state are enforced by Postgres policies/functions.
 
-**Use Lovable**
+## Local setup
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Requirements: Node 22, npm 10+, Docker and the Supabase CLI.
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+cp .env.example .env.local
+npm ci
+supabase start
+supabase db reset
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Populate `.env.local` from `supabase status -o env`. Never commit environment files or service-role keys.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Verification
 
-**Use GitHub Codespaces**
+```sh
+npm run lint
+npm test
+npm run build
+npm run test:rls
+npm run test:e2e
+npm audit --audit-level=high
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Role-based browser tests require `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SERVICE_ROLE_KEY`. The service key is used only by test setup.
 
-## What technologies are used for this project?
+## Deployment
 
-This project is built with:
+1. Create separate Supabase projects for staging and production.
+2. Enable database backups/PITR and configure approved SMTP, allowed redirect URLs, MFA and signup controls.
+3. Apply migrations with `supabase db push --project-ref <ref>`.
+4. Configure Edge Function secrets:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+   ```sh
+   supabase secrets set MALWARE_SCANNER_URL=https://scanner.internal/v1/scan
+   supabase secrets set MALWARE_SCANNER_API_KEY=...
+   ```
 
-## How can I deploy this project?
+   The scanner must accept multipart field `file` and return JSON shaped as
+   `{ "clean": true|false, "signature": "optional", "engine": "optional" }`.
+   Missing or unavailable scanning fails closed: evidence remains unreadable and the incident cannot finalize.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+5. Deploy `log-auth-event` and `scan-attachment`, then deploy the frontend with production `VITE_` values.
+6. Run the smoke, RLS and role suites against staging before promotion.
 
-## Can I connect a custom domain to my Lovable project?
+Detailed operational procedures are in [docs/OPERATIONS.md](docs/OPERATIONS.md).
 
-Yes, you can!
+## Security model
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+- Pending and suspended users cannot access operational records.
+- Users cannot change their own approval state or email identity.
+- Analysts/admins transition incidents only through allowed server-side state changes.
+- Audit records are trigger or service generated; clients cannot insert them.
+- Evidence is private and readable only after a clean server-side scan.
+- Submission IDs, deterministic evidence paths and staged finalization make retries idempotent.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Report security defects privately to the system owner; do not place incident data or credentials in public issues.

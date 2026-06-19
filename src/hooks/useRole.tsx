@@ -27,6 +27,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   collector: ["submit_incident", "view_own_records", "manage_templates"],
   analyst: [
     "submit_incident",
+    "view_own_records",
     "view_all_records",
     "edit_records",
     "export_data",
@@ -36,6 +37,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   ],
   admin: [
     "submit_incident",
+    "view_own_records",
     "view_all_records",
     "edit_records",
     "export_data",
@@ -49,18 +51,30 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   ],
 };
 
-/** Lifecycle transitions allowed per role. */
-const LIFECYCLE_PERMS: Record<Role, IncidentStatus[]> = {
-  collector: ["draft", "submitted"],
-  analyst: ["draft", "submitted", "under_review", "returned", "verified"],
-  admin: ["draft", "submitted", "under_review", "returned", "verified", "Closed", "archived"],
+const TRANSITIONS: Record<Role, Partial<Record<IncidentStatus, IncidentStatus[]>>> = {
+  collector: {},
+  analyst: {
+    submitted: ["under_review"],
+    under_review: ["returned", "verified"],
+    returned: ["under_review"],
+    New: ["Reviewed"],
+  },
+  admin: {
+    submitted: ["under_review"],
+    under_review: ["returned", "verified"],
+    returned: ["under_review"],
+    verified: ["Closed"],
+    Closed: ["archived"],
+    New: ["Reviewed", "Closed"],
+    Reviewed: ["Closed"],
+  },
 };
 
 export function useRole() {
   const { role } = useAuth();
   const can = (perm: Permission) => (role ? ROLE_PERMISSIONS[role].includes(perm) : false);
-  const canSetStatus = (status: IncidentStatus) =>
-    role ? LIFECYCLE_PERMS[role].includes(status) : false;
-  const allowedStatuses = (): IncidentStatus[] => (role ? LIFECYCLE_PERMS[role] : []);
-  return { role, can, canSetStatus, allowedStatuses };
+  const allowedTransitions = (from: IncidentStatus): IncidentStatus[] =>
+    role ? TRANSITIONS[role][from] ?? [] : [];
+  const canTransition = (from: IncidentStatus, to: IncidentStatus) => allowedTransitions(from).includes(to);
+  return { role, can, canTransition, allowedTransitions };
 }

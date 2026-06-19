@@ -51,7 +51,7 @@ const severityClass: Record<IncidentSeverity, string> = {
 
 export default function Records() {
   const { data: incidents = [], isLoading } = useIncidents();
-  const { can, allowedStatuses } = useRole();
+  const { can, allowedTransitions } = useRole();
   const { user } = useAuth();
   const qc = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -197,8 +197,6 @@ export default function Records() {
       toast.success("Template removed");
     } catch (err: any) { toast.error(err.message); }
   };
-
-  const allowed = allowedStatuses();
 
   return (
     <div className="space-y-5">
@@ -358,14 +356,16 @@ export default function Records() {
                     </td>
                     {can("edit_records") && (
                       <td className="py-3 px-4">
-                        <Select value={inc.status} onValueChange={(v) => handleStatusChange(inc.id, v as IncidentStatus)}>
-                          <SelectTrigger className="h-8 w-36 text-xs bg-muted/50 border-border rounded-lg"><SelectValue /></SelectTrigger>
-                          <SelectContent className="bg-card border-border">
-                            {allowed.map((s) => (
-                              <SelectItem key={s} value={s}>{STATUS_LABELS[s] || s}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        {allowedTransitions(inc.status).length ? (
+                          <Select onValueChange={(v) => handleStatusChange(inc.id, v as IncidentStatus)}>
+                            <SelectTrigger className="h-8 w-40 text-xs bg-muted/50 border-border rounded-lg"><SelectValue placeholder="Choose action" /></SelectTrigger>
+                            <SelectContent className="bg-card border-border">
+                              {allowedTransitions(inc.status).map((s) => (
+                                <SelectItem key={s} value={s}>{STATUS_LABELS[s] || s}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : <span className="text-xs text-muted-foreground">No transition</span>}
                       </td>
                     )}
                   </tr>

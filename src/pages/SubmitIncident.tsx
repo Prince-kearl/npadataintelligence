@@ -35,17 +35,19 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  createIncident,
+  beginIncidentSubmission,
+  finalizeIncidentSubmission,
   listIncidents,
   uploadAttachment,
   attachToIncident,
+  scanAttachment,
+  validateAttachment,
   SEVERITY_LABELS,
   type AttachmentMeta,
   type IncidentSeverity,
 } from "@/lib/incidents";
 import { saveDraft, loadDraft, deleteDraft } from "@/lib/draft-store";
 
-const DRAFT_ID = "current";
 const PREV_CHANNELS = [
   "None — first time reported",
   "Phone call to NPA",
@@ -66,6 +68,7 @@ interface PendingFile {
 
 export default function SubmitIncident() {
   const { user, profile } = useAuth();
+  const draftId = `current-${user?.id ?? "signed-out"}`;
   const navigate = useNavigate();
   const qc = useQueryClient();
 
@@ -93,6 +96,7 @@ export default function SubmitIncident() {
   const [sourceNotes, setSourceNotes] = useState("");
   const [previousChannel, setPreviousChannel] = useState("None — first time reported");
   const [files, setFiles] = useState<PendingFile[]>([]);
+  const [submissionId, setSubmissionId] = useState(() => crypto.randomUUID());
 
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -111,9 +115,10 @@ export default function SubmitIncident() {
   // Restore draft on mount
   useEffect(() => {
     (async () => {
-      const d = await loadDraft(DRAFT_ID);
+      const d = await loadDraft(draftId);
       if (d && Object.keys(d.payload).length) {
         const p = d.payload as any;
+        if (typeof p.submissionId === "string") setSubmissionId(p.submissionId);
         if (p.incidentDate) setIncidentDate(p.incidentDate);
         if (p.region) setRegion(p.region);
         if (p.district) setDistrict(p.district);
@@ -136,12 +141,13 @@ export default function SubmitIncident() {
         });
       }
     })();
-  }, []);
+  }, [draftId]);
 
   // Auto-save every 8s (no files — those are too large for IDB drafts)
   useEffect(() => {
     const t = setInterval(() => {
-      saveDraft(DRAFT_ID, {
+      saveDraft(draftId, {
+        submissionId,
         incidentDate, region, district, locationName, gps, category, incidentType, severity,
         productType, injuryType, casualties, fatalities, description, source, sourceContact,
         sourceNotes, previousChannel,
@@ -149,17 +155,22 @@ export default function SubmitIncident() {
     }, 8000);
     return () => clearInterval(t);
   }, [
-    incidentDate, region, district, locationName, gps, category, incidentType, severity,
+    draftId, submissionId, incidentDate, region, district, locationName, gps, category, incidentType, severity,
     productType, injuryType, casualties, fatalities, description, source, sourceContact,
     sourceNotes, previousChannel,
   ]);
 
   const addFiles = (list: FileList | null) => {
     if (!list) return;
-    const next = Array.from(list)
-      .filter((f) => f.size <= 10 * 1024 * 1024)
-      .map<PendingFile>((f) => ({ file: f, tags: [f.type.startsWith("image/") ? "Photo" : "Document"] }));
-    if (next.length !== list.length) toast.warning("Some files exceeded 10MB and were skipped");
+    const next: PendingFile[] = [];
+    for (const file of Array.from(list)) {
+      try {
+        validateAttachment(file);
+        next.push({ file, tags: [file.type.startsWith("image/") ? "Photo" : "Document"] });
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : `Cannot attach ${file.name}`);
+      }
+    }
     setFiles((prev) => [...prev, ...next]);
   };
 
@@ -189,9 +200,9 @@ export default function SubmitIncident() {
     if (!user) return toast.error("You must be signed in");
     setIsSubmitting(true);
     try {
-      // 1. Insert incident first (so attachments can reference its id)
-      const inc = await createIncident({
-        reporter_id: user.id,
+      // Begin is idempotent: a retry with this local submission id returns the
+      // original staging incident instead of creating a duplicate.
+      const inc = await beginIncidentSubmission(submissionId, {
         reporter_name: profile?.full_name || profile?.email || "Unknown",
         department: profile?.department || null,
         incident_date: incidentDate,
@@ -213,22 +224,24 @@ export default function SubmitIncident() {
         previous_channel: previousChannel || null,
         verification_score: verificationScore ?? null,
         verification_notes: verificationNotes ?? null,
-        attachments: [] as any,
-        status: "submitted",
-      });
+      }, files.length);
 
-      // 2. Upload files + register attachment rows
-      for (const pf of files) {
-        const meta: AttachmentMeta = await uploadAttachment(user.id, pf.file);
-        await attachToIncident(inc.id, user.id, pf.file, meta, pf.tags);
+      // Deterministic paths and unique metadata make this loop safe to retry.
+      for (const [index, pf] of files.entries()) {
+        const meta: AttachmentMeta = await uploadAttachment(user.id, submissionId, index, pf.file);
+        const attachment = await attachToIncident(inc.id, user.id, pf.file, meta, pf.tags);
+        await scanAttachment(attachment.id);
       }
 
-      await deleteDraft(DRAFT_ID);
-      toast.success(`Incident submitted as ${inc.reference_code}`);
+      const submitted = await finalizeIncidentSubmission(inc.id);
+
+      await deleteDraft(draftId);
+      setSubmissionId(crypto.randomUUID());
+      toast.success(`Incident submitted as ${submitted.reference_code}`);
       qc.invalidateQueries({ queryKey: ["incidents"] });
       navigate("/records");
     } catch (err: any) {
-      toast.error(err.message || "Failed to submit incident");
+      toast.error(err.message || "Submission paused; retry to resume without creating a duplicate");
     } finally {
       setIsSubmitting(false);
     }
@@ -239,7 +252,8 @@ export default function SubmitIncident() {
     if (!user) return;
     if (!online) {
       // Save offline — will need manual retry when back online
-      await saveDraft(DRAFT_ID, {
+      await saveDraft(draftId, {
+        submissionId,
         incidentDate, region, district, locationName, gps, category, incidentType, severity,
         productType, injuryType, casualties, fatalities, description, source, sourceContact,
         sourceNotes, previousChannel,
@@ -267,7 +281,8 @@ export default function SubmitIncident() {
   };
 
   const handleSaveDraft = async () => {
-    await saveDraft(DRAFT_ID, {
+    await saveDraft(draftId, {
+      submissionId,
       incidentDate, region, district, locationName, gps, category, incidentType, severity,
       productType, injuryType, casualties, fatalities, description, source, sourceContact,
       sourceNotes, previousChannel,
@@ -276,7 +291,8 @@ export default function SubmitIncident() {
   };
 
   const handleDiscardDraft = async () => {
-    await deleteDraft(DRAFT_ID);
+    await deleteDraft(draftId);
+    setSubmissionId(crypto.randomUUID());
     formRef.current?.reset();
     setIncidentDate(""); setRegion(""); setDistrict(""); setLocationName(""); setGps("");
     setCategory(""); setIncidentType(""); setSeverity("medium"); setProductType(""); setInjuryType("");

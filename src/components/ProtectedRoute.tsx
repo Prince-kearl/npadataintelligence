@@ -18,7 +18,7 @@ export function ProtectedRoute() {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  if (profile && profile.status !== "active") {
+  if (!profile || profile.status !== "active") {
     return <Navigate to="/login" replace state={{ pending: true }} />;
   }
 

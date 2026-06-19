@@ -13,6 +13,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ROLE_LABELS, type Role } from "@/hooks/useRole";
+import { useAuth } from "@/hooks/useAuth";
 
 type AccountStatus = "pending" | "active" | "suspended";
 
@@ -74,6 +75,7 @@ const statusClass: Record<string, string> = {
 };
 
 export default function AdminPanel() {
+  const { user: currentUser } = useAuth();
   const qc = useQueryClient();
   const { data: users = [], isLoading } = useQuery({ queryKey: ["admin-users"], queryFn: fetchUsers });
   const { data: audit = [] } = useQuery({ queryKey: ["audit-logs"], queryFn: fetchAuditLogs });
@@ -87,11 +89,8 @@ export default function AdminPanel() {
   };
 
   const setUserRole = async (userId: string, newRole: Role) => {
-    // Remove existing roles then add new one
-    const { error: delErr } = await supabase.from("user_roles").delete().eq("user_id", userId);
-    if (delErr) return toast.error(delErr.message);
-    const { error: insErr } = await supabase.from("user_roles").insert({ user_id: userId, role: newRole });
-    if (insErr) return toast.error(insErr.message);
+    const { error } = await supabase.rpc("admin_set_user_role", { _user_id: userId, _role: newRole });
+    if (error) return toast.error(error.message);
     toast.success(`Role set to ${ROLE_LABELS[newRole]}`);
     qc.invalidateQueries({ queryKey: ["admin-users"] });
   };
@@ -141,7 +140,7 @@ export default function AdminPanel() {
                     <td className="py-3 px-4 font-medium text-foreground">{u.full_name || "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">{u.email}</td>
                     <td className="py-3 px-4">
-                      <Select value={u.role ?? ""} onValueChange={(v) => setUserRole(u.id, v as Role)}>
+                      <Select disabled={u.id === currentUser?.id} value={u.role ?? ""} onValueChange={(v) => setUserRole(u.id, v as Role)}>
                         <SelectTrigger className="h-8 w-32 text-xs bg-muted/50 border-border rounded-lg">
                           <SelectValue placeholder="Set role">
                             {u.role ? <Badge className={roleClass[u.role]} variant="secondary">{ROLE_LABELS[u.role]}</Badge> : "No role"}
@@ -161,10 +160,10 @@ export default function AdminPanel() {
                     <td className="py-3 px-4 tabular-nums text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</td>
                     <td className="py-3 px-4">
                       <div className="flex gap-1">
-                        {u.status !== "active" && (
+                        {u.id !== currentUser?.id && u.status !== "active" && (
                           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus(u.id, "active")}>Approve</Button>
                         )}
-                        {u.status !== "suspended" && (
+                        {u.id !== currentUser?.id && u.status !== "suspended" && (
                           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus(u.id, "suspended")}>Suspend</Button>
                         )}
                       </div>
@@ -237,8 +236,8 @@ export default function AdminPanel() {
                   <td className="py-2 px-4 text-muted-foreground">{e.email || "—"}</td>
                   <td className="py-2 px-4 font-medium">{e.event_type}</td>
                   <td className="py-2 px-4">
-                    <Badge variant="secondary" className={e.success ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}>
-                      {e.success ? "Success" : "Failed"}
+                    <Badge variant="secondary" className={e.event_type === "login_success" ? "bg-success/10 text-success" : "bg-info/10 text-info"}>
+                      {e.event_type === "login_success" ? "Success" : "Recorded"}
                     </Badge>
                   </td>
                   <td className="py-2 px-4 tabular-nums text-muted-foreground">{e.ip_address || "—"}</td>

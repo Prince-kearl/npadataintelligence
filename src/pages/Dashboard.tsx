@@ -15,11 +15,8 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { KPICard } from "@/components/KPICard";
-import {
-  mockMonthlyTrend,
-  mockByRegion,
-  mockByProduct,
-} from "@/lib/mock-data";
+import { incidentsByProduct, incidentsByRegion, monthlyTrend } from "@/lib/analytics";
+import { STATUS_LABELS } from "@/lib/incidents";
 import {
   BarChart,
   Bar,
@@ -70,53 +67,9 @@ const tooltipStyle = {
   },
 };
 
-const liveFeed = [
-  {
-    severity: "Critical",
-    title: "Critical Alert: Major Spill - Tema Oil Depot",
-    time: "14:31",
-    tag: "Urgent",
-    meta: "Response Unit 3 dispatched",
-    color: "destructive",
-  },
-  {
-    severity: "Major",
-    title: "Major Incident: LPG Explosion - Tamale",
-    time: "13:55",
-    tag: "High",
-    meta: "HAZMAT Response",
-    color: "warning",
-  },
-  {
-    severity: "Medium",
-    title: "Medium Alert: Pipeline Pressure Anomaly - Western",
-    time: "12:40",
-    tag: "Area Verified",
-    color: "info",
-  },
-  {
-    severity: "Low",
-    title: "Low Alert: Suspicious Storage Activity - Volta",
-    time: "11:18",
-    tag: "Monitored",
-    color: "success",
-  },
-];
-
-const hotspots = [
-  { name: "Tema", x: 62, y: 78, intensity: "high" },
-  { name: "Accra", x: 55, y: 82, intensity: "high" },
-  { name: "Takoradi", x: 30, y: 86, intensity: "med" },
-  { name: "Kumasi", x: 48, y: 60, intensity: "high" },
-  { name: "Tamale", x: 50, y: 32, intensity: "med" },
-  { name: "Bolgatanga", x: 52, y: 14, intensity: "low" },
-  { name: "Ho", x: 72, y: 70, intensity: "med" },
-  { name: "Sunyani", x: 36, y: 50, intensity: "low" },
-];
-
 const severityBarClass: Record<string, string> = {
   Critical: "bg-destructive",
-  Major: "bg-warning",
+  High: "bg-warning",
   Medium: "bg-info",
   Low: "bg-success",
 };
@@ -153,6 +106,19 @@ const SEVERITY_COLORS: Record<string, string> = {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { data: incidents = [] } = useIncidents();
+  const trendData = useMemo(() => monthlyTrend(incidents), [incidents]);
+  const regionData = useMemo(() => incidentsByRegion(incidents).slice(0, 8), [incidents]);
+  const productData = useMemo(() => incidentsByProduct(incidents), [incidents]);
+  const liveFeed = useMemo(() => [...incidents]
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .slice(0, 4)
+    .map((incident) => ({
+      severity: incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1),
+      title: `${incident.category}: ${incident.location_name}`,
+      time: new Date(incident.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      tag: STATUS_LABELS[incident.status] || incident.status,
+      meta: `${incident.region}${incident.district ? ` · ${incident.district}` : ""}`,
+    })), [incidents]);
 
   const threatDistribution = useMemo(() => {
     const counts = new Map<string, number>();
@@ -206,7 +172,7 @@ export default function Dashboard() {
     const delta = prev30.length ? Math.round(((last30.length - prev30.length) / prev30.length) * 100) : 0;
     const critical = incidents.filter((i: any) => i.severity === "critical" || i.severity === "high").length;
     const open = incidents.filter((i) => !["Closed", "archived"].includes(i.status as any)).length;
-    const closed = incidents.filter((i) => i.status === "Closed").length;
+    const closed = incidents.filter((i) => ["Closed", "archived"].includes(i.status)).length;
     const resolveRate = incidents.length ? Math.round((closed / incidents.length) * 100) : 0;
     return { total: incidents.length, last30: last30.length, delta, open, closed, critical, resolveRate };
   }, [incidents]);
@@ -314,7 +280,7 @@ export default function Dashboard() {
                   </span>
                   <Badge variant="secondary" className={
                     f.severity === "Critical" ? "status-new" :
-                    f.severity === "Major" ? "bg-warning/15 text-warning border border-warning/20" :
+                    f.severity === "High" ? "bg-warning/15 text-warning border border-warning/20" :
                     f.severity === "Medium" ? "status-reviewed" : "status-closed"
                   }>
                     {f.tag}
@@ -334,7 +300,7 @@ export default function Dashboard() {
             <span className="dash-card-period">live GPS · {incidents.length} sites</span>
           </div>
           <HotspotMap
-            incidents={incidents as any}
+            incidents={incidents}
             height={340}
             onSelect={(inc: any) => navigate(`/records?id=${encodeURIComponent(inc.id)}`)}
           />
@@ -356,7 +322,7 @@ export default function Dashboard() {
             <span className="dash-card-period">last 6 months</span>
           </div>
           <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={mockMonthlyTrend}>
+            <AreaChart data={trendData}>
               <defs>
                 <linearGradient id="gradientBlue" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={COLORS.blue} stopOpacity={0.25} />
@@ -485,13 +451,13 @@ export default function Dashboard() {
             <span className="dash-card-period">all time</span>
           </div>
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={mockByRegion} layout="vertical" margin={{ left: 4 }}>
+            <BarChart data={regionData} layout="vertical" margin={{ left: 4 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 90%)" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
               <YAxis dataKey="region" type="category" tick={{ fontSize: 11, fill: "hsl(220, 15%, 50%)" }} width={85} axisLine={false} tickLine={false} />
               <Tooltip {...tooltipStyle} />
               <Bar dataKey="incidents" radius={[0, 4, 4, 0]} barSize={16}>
-                {mockByRegion.map((_, i) => (
+                {regionData.map((_, i) => (
                   <Cell key={i} fill={pieColors[i % pieColors.length]} />
                 ))}
               </Bar>
@@ -540,13 +506,13 @@ export default function Dashboard() {
           <span className="dash-card-period">all time</span>
         </div>
         <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={mockByProduct}>
+          <BarChart data={productData}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 90%)" />
             <XAxis dataKey="product" tick={{ fontSize: 11, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 11, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
             <Tooltip {...tooltipStyle} />
             <Bar dataKey="incidents" radius={[4, 4, 0, 0]} barSize={28}>
-              {mockByProduct.map((_, i) => (
+              {productData.map((_, i) => (
                 <Cell key={i} fill={pieColors[i % pieColors.length]} />
               ))}
             </Bar>

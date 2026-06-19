@@ -236,6 +236,7 @@ export type Database = {
           attachments: Json
           casualties: number
           category: string
+          client_submission_id: string | null
           created_at: string
           deleted_at: string | null
           department: string | null
@@ -259,6 +260,8 @@ export type Database = {
           source_contact: string | null
           source_notes: string | null
           status: Database["public"]["Enums"]["incident_status"]
+          submission_state: Database["public"]["Enums"]["submission_state"]
+          expected_attachments: number
           updated_at: string
           verification_notes: string | null
           verification_score: number | null
@@ -267,6 +270,7 @@ export type Database = {
           attachments?: Json
           casualties?: number
           category: string
+          client_submission_id?: string | null
           created_at?: string
           deleted_at?: string | null
           department?: string | null
@@ -290,6 +294,8 @@ export type Database = {
           source_contact?: string | null
           source_notes?: string | null
           status?: Database["public"]["Enums"]["incident_status"]
+          submission_state?: Database["public"]["Enums"]["submission_state"]
+          expected_attachments?: number
           updated_at?: string
           verification_notes?: string | null
           verification_score?: number | null
@@ -298,6 +304,7 @@ export type Database = {
           attachments?: Json
           casualties?: number
           category?: string
+          client_submission_id?: string | null
           created_at?: string
           deleted_at?: string | null
           department?: string | null
@@ -321,6 +328,8 @@ export type Database = {
           source_contact?: string | null
           source_notes?: string | null
           status?: Database["public"]["Enums"]["incident_status"]
+          submission_state?: Database["public"]["Enums"]["submission_state"]
+          expected_attachments?: number
           updated_at?: string
           verification_notes?: string | null
           verification_score?: number | null
@@ -416,6 +425,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_set_user_role: {
+        Args: { _user_id: string; _role: Database["public"]["Enums"]["app_role"] }
+        Returns: undefined
+      }
+      begin_incident_submission: {
+        Args: { _submission_id: string; _payload: Json; _expected_attachments?: number }
+        Returns: Database["public"]["Tables"]["incidents"]["Row"]
+      }
       current_role_level: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
@@ -428,6 +445,14 @@ export type Database = {
         Returns: boolean
       }
       is_active_user: { Args: { _user_id: string }; Returns: boolean }
+      finalize_incident_submission: {
+        Args: { _incident_id: string }
+        Returns: Database["public"]["Tables"]["incidents"]["Row"]
+      }
+      transition_incident_status: {
+        Args: { _incident_id: string; _to_status: Database["public"]["Enums"]["incident_status"]; _note?: string | null }
+        Returns: Database["public"]["Tables"]["incidents"]["Row"]
+      }
     }
     Enums: {
       account_status: "pending" | "active" | "suspended"
@@ -444,6 +469,7 @@ export type Database = {
         | "returned"
         | "verified"
         | "archived"
+      submission_state: "staging" | "complete" | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -586,6 +612,7 @@ export const Constants = {
         "verified",
         "archived",
       ],
+      submission_state: ["staging", "complete", "failed"],
     },
   },
 } as const
