@@ -172,7 +172,7 @@ export function HotspotMap({ incidents, height = 360, onSelect }: HotspotMapProp
   const center: [number, number] = points.length > 0 ? points[0].coords : [7.95, -1.03];
 
   return (
-    <div className="relative rounded-lg overflow-hidden border border-border" style={{ height }}>
+    <div className="relative isolate z-0 rounded-lg overflow-hidden border border-border" style={{ height }}>
       <div className="absolute top-2 right-2 z-[400] flex gap-1 bg-card/95 backdrop-blur p-1 rounded-md shadow-md border border-border">
         <button
           onClick={() => setMode("cluster")}

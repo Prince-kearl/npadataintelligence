@@ -9,7 +9,7 @@ export function AppHeader() {
   const displayName = profile?.full_name || profile?.email || "User";
 
   return (
-    <header className="h-14 bg-navy text-navy-foreground flex items-center justify-between px-6 sticky top-0 z-30 shadow-md">
+    <header className="h-14 bg-navy text-navy-foreground flex items-center justify-between px-6 sticky top-0 z-50 shadow-md isolate">
       <div className="flex items-center gap-4">
         <h2 className="text-sm font-medium text-navy-foreground/90">
           Incident & Field Data Intelligence System

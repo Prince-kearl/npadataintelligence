@@ -1,5 +1,5 @@
 begin;
-select plan(8);
+select plan(11);
 
 -- Seed identities as the database owner. The signup trigger creates profiles/roles.
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at)
@@ -60,6 +60,20 @@ select lives_ok(
   'analyst can perform an allowed transition'
 );
 select is((select status::text from public.incidents limit 1), 'under_review', 'allowed transition persists');
+
+select throws_ok(
+  $$select public.create_incident_response_action((select id from public.incidents limit 1), 'lockdown_protocol', 'Lock down test site')$$,
+  'P0001', 'Only administrators may initiate lockdown protocol',
+  'analyst cannot initiate lockdown protocol'
+);
+select lives_ok(
+  $$select public.create_incident_response_action((select id from public.incidents limit 1), 'dispatch_team', 'Dispatch test response unit')$$,
+  'analyst can dispatch a response team'
+);
+select is(
+  (select count(*)::integer from public.incident_response_actions), 1,
+  'authorized response command is persisted'
+);
 
 select * from finish();
 rollback;

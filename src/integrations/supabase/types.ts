@@ -190,6 +190,53 @@ export type Database = {
           },
         ]
       }
+      incident_response_actions: {
+        Row: {
+          action_type: Database["public"]["Enums"]["response_action_type"]
+          created_at: string
+          id: string
+          incident_id: string
+          instructions: string
+          priority: Database["public"]["Enums"]["incident_severity"]
+          requested_by: string | null
+          requested_by_email: string | null
+          status: Database["public"]["Enums"]["response_action_status"]
+          updated_at: string
+        }
+        Insert: {
+          action_type: Database["public"]["Enums"]["response_action_type"]
+          created_at?: string
+          id?: string
+          incident_id: string
+          instructions: string
+          priority: Database["public"]["Enums"]["incident_severity"]
+          requested_by?: string | null
+          requested_by_email?: string | null
+          status?: Database["public"]["Enums"]["response_action_status"]
+          updated_at?: string
+        }
+        Update: {
+          action_type?: Database["public"]["Enums"]["response_action_type"]
+          created_at?: string
+          id?: string
+          incident_id?: string
+          instructions?: string
+          priority?: Database["public"]["Enums"]["incident_severity"]
+          requested_by?: string | null
+          requested_by_email?: string | null
+          status?: Database["public"]["Enums"]["response_action_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_response_actions_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incident_status_history: {
         Row: {
           changed_by: string | null
@@ -433,6 +480,14 @@ export type Database = {
         Args: { _submission_id: string; _payload: Json; _expected_attachments?: number }
         Returns: Database["public"]["Tables"]["incidents"]["Row"]
       }
+      create_incident_response_action: {
+        Args: {
+          _incident_id: string
+          _action: Database["public"]["Enums"]["response_action_type"]
+          _instructions: string
+        }
+        Returns: Database["public"]["Tables"]["incident_response_actions"]["Row"]
+      }
       current_role_level: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
@@ -470,6 +525,12 @@ export type Database = {
         | "verified"
         | "archived"
       submission_state: "staging" | "complete" | "failed"
+      response_action_type:
+        | "dispatch_team"
+        | "escalate_alert"
+        | "lockdown_protocol"
+        | "request_reinforcement"
+      response_action_status: "requested" | "acknowledged" | "completed" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -613,6 +674,13 @@ export const Constants = {
         "archived",
       ],
       submission_state: ["staging", "complete", "failed"],
+      response_action_type: [
+        "dispatch_team",
+        "escalate_alert",
+        "lockdown_protocol",
+        "request_reinforcement",
+      ],
+      response_action_status: ["requested", "acknowledged", "completed", "cancelled"],
     },
   },
 } as const

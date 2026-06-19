@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { KPICard } from "@/components/KPICard";
 import { incidentsByProduct, incidentsByRegion, monthlyTrend } from "@/lib/analytics";
-import { STATUS_LABELS } from "@/lib/incidents";
+import { createIncidentResponseAction, STATUS_LABELS, type ResponseActionType } from "@/lib/incidents";
 import {
   BarChart,
   Bar,
@@ -33,10 +33,16 @@ import {
 } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { HotspotMap } from "@/components/HotspotMap";
 import { useIncidents } from "@/hooks/useIncidents";
+import { useRole } from "@/hooks/useRole";
+import { toast } from "sonner";
 
 const statusClass: Record<string, string> = {
   New: "status-new",
@@ -74,6 +80,25 @@ const severityBarClass: Record<string, string> = {
   Low: "bg-success",
 };
 
+const RESPONSE_ACTIONS: Record<ResponseActionType, { label: string; prompt: string }> = {
+  dispatch_team: {
+    label: "Dispatch Team",
+    prompt: "Dispatch the appropriate field response team and confirm the assigned unit.",
+  },
+  escalate_alert: {
+    label: "Escalate Alert",
+    prompt: "Escalate this incident to the emergency coordination chain for immediate attention.",
+  },
+  lockdown_protocol: {
+    label: "Lockdown Protocol",
+    prompt: "Initiate site lockdown protocol and restrict access pending an authorized safety review.",
+  },
+  request_reinforcement: {
+    label: "Request Reinforcement",
+    prompt: "Request additional personnel and specialist support for the active response.",
+  },
+};
+
 const CATEGORY_COLORS: Record<string, string> = {
   Spill: COLORS.blue,
   Fire: COLORS.red,
@@ -106,6 +131,51 @@ const SEVERITY_COLORS: Record<string, string> = {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { data: incidents = [] } = useIncidents();
+  const { role } = useRole();
+  const [selectedAction, setSelectedAction] = useState<ResponseActionType | null>(null);
+  const [selectedIncidentId, setSelectedIncidentId] = useState("");
+  const [commandInstructions, setCommandInstructions] = useState("");
+  const [isIssuingCommand, setIsIssuingCommand] = useState(false);
+  const eligibleIncidents = useMemo(
+    () => incidents.filter((incident) => !["Closed", "archived"].includes(incident.status)),
+    [incidents]
+  );
+  const canIssueCommand = role === "analyst" || role === "admin";
+  const activeCommand = selectedAction ? RESPONSE_ACTIONS[selectedAction] : null;
+
+  const openCommand = (action: ResponseActionType) => {
+    if (!canIssueCommand) {
+      toast.error("An Analyst or Administrator role is required to issue response commands.");
+      return;
+    }
+    if (action === "lockdown_protocol" && role !== "admin") {
+      toast.error("Only a System Administrator may initiate lockdown protocol.");
+      return;
+    }
+    if (!eligibleIncidents.length) {
+      toast.error("There are no active incidents available for this command.");
+      return;
+    }
+    setSelectedAction(action);
+    setSelectedIncidentId(eligibleIncidents[0].id);
+    setCommandInstructions(RESPONSE_ACTIONS[action].prompt);
+  };
+
+  const issueCommand = async () => {
+    if (!selectedAction || !selectedIncidentId || commandInstructions.trim().length < 5) return;
+    setIsIssuingCommand(true);
+    try {
+      await createIncidentResponseAction(selectedIncidentId, selectedAction, commandInstructions.trim());
+      toast.success(`${RESPONSE_ACTIONS[selectedAction].label} command issued and audit logged.`);
+      setSelectedAction(null);
+      setSelectedIncidentId("");
+      setCommandInstructions("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to issue response command");
+    } finally {
+      setIsIssuingCommand(false);
+    }
+  };
   const trendData = useMemo(() => monthlyTrend(incidents), [incidents]);
   const regionData = useMemo(() => incidentsByRegion(incidents).slice(0, 8), [incidents]);
   const productData = useMemo(() => incidentsByProduct(incidents), [incidents]);
@@ -533,21 +603,66 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 h-8">
+            <Button size="sm" onClick={() => openCommand("dispatch_team")} disabled={!canIssueCommand || !eligibleIncidents.length} className="bg-primary text-primary-foreground hover:bg-primary/90 h-8 disabled:opacity-50">
               <Send className="h-3.5 w-3.5 mr-1.5" /> Dispatch Team
             </Button>
-            <Button size="sm" variant="secondary" className="bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-8">
+            <Button size="sm" variant="secondary" onClick={() => openCommand("escalate_alert")} disabled={!canIssueCommand || !eligibleIncidents.length} className="bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-8 disabled:opacity-50">
               <AlertTriangle className="h-3.5 w-3.5 mr-1.5" /> Escalate Alert
             </Button>
-            <Button size="sm" variant="secondary" className="bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-8">
+            <Button size="sm" variant="secondary" onClick={() => openCommand("lockdown_protocol")} disabled={role !== "admin" || !eligibleIncidents.length} className="bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-8 disabled:opacity-50">
               <Lock className="h-3.5 w-3.5 mr-1.5" /> Lockdown Protocol
             </Button>
-            <Button size="sm" variant="secondary" className="bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-8">
+            <Button size="sm" variant="secondary" onClick={() => openCommand("request_reinforcement")} disabled={!canIssueCommand || !eligibleIncidents.length} className="bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-8 disabled:opacity-50">
               <PhoneCall className="h-3.5 w-3.5 mr-1.5" /> Request Reinforcement
             </Button>
           </div>
         </div>
       </div>
+
+      <Dialog open={selectedAction !== null} onOpenChange={(open) => !open && setSelectedAction(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{activeCommand?.label}</DialogTitle>
+            <DialogDescription>
+              Select the active incident and confirm operational instructions. The command is persisted with your identity and written to the audit log.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="command-incident">Active incident</Label>
+              <Select value={selectedIncidentId} onValueChange={setSelectedIncidentId}>
+                <SelectTrigger id="command-incident">
+                  <SelectValue placeholder="Select an incident" />
+                </SelectTrigger>
+                <SelectContent>
+                  {eligibleIncidents.map((incident) => (
+                    <SelectItem key={incident.id} value={incident.id}>
+                      {incident.reference_code} · {incident.category} · {incident.location_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="command-instructions">Operational instructions</Label>
+              <Textarea
+                id="command-instructions"
+                value={commandInstructions}
+                onChange={(event) => setCommandInstructions(event.target.value)}
+                rows={4}
+                maxLength={4000}
+                placeholder="State the unit, coordination channel, safety constraints, and expected response."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedAction(null)} disabled={isIssuingCommand}>Cancel</Button>
+            <Button onClick={issueCommand} disabled={isIssuingCommand || !selectedIncidentId || commandInstructions.trim().length < 5}>
+              {isIssuingCommand ? "Issuing…" : `Issue ${activeCommand?.label ?? "Command"}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

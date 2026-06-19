@@ -5,6 +5,8 @@ export type IncidentRow = Database["public"]["Tables"]["incidents"]["Row"];
 export type IncidentStatus = Database["public"]["Enums"]["incident_status"];
 export type IncidentSeverity = Database["public"]["Enums"]["incident_severity"];
 export type AttachmentRow = Database["public"]["Tables"]["incident_attachments"]["Row"];
+export type ResponseActionType = Database["public"]["Enums"]["response_action_type"];
+export type ResponseActionRow = Database["public"]["Tables"]["incident_response_actions"]["Row"];
 
 /** Full lifecycle (new values) + legacy values kept for backward compat. */
 export const LIFECYCLE_STATUSES: IncidentStatus[] = [
@@ -70,6 +72,20 @@ export async function updateIncidentStatus(id: string, status: IncidentStatus, n
     _note: note ?? null,
   });
   if (error) throw error;
+}
+
+export async function createIncidentResponseAction(
+  incidentId: string,
+  action: ResponseActionType,
+  instructions: string
+): Promise<ResponseActionRow> {
+  const { data, error } = await supabase.rpc("create_incident_response_action", {
+    _incident_id: incidentId,
+    _action: action,
+    _instructions: instructions,
+  });
+  if (error) throw error;
+  return data;
 }
 
 export async function beginIncidentSubmission(
