@@ -305,7 +305,7 @@ export default function SubmitIncident() {
 
   return (
     <div className="space-y-5 max-w-4xl">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <h1 className="page-title">Submit Incident Report</h1>
           <p className="meta-text mt-1">
@@ -353,9 +353,9 @@ export default function SubmitIncident() {
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label className="label-text">GPS Coordinates</Label>
-              <div className="flex gap-2 flex-wrap">
-                <Input placeholder="e.g., 5.6037, -0.1870" value={gps} onChange={(e) => setGps(e.target.value)} className="bg-muted/50 border-border rounded-lg min-h-12 flex-1 min-w-[200px]" />
-                <Button type="button" variant="outline" onClick={captureGps} className="min-h-12">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input placeholder="e.g., 5.6037, -0.1870" value={gps} onChange={(e) => setGps(e.target.value)} className="bg-muted/50 border-border rounded-lg min-h-12 flex-1 min-w-0" />
+                <Button type="button" variant="outline" onClick={captureGps} className="min-h-12 w-full sm:w-auto">
                   <MapPin className="h-4 w-4 mr-1" /> Use My Location
                 </Button>
               </div>
@@ -513,14 +513,14 @@ export default function SubmitIncident() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 justify-end flex-wrap">
-          <Button variant="ghost" type="button" onClick={handleDiscardDraft} className="min-h-12">
+        <div className="grid grid-cols-1 sm:flex sm:items-center gap-2 sm:gap-3 sm:justify-end">
+          <Button variant="ghost" type="button" onClick={handleDiscardDraft} className="min-h-12 w-full sm:w-auto">
             <RotateCcw className="h-4 w-4 mr-1" /> Discard
           </Button>
-          <Button variant="outline" type="button" onClick={handleSaveDraft} className="min-h-12">
+          <Button variant="outline" type="button" onClick={handleSaveDraft} className="min-h-12 w-full sm:w-auto">
             <Save className="h-4 w-4 mr-1" /> Save Draft
           </Button>
-          <Button variant="default" type="submit" disabled={isSubmitting || verifying} className="min-h-12">
+          <Button variant="default" type="submit" disabled={isSubmitting || verifying} className="min-h-12 w-full sm:w-auto">
             <SendHorizonal className="h-4 w-4 mr-1" />
             {verifying ? "Verifying..." : isSubmitting ? "Submitting..." : "Verify & Submit"}
           </Button>

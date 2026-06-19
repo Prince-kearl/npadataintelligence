@@ -254,7 +254,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-5">
       {/* Executive Overview header */}
-      <div className="flex items-end justify-between flex-wrap gap-2">
+      <div className="flex items-start sm:items-end justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-xl font-bold text-foreground">Executive Overview</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -322,11 +322,11 @@ export default function Dashboard() {
       {/* Row: Real-time Feed + Hotspot Heatmap */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="dash-card lg:col-span-2 p-0 overflow-hidden">
-          <div className="flex items-center justify-between px-5 pt-5 pb-3">
-            <div className="flex items-center gap-2">
+          <div className="flex items-start sm:items-center justify-between gap-2 px-4 sm:px-5 pt-4 sm:pt-5 pb-3">
+            <div className="flex items-center gap-2 min-w-0 flex-wrap">
               <Radio className="h-4 w-4 text-destructive" />
               <span className="section-title">Real-time Incident Feed</span>
-              <span className="text-xs text-muted-foreground">· Updates continuously</span>
+              <span className="text-xs text-muted-foreground hidden sm:inline">· Updates continuously</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-md bg-destructive/10 text-destructive font-medium">
@@ -338,13 +338,13 @@ export default function Dashboard() {
           </div>
           <div className="divide-y divide-border">
             {liveFeed.map((f, i) => (
-              <div key={i} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors">
+              <div key={i} className="flex items-start sm:items-center gap-3 px-4 sm:px-5 py-3 hover:bg-muted/30 transition-colors">
                 <span className={`w-1 h-10 rounded-full ${severityBarClass[f.severity]}`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{f.title}</p>
                   {f.meta && <p className="text-[11px] text-muted-foreground mt-0.5">{f.meta}</p>}
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-3 shrink-0">
                   <span className="text-xs tabular-nums text-muted-foreground flex items-center gap-1">
                     <Clock className="h-3 w-3" /> {f.time}
                   </span>
@@ -371,7 +371,7 @@ export default function Dashboard() {
           </div>
           <HotspotMap
             incidents={incidents}
-            height={340}
+            height="clamp(260px, 70vw, 340px)"
             onSelect={(inc: any) => navigate(`/records?id=${encodeURIComponent(inc.id)}`)}
           />
           <div className="flex items-center justify-between mt-3 text-[10px] text-muted-foreground">
@@ -413,9 +413,10 @@ export default function Dashboard() {
             <span className="section-title">Threat Distribution</span>
             <span className="dash-card-period">live · {incidents.length} incidents</span>
           </div>
-          <div className="flex items-center gap-3">
-            <ResponsiveContainer width="55%" height={200}>
-              <PieChart>
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="w-full sm:w-[55%] h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
                 <Pie
                   data={threatDistribution}
                   cx="50%"
@@ -433,9 +434,10 @@ export default function Dashboard() {
                   ))}
                 </Pie>
                 <Tooltip content={<CategoryTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex-1 space-y-1.5">
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="w-full sm:flex-1 space-y-1.5">
               {threatDistribution.map((d) => (
                 <button
                   key={d.name}
@@ -541,7 +543,7 @@ export default function Dashboard() {
             <span className="dash-card-period">last 7 days</span>
           </div>
           <div className="overflow-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[560px] text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50">
                   <th className="data-table-header text-left py-2.5 px-5">ID</th>
@@ -592,7 +594,7 @@ export default function Dashboard() {
 
       {/* Regulatory Command Panel */}
       <div className="dash-card bg-gradient-to-r from-navy via-accent to-navy text-navy-foreground border-0">
-        <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center">
               <ShieldAlert className="h-5 w-5 text-primary" />
@@ -602,17 +604,17 @@ export default function Dashboard() {
               <p className="text-[11px] text-navy-foreground/70">Quick actions for incident response & enforcement</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button size="sm" onClick={() => openCommand("dispatch_team")} disabled={!canIssueCommand || !eligibleIncidents.length} className="bg-primary text-primary-foreground hover:bg-primary/90 h-8 disabled:opacity-50">
+          <div className="grid grid-cols-1 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+            <Button size="sm" onClick={() => openCommand("dispatch_team")} disabled={!canIssueCommand || !eligibleIncidents.length} className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 h-9 disabled:opacity-50">
               <Send className="h-3.5 w-3.5 mr-1.5" /> Dispatch Team
             </Button>
-            <Button size="sm" variant="secondary" onClick={() => openCommand("escalate_alert")} disabled={!canIssueCommand || !eligibleIncidents.length} className="bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-8 disabled:opacity-50">
+            <Button size="sm" variant="secondary" onClick={() => openCommand("escalate_alert")} disabled={!canIssueCommand || !eligibleIncidents.length} className="w-full sm:w-auto bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-9 disabled:opacity-50">
               <AlertTriangle className="h-3.5 w-3.5 mr-1.5" /> Escalate Alert
             </Button>
-            <Button size="sm" variant="secondary" onClick={() => openCommand("lockdown_protocol")} disabled={role !== "admin" || !eligibleIncidents.length} className="bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-8 disabled:opacity-50">
+            <Button size="sm" variant="secondary" onClick={() => openCommand("lockdown_protocol")} disabled={role !== "admin" || !eligibleIncidents.length} className="w-full sm:w-auto bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-9 disabled:opacity-50">
               <Lock className="h-3.5 w-3.5 mr-1.5" /> Lockdown Protocol
             </Button>
-            <Button size="sm" variant="secondary" onClick={() => openCommand("request_reinforcement")} disabled={!canIssueCommand || !eligibleIncidents.length} className="bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-8 disabled:opacity-50">
+            <Button size="sm" variant="secondary" onClick={() => openCommand("request_reinforcement")} disabled={!canIssueCommand || !eligibleIncidents.length} className="w-full sm:w-auto bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-9 disabled:opacity-50">
               <PhoneCall className="h-3.5 w-3.5 mr-1.5" /> Request Reinforcement
             </Button>
           </div>

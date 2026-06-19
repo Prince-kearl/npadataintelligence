@@ -45,11 +45,11 @@ export default function SignUp() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-dvh flex items-center justify-center bg-background p-4 sm:p-6">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-4">
           <div className="flex justify-center">
-            <img src={npaLogoStandard} alt="NPA Logo" className="h-20" />
+            <img src={npaLogoStandard} alt="NPA Logo" className="h-16 sm:h-20 max-w-full object-contain" />
           </div>
           <h1 className="text-xl font-bold text-foreground">Request Access</h1>
           <p className="meta-text">

@@ -1,23 +1,26 @@
-import { Bell, User, ShieldCheck } from "lucide-react";
+import { Bell, User, ShieldCheck, Menu } from "lucide-react";
 import { useRole, ROLE_LABELS } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
 
-export function AppHeader() {
+export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   const { role } = useRole();
   const { profile } = useAuth();
   const roleLabel = role ? ROLE_LABELS[role] : "No role";
   const displayName = profile?.full_name || profile?.email || "User";
 
   return (
-    <header className="h-14 bg-navy text-navy-foreground flex items-center justify-between px-6 sticky top-0 z-50 shadow-md isolate">
-      <div className="flex items-center gap-4">
-        <h2 className="text-sm font-medium text-navy-foreground/90">
+    <header className="h-14 bg-navy text-navy-foreground flex items-center justify-between px-3 sm:px-6 sticky top-0 z-50 shadow-md isolate gap-2">
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+        <button type="button" onClick={onMenuClick} aria-label="Open navigation" className="lg:hidden h-10 w-10 -ml-1 rounded-lg hover:bg-white/10 flex items-center justify-center shrink-0">
+          <Menu className="h-5 w-5" />
+        </button>
+        <h2 className="text-xs sm:text-sm font-medium text-navy-foreground/90 truncate">
           Incident & Field Data Intelligence System
         </h2>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="hidden md:flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-3 shrink-0">
+        <div className="hidden lg:flex items-center gap-2">
           <span className="text-[10px] uppercase tracking-wider text-navy-foreground/60">
             Active Role
           </span>
@@ -31,15 +34,15 @@ export function AppHeader() {
           </div>
         </div>
 
-        <button className="relative h-8 w-8 rounded-lg hover:bg-navy-foreground/10 flex items-center justify-center transition-colors">
+        <button aria-label="Notifications" className="relative h-9 w-9 rounded-lg hover:bg-navy-foreground/10 hidden sm:flex items-center justify-center transition-colors">
           <Bell className="h-4 w-4 text-navy-foreground/80" />
         </button>
 
-        <div className="flex items-center gap-2 pl-2 border-l border-navy-foreground/20">
+        <div className="flex items-center gap-2 sm:pl-2 sm:border-l border-navy-foreground/20">
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
             <User className="h-4 w-4 text-primary-foreground" />
           </div>
-          <div className="hidden md:flex flex-col leading-tight">
+          <div className="hidden lg:flex flex-col leading-tight">
             <span className="text-[10px] text-navy-foreground/60">Welcome,</span>
             <span className="text-xs font-semibold text-navy-foreground">{displayName}</span>
           </div>

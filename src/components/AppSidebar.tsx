@@ -20,6 +20,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 type NavItem = { to: string; icon: typeof LayoutDashboard; label: string; perm?: Permission };
+type AppSidebarProps = { mobile?: boolean; onNavigate?: () => void };
 
 const mainNav: NavItem[] = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -34,7 +35,7 @@ const systemNav: NavItem[] = [
   { to: "/settings", icon: Settings, label: "Settings", perm: "system_settings" },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({ mobile = false, onNavigate }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const { can } = useRole();
   const { signOut } = useAuth();
@@ -51,28 +52,29 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "flex flex-col bg-sidebar h-screen sticky top-0 transition-all duration-300",
-        collapsed ? "w-[64px]" : "w-[230px]"
+        "flex flex-col bg-sidebar transition-all duration-300",
+        mobile ? "h-full w-full" : "h-screen sticky top-0",
+        !mobile && (collapsed ? "w-[64px]" : "w-[230px]")
       )}
     >
-      <div className={cn("flex items-center justify-center border-b border-sidebar-border", collapsed ? "px-2 py-3" : "px-4 py-4")}>
+      <div className={cn("flex items-center justify-center border-b border-sidebar-border", !mobile && collapsed ? "px-2 py-3" : "px-4 py-4")}>
         <img
           src={npaLogoWhite}
           alt="NPA"
-          className={cn("w-auto object-contain", collapsed ? "h-8" : "h-14")}
+          className={cn("w-auto object-contain", !mobile && collapsed ? "h-8" : "h-14")}
         />
       </div>
       <nav className="flex-1 px-3 pt-4 pb-3 space-y-1 overflow-y-auto">
-        {!collapsed && <p className="px-3 py-1.5 text-[10px] uppercase tracking-widest font-semibold text-sidebar-foreground/40">Main Menu</p>}
+        {(mobile || !collapsed) && <p className="px-3 py-1.5 text-[10px] uppercase tracking-widest font-semibold text-sidebar-foreground/40">Main Menu</p>}
         {visibleMain.map((item) => (
-          <SidebarNavLink key={item.to} {...item} collapsed={collapsed} />
+          <SidebarNavLink key={item.to} {...item} collapsed={!mobile && collapsed} onNavigate={onNavigate} />
         ))}
 
         <div className="my-3 border-t border-sidebar-border" />
 
-        {!collapsed && <p className="px-3 py-1.5 text-[10px] uppercase tracking-widest font-semibold text-sidebar-foreground/40">System</p>}
+        {(mobile || !collapsed) && <p className="px-3 py-1.5 text-[10px] uppercase tracking-widest font-semibold text-sidebar-foreground/40">System</p>}
         {visibleSystem.map((item) => (
-          <SidebarNavLink key={item.to} {...item} collapsed={collapsed} />
+          <SidebarNavLink key={item.to} {...item} collapsed={!mobile && collapsed} onNavigate={onNavigate} />
         ))}
       </nav>
 
@@ -82,14 +84,14 @@ export function AppSidebar() {
           className="flex items-center gap-3 px-3 py-2 w-full text-sm text-sidebar-foreground/60 hover:text-navy-foreground rounded-lg hover:bg-sidebar-accent transition-colors"
         >
           <LogOut className="h-4 w-4 shrink-0" />
-          {!collapsed && <span>Sign Out</span>}
+          {(mobile || !collapsed) && <span>Sign Out</span>}
         </button>
-        <button
+        {!mobile && <button
           onClick={() => setCollapsed(!collapsed)}
           className="flex items-center justify-center w-full p-2 text-sidebar-foreground/40 hover:text-navy-foreground rounded-lg hover:bg-sidebar-accent transition-colors"
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </button>
+        </button>}
       </div>
     </aside>
   );

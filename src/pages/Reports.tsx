@@ -164,7 +164,8 @@ export default function Reports() {
             <p className="text-sm text-muted-foreground">No exports yet. Generate a report to get started.</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto overscroll-x-contain">
+          <table className="w-full min-w-[720px] text-sm">
             <thead className="bg-muted/40">
               <tr className="border-b border-border">
                 <th className="data-table-header text-left py-2 px-3">File</th>
@@ -188,6 +189,7 @@ export default function Reports() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

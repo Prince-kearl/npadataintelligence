@@ -64,9 +64,9 @@ async function fetchAuthEvents() {
 }
 
 const roleClass: Record<string, string> = {
-  admin: "bg-destructive/10 text-destructive",
-  analyst: "bg-accent/10 text-accent",
-  collector: "bg-info/10 text-info",
+  admin: "text-destructive",
+  analyst: "text-accent",
+  collector: "text-info",
 };
 const statusClass: Record<string, string> = {
   active: "bg-success/10 text-success",
@@ -121,8 +121,8 @@ export default function AdminPanel() {
         {isLoading ? (
           <div className="flex items-center justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto overscroll-x-contain">
+            <table className="w-full min-w-[900px] text-sm">
               <thead className="bg-muted/50">
                 <tr className="border-b border-border">
                   <th className="data-table-header text-left py-3 px-4">Name</th>
@@ -143,7 +143,7 @@ export default function AdminPanel() {
                       <Select disabled={u.id === currentUser?.id} value={u.role ?? ""} onValueChange={(v) => setUserRole(u.id, v as Role)}>
                         <SelectTrigger className="h-8 w-32 text-xs bg-muted/50 border-border rounded-lg">
                           <SelectValue placeholder="Set role">
-                            {u.role ? <Badge className={roleClass[u.role]} variant="secondary">{ROLE_LABELS[u.role]}</Badge> : "No role"}
+                            {u.role ? <span className={`font-medium ${roleClass[u.role]}`}>{ROLE_LABELS[u.role]}</span> : "No role"}
                           </SelectValue>
                         </SelectTrigger>
                         <SelectContent className="bg-card border-border">
@@ -181,8 +181,8 @@ export default function AdminPanel() {
           <FileClock className="h-4 w-4 text-primary" />
           <h3 className="section-title">Recent Activity (Audit Log)</h3>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto overscroll-x-contain">
+          <table className="w-full min-w-[620px] text-sm">
             <thead className="bg-muted/50">
               <tr className="border-b border-border">
                 <th className="data-table-header text-left py-2 px-4">When</th>
@@ -214,8 +214,8 @@ export default function AdminPanel() {
           <h3 className="section-title">Authentication Events</h3>
           <span className="text-xs text-muted-foreground ml-auto">Last 50 sign-in attempts</span>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto overscroll-x-contain">
+          <table className="w-full min-w-[900px] text-sm">
             <thead className="bg-muted/50">
               <tr className="border-b border-border">
                 <th className="data-table-header text-left py-2 px-4">When</th>

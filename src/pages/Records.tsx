@@ -200,19 +200,19 @@ export default function Records() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="page-title">Incident Records</h1>
           <p className="meta-text mt-1">{isLoading ? "Loading..." : `${filtered.length} of ${incidents.length} records`}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-1 sm:flex gap-2 w-full sm:w-auto">
           {can("manage_templates") && (
-            <Button variant="outline" onClick={() => setSaveOpen(true)} disabled={!user}>
+            <Button variant="outline" onClick={() => setSaveOpen(true)} disabled={!user} className="w-full sm:w-auto">
               <BookmarkPlus className="h-4 w-4 mr-1" /> Save Filter
             </Button>
           )}
           {can("export_data") && (
-            <Button variant="default" onClick={handleExport} disabled={!filtered.length}>
+            <Button variant="default" onClick={handleExport} disabled={!filtered.length} className="w-full sm:w-auto">
               <Download className="h-4 w-4 mr-1" /> Export ({filtered.length})
             </Button>
           )}
@@ -254,7 +254,7 @@ export default function Records() {
             className="pl-9 bg-muted/50 border-border rounded-lg"
           />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="bg-muted/50 border-border rounded-lg"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent className="bg-card border-border">
@@ -314,8 +314,8 @@ export default function Records() {
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto overscroll-x-contain">
+            <table className="w-full min-w-[1120px] text-sm">
               <thead className="bg-muted/50">
                 <tr className="border-b border-border">
                   <th className="data-table-header text-left py-3 px-4">Reference</th>
