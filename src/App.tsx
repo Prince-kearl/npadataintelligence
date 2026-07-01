@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,16 +8,19 @@ import { AppLayout } from "@/components/AppLayout";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RequireRole } from "@/components/RequireRole";
-import Dashboard from "@/pages/Dashboard";
-import SubmitIncident from "@/pages/SubmitIncident";
-import Records from "@/pages/Records";
-import Analytics from "@/pages/Analytics";
-import Reports from "@/pages/Reports";
-import AdminPanel from "@/pages/AdminPanel";
-import SettingsPage from "@/pages/SettingsPage";
-import Login from "@/pages/Login";
-import SignUp from "@/pages/SignUp";
-import NotFound from "@/pages/NotFound";
+import { LoadingState } from "@/components/ReliabilityState";
+
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const SubmitIncident = lazy(() => import("@/pages/SubmitIncident"));
+const Records = lazy(() => import("@/pages/Records"));
+const IncidentCase = lazy(() => import("@/pages/IncidentCase"));
+const Analytics = lazy(() => import("@/pages/Analytics"));
+const Reports = lazy(() => import("@/pages/Reports"));
+const AdminPanel = lazy(() => import("@/pages/AdminPanel"));
+const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
+const Login = lazy(() => import("@/pages/Login"));
+const SignUp = lazy(() => import("@/pages/SignUp"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient();
 
@@ -27,6 +31,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <Suspense fallback={<main className="p-4 sm:p-6"><LoadingState label="Loading page…" className="min-h-[45vh]" /></main>}>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
@@ -46,6 +51,14 @@ const App = () => (
                   element={
                     <RequireRole permission="view_own_records">
                       <Records />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="/incidents/:id"
+                  element={
+                    <RequireRole permission="view_own_records">
+                      <IncidentCase />
                     </RequireRole>
                   }
                 />
@@ -78,6 +91,7 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

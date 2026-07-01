@@ -163,7 +163,7 @@ export function HotspotMap({ incidents, height = 360, onSelect }: HotspotMapProp
       .map((inc) => {
         const coords = parseGps(inc.gps_coordinates);
         if (!coords) return null;
-        const weight = severityWeight[inc.incident_type] || 0.3;
+        const weight = inc.incident_type ? severityWeight[inc.incident_type] ?? 0.3 : 0.3;
         return { incident: inc, coords, weight };
       })
       .filter((p): p is PointData => p !== null);

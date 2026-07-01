@@ -17,6 +17,7 @@ test.describe.configure({ mode: "serial" });
 test.beforeAll(async () => {
   const admin = createClient(url!, serviceKey!, { auth: { persistSession: false } });
   const existing = await admin.auth.admin.listUsers({ perPage: 1000 });
+  let collectorId = "";
   for (const [role, email] of Object.entries(users)) {
     let user = existing.data.users.find((candidate) => candidate.email === email);
     if (!user) {
@@ -30,7 +31,23 @@ test.beforeAll(async () => {
     await admin.from("user_roles").delete().eq("user_id", user.id);
     const assignment = await admin.from("user_roles").insert({ user_id: user.id, role });
     if (assignment.error) throw assignment.error;
+    if (role === "collector") collectorId = user.id;
   }
+  const incident = await admin.from("incidents").upsert({
+    reference_code: "INC-E2E-0001",
+    reporter_id: collectorId,
+    reporter_name: "E2E Collector",
+    incident_date: "2026-06-20",
+    region: "Greater Accra",
+    district: "Tema Metropolitan",
+    location_name: "E2E Tema Depot",
+    category: "Spill",
+    description: "Deterministic incident used by role and export browser tests.",
+    severity: "medium",
+    status: "submitted",
+    submission_state: "complete",
+  }, { onConflict: "reference_code" });
+  if (incident.error) throw incident.error;
 });
 
 async function login(page: Page, email: string) {
@@ -51,6 +68,7 @@ test("collector sees collection workflow but not elevated intelligence", async (
 
 test("analyst can reach records, analytics and reports", async ({ page }) => {
   await login(page, users.analyst);
+  await expect(page.getByRole("heading", { name: "Incident Review Desk" })).toBeVisible();
   for (const label of ["Records", "Analytics", "Reports"]) {
     await expect(page.getByText(label, { exact: true })).toBeVisible();
   }
@@ -61,5 +79,38 @@ test("analyst can reach records, analytics and reports", async ({ page }) => {
 test("administrator can reach the administration panel", async ({ page }) => {
   await login(page, users.admin);
   await page.getByText("Admin Panel", { exact: true }).click();
-  await expect(page.getByRole("heading", { name: "System Administration" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Admin Panel" })).toBeVisible();
+});
+
+test("mobile records use case cards instead of the desktop table", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await login(page, users.analyst);
+  await page.goto("/records");
+  await expect(page.getByRole("link", { name: /Open case workspace/i }).first()).toBeVisible();
+  await expect(page.locator("table").first()).toBeHidden();
+});
+
+test("analyst downloads genuine XLSX and PDF files with history entries", async ({ page }) => {
+  await login(page, users.analyst);
+  await page.goto("/reports");
+
+  const xlsxDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export XLSX" }).click();
+  const xlsx = await xlsxDownload;
+  expect(xlsx.suggestedFilename()).toMatch(/\.xlsx$/);
+  await expect(page.getByText(xlsx.suggestedFilename(), { exact: true })).toBeVisible();
+
+  const pdfDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download PDF" }).click();
+  const pdf = await pdfDownload;
+  expect(pdf.suggestedFilename()).toMatch(/\.pdf$/);
+  await expect(page.getByText(pdf.suggestedFilename(), { exact: true })).toBeVisible();
+});
+
+test("administrator must confirm account suspension", async ({ page }) => {
+  await login(page, users.admin);
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Suspend" }).first().click();
+  await expect(page.getByRole("alertdialog")).toContainText("Suspend this account?");
+  await page.getByRole("button", { name: "Cancel" }).click();
 });

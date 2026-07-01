@@ -7,13 +7,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shield, Users, Activity, Loader2, FileClock } from "lucide-react";
+import { Shield, Users, Activity, FileClock } from "lucide-react";
 import { KPICard } from "@/components/KPICard";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ROLE_LABELS, type Role } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
+import { useState } from "react";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import { ErrorState, LoadingState } from "@/components/ReliabilityState";
 
 type AccountStatus = "pending" | "active" | "suspended";
 
@@ -77,22 +80,45 @@ const statusClass: Record<string, string> = {
 export default function AdminPanel() {
   const { user: currentUser } = useAuth();
   const qc = useQueryClient();
-  const { data: users = [], isLoading } = useQuery({ queryKey: ["admin-users"], queryFn: fetchUsers });
-  const { data: audit = [] } = useQuery({ queryKey: ["audit-logs"], queryFn: fetchAuditLogs });
-  const { data: authEvents = [] } = useQuery({ queryKey: ["auth-events"], queryFn: fetchAuthEvents });
+  const usersQuery = useQuery({ queryKey: ["admin-users"], queryFn: fetchUsers });
+  const auditQuery = useQuery({ queryKey: ["audit-logs"], queryFn: fetchAuditLogs });
+  const authEventsQuery = useQuery({ queryKey: ["auth-events"], queryFn: fetchAuthEvents });
+  const { data: users = [], isLoading, isError, error } = usersQuery;
+  const { data: audit = [] } = auditQuery;
+  const { data: authEvents = [] } = authEventsQuery;
+  const [pendingAction, setPendingAction] = useState<
+    | { type: "status"; user: AdminUser; value: AccountStatus }
+    | { type: "role"; user: AdminUser; value: Role }
+    | null
+  >(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const updateStatus = async (id: string, status: AccountStatus) => {
     const { error } = await supabase.from("profiles").update({ status }).eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) throw error;
     toast.success(`Account ${status}`);
     qc.invalidateQueries({ queryKey: ["admin-users"] });
   };
 
   const setUserRole = async (userId: string, newRole: Role) => {
     const { error } = await supabase.rpc("admin_set_user_role", { _user_id: userId, _role: newRole });
-    if (error) return toast.error(error.message);
+    if (error) throw error;
     toast.success(`Role set to ${ROLE_LABELS[newRole]}`);
     qc.invalidateQueries({ queryKey: ["admin-users"] });
+  };
+
+  const confirmUserAction = async () => {
+    if (!pendingAction) return;
+    setIsUpdating(true);
+    try {
+      if (pendingAction.type === "status") await updateStatus(pendingAction.user.id, pendingAction.value);
+      else await setUserRole(pendingAction.user.id, pendingAction.value);
+      setPendingAction(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "The account change could not be completed");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const counts = {
@@ -119,7 +145,9 @@ export default function AdminPanel() {
           <h3 className="section-title">User Accounts</h3>
         </div>
         {isLoading ? (
-          <div className="flex items-center justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+          <LoadingState label="Loading user accounts…" className="min-h-52 rounded-none border-0 shadow-none" />
+        ) : isError ? (
+          <ErrorState title="User accounts could not be loaded" error={error} onRetry={() => void usersQuery.refetch()} className="min-h-52 rounded-none border-0" />
         ) : (
           <div className="overflow-x-auto overscroll-x-contain">
             <table className="w-full min-w-[900px] text-sm">
@@ -140,7 +168,7 @@ export default function AdminPanel() {
                     <td className="py-3 px-4 font-medium text-foreground">{u.full_name || "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">{u.email}</td>
                     <td className="py-3 px-4">
-                      <Select disabled={u.id === currentUser?.id} value={u.role ?? ""} onValueChange={(v) => setUserRole(u.id, v as Role)}>
+                      <Select disabled={u.id === currentUser?.id} value={u.role ?? ""} onValueChange={(v) => setPendingAction({ type: "role", user: u, value: v as Role })}>
                         <SelectTrigger className="h-8 w-32 text-xs bg-muted/50 border-border rounded-lg">
                           <SelectValue placeholder="Set role">
                             {u.role ? <span className={`font-medium ${roleClass[u.role]}`}>{ROLE_LABELS[u.role]}</span> : "No role"}
@@ -161,10 +189,10 @@ export default function AdminPanel() {
                     <td className="py-3 px-4">
                       <div className="flex gap-1">
                         {u.id !== currentUser?.id && u.status !== "active" && (
-                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus(u.id, "active")}>Approve</Button>
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setPendingAction({ type: "status", user: u, value: "active" })}>Approve</Button>
                         )}
                         {u.id !== currentUser?.id && u.status !== "suspended" && (
-                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus(u.id, "suspended")}>Suspend</Button>
+                          <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => setPendingAction({ type: "status", user: u, value: "suspended" })}>Suspend</Button>
                         )}
                       </div>
                     </td>
@@ -182,6 +210,9 @@ export default function AdminPanel() {
           <h3 className="section-title">Recent Activity (Audit Log)</h3>
         </div>
         <div className="overflow-x-auto overscroll-x-contain">
+          {auditQuery.isLoading && <LoadingState label="Loading audit activity…" className="min-h-36 rounded-none border-0" />}
+          {auditQuery.isError && <ErrorState title="Audit activity is unavailable" error={auditQuery.error} onRetry={() => void auditQuery.refetch()} className="min-h-36 rounded-none border-0" />}
+          {!auditQuery.isLoading && !auditQuery.isError && (
           <table className="w-full min-w-[620px] text-sm">
             <thead className="bg-muted/50">
               <tr className="border-b border-border">
@@ -205,6 +236,7 @@ export default function AdminPanel() {
               ))}
             </tbody>
           </table>
+          )}
         </div>
       </div>
 
@@ -215,6 +247,9 @@ export default function AdminPanel() {
           <span className="text-xs text-muted-foreground ml-auto">Last 50 sign-in attempts</span>
         </div>
         <div className="overflow-x-auto overscroll-x-contain">
+          {authEventsQuery.isLoading && <LoadingState label="Loading authentication events…" className="min-h-36 rounded-none border-0" />}
+          {authEventsQuery.isError && <ErrorState title="Authentication events are unavailable" error={authEventsQuery.error} onRetry={() => void authEventsQuery.refetch()} className="min-h-36 rounded-none border-0" />}
+          {!authEventsQuery.isLoading && !authEventsQuery.isError && (
           <table className="w-full min-w-[900px] text-sm">
             <thead className="bg-muted/50">
               <tr className="border-b border-border">
@@ -246,8 +281,26 @@ export default function AdminPanel() {
               ))}
             </tbody>
           </table>
+          )}
         </div>
       </div>
+
+      <ConfirmationDialog
+        open={Boolean(pendingAction)}
+        onOpenChange={(open) => !open && !isUpdating && setPendingAction(null)}
+        title={pendingAction?.type === "role" ? "Change this user’s role?" : pendingAction?.value === "suspended" ? "Suspend this account?" : "Activate this account?"}
+        description={pendingAction
+          ? pendingAction.type === "role"
+            ? `${pendingAction.user.email} will receive ${ROLE_LABELS[pendingAction.value]} permissions immediately.`
+            : pendingAction.value === "suspended"
+              ? `${pendingAction.user.email} will lose application access immediately.`
+              : `${pendingAction.user.email} will be permitted to sign in and use their assigned role.`
+          : ""}
+        confirmLabel={pendingAction?.type === "role" ? "Change role" : pendingAction?.value === "suspended" ? "Suspend account" : "Activate account"}
+        destructive={pendingAction?.type === "status" && pendingAction.value === "suspended"}
+        pending={isUpdating}
+        onConfirm={confirmUserAction}
+      />
     </div>
   );
 }

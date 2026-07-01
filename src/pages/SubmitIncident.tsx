@@ -27,7 +27,7 @@ import {
   PRODUCT_TYPES,
   INJURY_TYPES,
   REPORT_SOURCES,
-} from "@/lib/mock-data";
+} from "@/lib/incident-options";
 import { findPotentialDuplicates, type DuplicateMatch } from "@/lib/incident-verification";
 import { Upload, Save, SendHorizonal, ShieldAlert, X, Camera, MapPin, RotateCcw, WifiOff } from "lucide-react";
 import { toast } from "sonner";
@@ -185,7 +185,10 @@ export default function SubmitIncident() {
     );
 
   const captureGps = () => {
-    if (!navigator.geolocation) return toast.error("Geolocation not supported");
+    if (!navigator.geolocation) {
+      toast.error("Geolocation not supported");
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setGps(`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`);
@@ -197,7 +200,10 @@ export default function SubmitIncident() {
 
   const finalizeSubmit = async (verificationScore?: number, verificationNotes?: string) => {
     setDialogOpen(false);
-    if (!user) return toast.error("You must be signed in");
+    if (!user) {
+      toast.error("You must be signed in");
+      return;
+    }
     setIsSubmitting(true);
     try {
       // Begin is idempotent: a retry with this local submission id returns the
@@ -258,7 +264,8 @@ export default function SubmitIncident() {
         productType, injuryType, casualties, fatalities, description, source, sourceContact,
         sourceNotes, previousChannel,
       });
-      return toast.warning("Saved offline. Submit when you reconnect.");
+      toast.warning("Saved offline. Submit when you reconnect.");
+      return;
     }
     setVerifying(true);
     try {

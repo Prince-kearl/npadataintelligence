@@ -13,6 +13,10 @@ import {
   Lock,
   PhoneCall,
   MoreHorizontal,
+  ClipboardCheck,
+  FileEdit,
+  BarChart3,
+  Settings,
 } from "lucide-react";
 import { KPICard } from "@/components/KPICard";
 import { incidentsByProduct, incidentsByRegion, monthlyTrend } from "@/lib/analytics";
@@ -43,6 +47,8 @@ import { HotspotMap } from "@/components/HotspotMap";
 import { useIncidents } from "@/hooks/useIncidents";
 import { useRole } from "@/hooks/useRole";
 import { toast } from "sonner";
+import { ErrorState, LoadingState } from "@/components/ReliabilityState";
+import { useAuth } from "@/hooks/useAuth";
 
 const statusClass: Record<string, string> = {
   New: "status-new",
@@ -130,8 +136,10 @@ const SEVERITY_COLORS: Record<string, string> = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { data: incidents = [] } = useIncidents();
+  const incidentsQuery = useIncidents();
+  const { data: incidents = [], isLoading, isError, error, refetch, isFetching } = incidentsQuery;
   const { role } = useRole();
+  const { profile } = useAuth();
   const [selectedAction, setSelectedAction] = useState<ResponseActionType | null>(null);
   const [selectedIncidentId, setSelectedIncidentId] = useState("");
   const [commandInstructions, setCommandInstructions] = useState("");
@@ -251,24 +259,79 @@ export default function Dashboard() {
     navigate(`/records?category=${encodeURIComponent(category)}`);
   };
 
+  const dashboardCopy = role === "collector"
+    ? { title: "Field Operations", subtitle: "Your submitted incidents and field follow-up", eyebrow: "Collector workspace" }
+    : role === "analyst"
+      ? { title: "Incident Review Desk", subtitle: "Verification queues, trends and regulatory response", eyebrow: "Analyst workspace" }
+      : role === "admin"
+        ? { title: "Executive Command Overview", subtitle: "Sector-wide incident intelligence and system oversight", eyebrow: "Administrator workspace" }
+        : { title: "Incident Dashboard", subtitle: "Your account has not yet been assigned an operational role", eyebrow: "Limited workspace" };
+
+  if (isLoading) return <LoadingState label="Loading your operational dashboard…" className="min-h-[55vh]" />;
+  if (isError) return <ErrorState title="Dashboard data is unavailable" error={error} onRetry={() => void refetch()} className="min-h-[55vh]" />;
+
   return (
     <div className="space-y-5">
       {/* Executive Overview header */}
       <div className="flex items-start sm:items-end justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-xl font-bold text-foreground">Executive Overview</h1>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-primary">{dashboardCopy.eyebrow}</p>
+          <h1 className="mt-1 text-xl font-bold text-foreground">{dashboardCopy.title}</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Real-time petroleum sector incident intelligence
+            {dashboardCopy.subtitle}{profile?.full_name ? ` · ${profile.full_name}` : ""}
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs">
           <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-success/10 text-success font-medium">
             <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-            Live
+            {isFetching ? "Refreshing" : "Live"}
           </span>
           <span className="text-muted-foreground">Auto-refresh 30s</span>
         </div>
       </div>
+
+      {role === "collector" && (
+        <div className="dash-card border-primary/20 bg-primary/5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="flex items-center gap-2 font-semibold text-foreground"><FileEdit className="h-4 w-4 text-primary" />Field reporting</p>
+              <p className="mt-1 text-sm text-muted-foreground">You can see {kpis.total} permitted report{kpis.total === 1 ? "" : "s"}, with {kpis.open} still active.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:flex">
+              <Button onClick={() => navigate("/submit")}><FileEdit className="mr-2 h-4 w-4" />Submit incident</Button>
+              <Button variant="outline" onClick={() => navigate("/records")}>View my records</Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {role === "analyst" && (
+        <div className="dash-card border-info/20 bg-info/5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="flex items-center gap-2 font-semibold text-foreground"><ClipboardCheck className="h-4 w-4 text-info" />Review priority</p>
+              <p className="mt-1 text-sm text-muted-foreground">{incidents.filter((item) => ["submitted", "under_review", "returned", "New", "Reviewed"].includes(item.status)).length} cases require review or follow-up.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:flex">
+              <Button onClick={() => navigate("/records?status=submitted")}>Open review queue</Button>
+              <Button variant="outline" onClick={() => navigate("/analytics")}><BarChart3 className="mr-2 h-4 w-4" />Analyse trends</Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {role === "admin" && (
+        <div className="dash-card border-warning/20 bg-warning/5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="flex items-center gap-2 font-semibold text-foreground"><ShieldAlert className="h-4 w-4 text-warning" />Command and governance</p>
+              <p className="mt-1 text-sm text-muted-foreground">{kpis.critical} high-priority cases and {kpis.open} open cases need system-wide oversight.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:flex">
+              <Button onClick={() => navigate("/admin")}><Settings className="mr-2 h-4 w-4" />Admin controls</Button>
+              <Button variant="outline" onClick={() => navigate("/reports")}>Compliance reports</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -337,6 +400,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="divide-y divide-border">
+            {liveFeed.length === 0 && <p className="px-5 py-10 text-center text-sm text-muted-foreground">No incidents are currently visible to your role.</p>}
             {liveFeed.map((f, i) => (
               <div key={i} className="flex items-start sm:items-center gap-3 px-4 sm:px-5 py-3 hover:bg-muted/30 transition-colors">
                 <span className={`w-1 h-10 rounded-full ${severityBarClass[f.severity]}`} />
@@ -372,7 +436,7 @@ export default function Dashboard() {
           <HotspotMap
             incidents={incidents}
             height="clamp(260px, 70vw, 340px)"
-            onSelect={(inc: any) => navigate(`/records?id=${encodeURIComponent(inc.id)}`)}
+            onSelect={(inc: any) => navigate(`/incidents/${encodeURIComponent(inc.id)}`)}
           />
           <div className="flex items-center justify-between mt-3 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-destructive" /> Major</span>
@@ -556,7 +620,15 @@ export default function Dashboard() {
               <tbody>
                 {incidents.slice(0, 5).map((inc) => (
                   <tr key={inc.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                    <td className="py-3 px-5 font-medium tabular-nums text-foreground">{inc.id}</td>
+                    <td className="py-3 px-5 font-medium tabular-nums">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/incidents/${inc.id}`)}
+                        className="text-primary hover:underline underline-offset-4"
+                      >
+                        {inc.reference_code || inc.id.slice(0, 8)}
+                      </button>
+                    </td>
                     <td className="py-3 px-4 tabular-nums text-muted-foreground">{inc.incident_date}</td>
                     <td className="py-3 px-4 text-muted-foreground">{inc.region}</td>
                     <td className="py-3 px-4 text-muted-foreground">{inc.category}</td>
@@ -593,7 +665,7 @@ export default function Dashboard() {
       </div>
 
       {/* Regulatory Command Panel */}
-      <div className="dash-card bg-gradient-to-r from-navy via-accent to-navy text-navy-foreground border-0">
+      {canIssueCommand && <div className="dash-card bg-gradient-to-r from-navy via-accent to-navy text-navy-foreground border-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center">
@@ -619,7 +691,7 @@ export default function Dashboard() {
             </Button>
           </div>
         </div>
-      </div>
+      </div>}
 
       <Dialog open={selectedAction !== null} onOpenChange={(open) => !open && setSelectedAction(null)}>
         <DialogContent className="sm:max-w-lg">
@@ -659,7 +731,7 @@ export default function Dashboard() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelectedAction(null)} disabled={isIssuingCommand}>Cancel</Button>
-            <Button onClick={issueCommand} disabled={isIssuingCommand || !selectedIncidentId || commandInstructions.trim().length < 5}>
+            <Button variant={selectedAction === "lockdown_protocol" ? "destructive" : "default"} onClick={issueCommand} disabled={isIssuingCommand || !selectedIncidentId || commandInstructions.trim().length < 5}>
               {isIssuingCommand ? "Issuing…" : `Issue ${activeCommand?.label ?? "Command"}`}
             </Button>
           </DialogFooter>

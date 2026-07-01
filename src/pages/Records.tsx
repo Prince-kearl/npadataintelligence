@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Search, Download, X, Loader2, BookmarkPlus, Bookmark, Trash2 } from "lucide-react";
+import { Search, Download, X, Loader2, BookmarkPlus, Bookmark, Trash2, MapPin, CalendarDays, ChevronRight } from "lucide-react";
 import { useIncidents } from "@/hooks/useIncidents";
 import { useRole } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,6 +29,9 @@ import {
 } from "@/lib/incidents";
 import { incidentsToCSV, downloadBlob, timestampedName } from "@/lib/exporters";
 import { toast } from "sonner";
+import { ErrorState, LoadingState } from "@/components/ReliabilityState";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import { Textarea } from "@/components/ui/textarea";
 
 const statusClass: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
@@ -50,7 +53,8 @@ const severityClass: Record<IncidentSeverity, string> = {
 };
 
 export default function Records() {
-  const { data: incidents = [], isLoading } = useIncidents();
+  const incidentsQuery = useIncidents();
+  const { data: incidents = [], isLoading, isError, error, refetch } = incidentsQuery;
   const { can, allowedTransitions } = useRole();
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -68,17 +72,25 @@ export default function Records() {
   const [dateTo, setDateTo] = useState<string>("");
 
   const urlCategory = searchParams.get("category");
+  const urlStatus = searchParams.get("status");
   const urlId = searchParams.get("id");
   useEffect(() => {
     if (urlCategory) setCategoryFilter(urlCategory);
-  }, [urlCategory]);
+    if (urlStatus) setStatusFilter(urlStatus);
+  }, [urlCategory, urlStatus]);
 
   // Templates
-  const { data: templates = [] } = useQuery({ queryKey: ["query-templates"], queryFn: listQueryTemplates });
+  const templatesQuery = useQuery({ queryKey: ["query-templates"], queryFn: listQueryTemplates });
+  const { data: templates = [] } = templatesQuery;
   const [saveOpen, setSaveOpen] = useState(false);
   const [tplName, setTplName] = useState("");
   const [tplDesc, setTplDesc] = useState("");
   const [tplShared, setTplShared] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeletingTemplate, setIsDeletingTemplate] = useState(false);
+  const [pendingTransition, setPendingTransition] = useState<{ id: string; reference: string; status: IncidentStatus } | null>(null);
+  const [transitionNote, setTransitionNote] = useState("");
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const currentFilters: QueryFilters = {
     search: searchTerm || undefined,
@@ -142,13 +154,19 @@ export default function Records() {
   const categories = useMemo(() => Array.from(new Set(incidents.map((i) => i.category).filter(Boolean))).sort(), [incidents]);
   const products = useMemo(() => Array.from(new Set(incidents.map((i) => i.product_type).filter(Boolean))).sort() as string[], [incidents]);
 
-  const handleStatusChange = async (id: string, status: IncidentStatus) => {
+  const handleStatusChange = async () => {
+    if (!pendingTransition || !transitionNote.trim()) return;
+    setIsTransitioning(true);
     try {
-      await updateIncidentStatus(id, status);
-      qc.invalidateQueries({ queryKey: ["incidents"] });
-      toast.success(`Status updated to ${STATUS_LABELS[status] || status}`);
+      await updateIncidentStatus(pendingTransition.id, pendingTransition.status, transitionNote.trim());
+      await qc.invalidateQueries({ queryKey: ["incidents"] });
+      toast.success(`Status updated to ${STATUS_LABELS[pendingTransition.status] || pendingTransition.status}`);
+      setPendingTransition(null);
+      setTransitionNote("");
     } catch (err: any) {
       toast.error(err.message || "Update failed");
+    } finally {
+      setIsTransitioning(false);
     }
   };
 
@@ -190,12 +208,16 @@ export default function Records() {
     }
   };
 
-  const handleDeleteTemplate = async (id: string) => {
+  const handleDeleteTemplate = async () => {
+    if (!templateToDelete) return;
+    setIsDeletingTemplate(true);
     try {
-      await deleteQueryTemplate(id);
-      qc.invalidateQueries({ queryKey: ["query-templates"] });
+      await deleteQueryTemplate(templateToDelete.id);
+      await qc.invalidateQueries({ queryKey: ["query-templates"] });
       toast.success("Template removed");
+      setTemplateToDelete(null);
     } catch (err: any) { toast.error(err.message); }
+    finally { setIsDeletingTemplate(false); }
   };
 
   return (
@@ -234,13 +256,19 @@ export default function Records() {
                   {t.name}{t.is_shared && " ★"}
                 </button>
                 {t.owner_id === user?.id && (
-                  <button onClick={() => handleDeleteTemplate(t.id)} className="text-muted-foreground hover:text-destructive">
+                  <button onClick={() => setTemplateToDelete({ id: t.id, name: t.name })} className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label={`Delete ${t.name}`}>
                     <Trash2 className="h-3 w-3" />
                   </button>
                 )}
               </div>
             ))}
           </div>
+        </div>
+      )}
+      {templatesQuery.isError && (
+        <div className="flex flex-col gap-2 rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <span>Saved filters could not be loaded. Incident records are still available.</span>
+          <Button size="sm" variant="outline" onClick={() => void templatesQuery.refetch()}>Retry filters</Button>
         </div>
       )}
 
@@ -308,13 +336,12 @@ export default function Records() {
         </div>
       </div>
 
-      <div className="dash-card p-0 overflow-hidden">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
-        ) : (
-          <div className="overflow-x-auto overscroll-x-contain">
+      {isLoading ? <LoadingState label="Loading incident records…" /> : isError ? (
+        <ErrorState title="Incident records are unavailable" error={error} onRetry={() => void refetch()} />
+      ) : (
+        <>
+          <div className="hidden overflow-hidden rounded-xl border border-border bg-card shadow-sm md:block">
+            <div className="overflow-x-auto overscroll-x-contain">
             <table className="w-full min-w-[1120px] text-sm">
               <thead className="bg-muted/50">
                 <tr className="border-b border-border">
@@ -335,7 +362,11 @@ export default function Records() {
               <tbody>
                 {filtered.map((inc) => (
                   <tr key={inc.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                    <td className="py-3 px-4 font-medium tabular-nums text-foreground">{inc.reference_code}</td>
+                    <td className="py-3 px-4 font-medium tabular-nums">
+                      <Link className="text-primary hover:underline underline-offset-4" to={`/incidents/${inc.id}`}>
+                        {inc.reference_code || inc.id.slice(0, 8)}
+                      </Link>
+                    </td>
                     <td className="py-3 px-4 tabular-nums text-muted-foreground">{inc.incident_date}</td>
                     <td className="py-3 px-4 text-muted-foreground">{inc.region}</td>
                     <td className="py-3 px-4 max-w-[160px] truncate text-muted-foreground">{inc.location_name}</td>
@@ -357,7 +388,7 @@ export default function Records() {
                     {can("edit_records") && (
                       <td className="py-3 px-4">
                         {allowedTransitions(inc.status).length ? (
-                          <Select onValueChange={(v) => handleStatusChange(inc.id, v as IncidentStatus)}>
+                          <Select onValueChange={(v) => setPendingTransition({ id: inc.id, reference: inc.reference_code || inc.id.slice(0, 8), status: v as IncidentStatus })}>
                             <SelectTrigger className="h-8 w-40 text-xs bg-muted/50 border-border rounded-lg"><SelectValue placeholder="Choose action" /></SelectTrigger>
                             <SelectContent className="bg-card border-border">
                               {allowedTransitions(inc.status).map((s) => (
@@ -379,9 +410,47 @@ export default function Records() {
                 )}
               </tbody>
             </table>
+            </div>
           </div>
-        )}
-      </div>
+
+          <div className="space-y-3 md:hidden">
+            {filtered.map((inc) => (
+              <article key={inc.id} className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link to={`/incidents/${inc.id}`} className="font-semibold tabular-nums text-primary hover:underline">
+                      {inc.reference_code || inc.id.slice(0, 8)}
+                    </Link>
+                    <p className="mt-1 truncate text-sm font-medium text-foreground">{inc.category}</p>
+                  </div>
+                  <Badge className={statusClass[inc.status] || ""} variant="secondary">{STATUS_LABELS[inc.status] || inc.status}</Badge>
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-2 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-2"><CalendarDays className="h-4 w-4 shrink-0" />{inc.incident_date}</span>
+                  <span className="flex min-w-0 items-center gap-2"><MapPin className="h-4 w-4 shrink-0" /><span className="truncate">{inc.location_name} · {inc.region}</span></span>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Badge variant="secondary" className={severityClass[inc.severity as IncidentSeverity] || ""}>{SEVERITY_LABELS[inc.severity as IncidentSeverity]}</Badge>
+                  {inc.product_type && <Badge variant="outline">{inc.product_type}</Badge>}
+                  {(inc.casualties > 0 || inc.fatalities > 0) && <span className="text-xs text-muted-foreground">{inc.casualties} casualties · {inc.fatalities} fatalities</span>}
+                </div>
+                <div className="mt-4 flex flex-col gap-2 border-t border-border pt-3">
+                  {can("edit_records") && allowedTransitions(inc.status).length > 0 && (
+                    <Select onValueChange={(v) => setPendingTransition({ id: inc.id, reference: inc.reference_code || inc.id.slice(0, 8), status: v as IncidentStatus })}>
+                      <SelectTrigger className="w-full"><SelectValue placeholder="Change status…" /></SelectTrigger>
+                      <SelectContent>{allowedTransitions(inc.status).map((status) => <SelectItem key={status} value={status}>{STATUS_LABELS[status] || status}</SelectItem>)}</SelectContent>
+                    </Select>
+                  )}
+                  <Button asChild variant="outline" className="w-full justify-between">
+                    <Link to={`/incidents/${inc.id}`}>Open case workspace <ChevronRight className="h-4 w-4" /></Link>
+                  </Button>
+                </div>
+              </article>
+            ))}
+            {filtered.length === 0 && <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">No records match the current filters.</div>}
+          </div>
+        </>
+      )}
 
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
         <DialogContent>
@@ -405,6 +474,35 @@ export default function Records() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={Boolean(pendingTransition)} onOpenChange={(open) => { if (!open && !isTransitioning) { setPendingTransition(null); setTransitionNote(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm status transition</DialogTitle>
+            <DialogDescription>
+              Move {pendingTransition?.reference} to {pendingTransition ? STATUS_LABELS[pendingTransition.status] || pendingTransition.status : ""}? This change is audit logged and may affect operational workflows.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea value={transitionNote} onChange={(event) => setTransitionNote(event.target.value)} placeholder="Required: explain the decision and next steps…" maxLength={1000} />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingTransition(null)} disabled={isTransitioning}>Cancel</Button>
+            <Button onClick={handleStatusChange} disabled={!transitionNote.trim() || isTransitioning}>
+              {isTransitioning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirm transition
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmationDialog
+        open={Boolean(templateToDelete)}
+        onOpenChange={(open) => !open && !isDeletingTemplate && setTemplateToDelete(null)}
+        title="Delete saved filter?"
+        description={`“${templateToDelete?.name || "This filter"}” will be permanently removed from your saved filters.`}
+        confirmLabel="Delete filter"
+        destructive
+        pending={isDeletingTemplate}
+        onConfirm={handleDeleteTemplate}
+      />
     </div>
   );
 }

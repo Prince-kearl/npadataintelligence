@@ -7,6 +7,7 @@ export type IncidentSeverity = Database["public"]["Enums"]["incident_severity"];
 export type AttachmentRow = Database["public"]["Tables"]["incident_attachments"]["Row"];
 export type ResponseActionType = Database["public"]["Enums"]["response_action_type"];
 export type ResponseActionRow = Database["public"]["Tables"]["incident_response_actions"]["Row"];
+export type StatusHistoryRow = Database["public"]["Tables"]["incident_status_history"]["Row"];
 
 /** Full lifecycle (new values) + legacy values kept for backward compat. */
 export const LIFECYCLE_STATUSES: IncidentStatus[] = [
@@ -48,14 +49,43 @@ export interface AttachmentMeta {
   version?: number;
 }
 
+let incidentSchemaMode: "unknown" | "hardened" | "legacy" = "unknown";
+
+function isMissingColumn(error: unknown, column: string) {
+  if (!error || typeof error !== "object") return false;
+  const value = error as { code?: string; message?: string };
+  return value.code === "42703" && Boolean(value.message?.includes(column));
+}
+
+async function listLegacyIncidents(): Promise<IncidentRow[]> {
+  const { data, error } = await supabase
+    .from("incidents")
+    .select("*")
+    .is("deleted_at", null)
+    .order("incident_date", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function listIncidents(): Promise<IncidentRow[]> {
+  // The current Lovable-hosted database predates the recoverable-submission
+  // migration. Keep read-only views operational until that migration is applied.
+  if (incidentSchemaMode === "legacy") return listLegacyIncidents();
+
   const { data, error } = await supabase
     .from("incidents")
     .select("*")
     .is("deleted_at", null)
     .eq("submission_state", "complete")
     .order("incident_date", { ascending: false });
-  if (error) throw error;
+  if (error) {
+    if (isMissingColumn(error, "submission_state")) {
+      incidentSchemaMode = "legacy";
+      return listLegacyIncidents();
+    }
+    throw error;
+  }
+  incidentSchemaMode = "hardened";
   return data ?? [];
 }
 
@@ -86,6 +116,16 @@ export async function createIncidentResponseAction(
   });
   if (error) throw error;
   return data;
+}
+
+export async function listResponseActions(incidentId: string): Promise<ResponseActionRow[]> {
+  const { data, error } = await supabase
+    .from("incident_response_actions")
+    .select("*")
+    .eq("incident_id", incidentId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function beginIncidentSubmission(
@@ -217,7 +257,7 @@ export async function getAttachmentSignedUrl(path: string, expiresIn = 3600) {
 
 // ============ Status history ============
 
-export async function listStatusHistory(incidentId: string) {
+export async function listStatusHistory(incidentId: string): Promise<StatusHistoryRow[]> {
   const { data, error } = await supabase
     .from("incident_status_history")
     .select("*")

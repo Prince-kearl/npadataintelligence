@@ -18,6 +18,7 @@ import npaLogoWhite from "@/assets/npa-logo-white.png";
 import { useRole, Permission } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 
 type NavItem = { to: string; icon: typeof LayoutDashboard; label: string; perm?: Permission };
 type AppSidebarProps = { mobile?: boolean; onNavigate?: () => void };
@@ -37,6 +38,8 @@ const systemNav: NavItem[] = [
 
 export function AppSidebar({ mobile = false, onNavigate }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const { can } = useRole();
   const { signOut } = useAuth();
   const navigate = useNavigate();
@@ -44,9 +47,15 @@ export function AppSidebar({ mobile = false, onNavigate }: AppSidebarProps) {
   const visibleSystem = systemNav.filter((i) => !i.perm || can(i.perm));
 
   const handleSignOut = async () => {
-    await signOut();
-    toast.success("Signed out");
-    navigate("/login", { replace: true });
+    setIsSigningOut(true);
+    try {
+      await signOut();
+      toast.success("Signed out");
+      navigate("/login", { replace: true });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not sign out");
+      setIsSigningOut(false);
+    }
   };
 
   return (
@@ -80,7 +89,7 @@ export function AppSidebar({ mobile = false, onNavigate }: AppSidebarProps) {
 
       <div className="px-3 py-3 border-t border-sidebar-border space-y-1">
         <button
-          onClick={handleSignOut}
+          onClick={() => setConfirmSignOut(true)}
           className="flex items-center gap-3 px-3 py-2 w-full text-sm text-sidebar-foreground/60 hover:text-navy-foreground rounded-lg hover:bg-sidebar-accent transition-colors"
         >
           <LogOut className="h-4 w-4 shrink-0" />
@@ -93,6 +102,15 @@ export function AppSidebar({ mobile = false, onNavigate }: AppSidebarProps) {
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>}
       </div>
+      <ConfirmationDialog
+        open={confirmSignOut}
+        onOpenChange={(open) => !isSigningOut && setConfirmSignOut(open)}
+        title="Sign out now?"
+        description="Any unsaved work on the current page will be lost. Saved drafts will remain available on this device."
+        confirmLabel="Sign out"
+        pending={isSigningOut}
+        onConfirm={handleSignOut}
+      />
     </aside>
   );
 }

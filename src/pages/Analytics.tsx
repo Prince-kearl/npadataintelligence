@@ -19,6 +19,7 @@ import {
   Line,
   Legend,
 } from "recharts";
+import { ErrorState, LoadingState } from "@/components/ReliabilityState";
 
 const COLORS = [
   "hsl(228, 62%, 26%)",
@@ -42,12 +43,15 @@ const tooltipStyle = {
 };
 
 export default function Analytics() {
-  const { data: incidents = [] } = useIncidents();
+  const { data: incidents = [], isLoading, isError, error, refetch } = useIncidents();
   const isMobile = useIsMobile();
   const regionData = useMemo(() => incidentsByRegion(incidents), [incidents]);
   const categoryData = useMemo(() => incidentsByCategory(incidents), [incidents]);
   const trendData = useMemo(() => monthlyTrend(incidents), [incidents]);
   const productData = useMemo(() => incidentsByProduct(incidents), [incidents]);
+
+  if (isLoading) return <LoadingState label="Preparing incident analytics…" className="min-h-[55vh]" />;
+  if (isError) return <ErrorState title="Analytics data is unavailable" error={error} onRetry={() => void refetch()} className="min-h-[55vh]" />;
 
   return (
     <div className="space-y-5">
