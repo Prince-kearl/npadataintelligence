@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ROLE_LABELS, type Role } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { ErrorState, LoadingState } from "@/components/ReliabilityState";
 
@@ -77,6 +77,9 @@ const statusClass: Record<string, string> = {
   pending: "bg-warning/10 text-warning",
 };
 
+const AUDIT_PAGE_SIZE = 8;
+const AUTH_EVENTS_PAGE_SIZE = 10;
+
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (error && typeof error === "object" && "message" in error) {
@@ -95,6 +98,8 @@ export default function AdminPanel() {
   const { data: users = [], isLoading, isError, error } = usersQuery;
   const { data: audit = [] } = auditQuery;
   const { data: authEvents = [] } = authEventsQuery;
+  const [auditPage, setAuditPage] = useState(1);
+  const [authEventsPage, setAuthEventsPage] = useState(1);
   const [pendingAction, setPendingAction] = useState<
     | { type: "status"; user: AdminUser; value: AccountStatus }
     | { type: "role"; user: AdminUser; value: Role }
@@ -140,6 +145,22 @@ export default function AdminPanel() {
     active: users.filter((u) => u.status === "active").length,
     pending: users.filter((u) => u.status === "pending").length,
   };
+
+  const auditTotalPages = Math.max(1, Math.ceil(audit.length / AUDIT_PAGE_SIZE));
+  const authEventsTotalPages = Math.max(1, Math.ceil(authEvents.length / AUTH_EVENTS_PAGE_SIZE));
+
+  useEffect(() => {
+    setAuditPage((prev) => Math.min(prev, auditTotalPages));
+  }, [auditTotalPages]);
+
+  useEffect(() => {
+    setAuthEventsPage((prev) => Math.min(prev, authEventsTotalPages));
+  }, [authEventsTotalPages]);
+
+  const auditStart = (auditPage - 1) * AUDIT_PAGE_SIZE;
+  const authEventsStart = (authEventsPage - 1) * AUTH_EVENTS_PAGE_SIZE;
+  const pagedAudit = audit.slice(auditStart, auditStart + AUDIT_PAGE_SIZE);
+  const pagedAuthEvents = authEvents.slice(authEventsStart, authEventsStart + AUTH_EVENTS_PAGE_SIZE);
 
   return (
     <div className="space-y-5">
@@ -248,7 +269,7 @@ export default function AdminPanel() {
               {audit.length === 0 && (
                 <tr><td colSpan={4} className="text-center py-6 text-muted-foreground">No activity yet.</td></tr>
               )}
-              {audit.map((a: any) => (
+              {pagedAudit.map((a: any) => (
                 <tr key={a.id} className="border-b border-border/50">
                   <td className="py-2 px-4 tabular-nums text-muted-foreground">{new Date(a.created_at).toLocaleString()}</td>
                   <td className="py-2 px-4 text-muted-foreground">{a.user_email || "system"}</td>
@@ -260,6 +281,22 @@ export default function AdminPanel() {
           </table>
           )}
         </div>
+        {!auditQuery.isLoading && !auditQuery.isError && audit.length > AUDIT_PAGE_SIZE && (
+          <div className="px-5 py-3 border-t border-border flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              Showing {auditStart + 1}-{auditStart + pagedAudit.length} of {audit.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" disabled={auditPage === 1} onClick={() => setAuditPage((p) => p - 1)}>
+                Previous
+              </Button>
+              <span className="text-xs text-muted-foreground tabular-nums">Page {auditPage} of {auditTotalPages}</span>
+              <Button size="sm" variant="outline" disabled={auditPage === auditTotalPages} onClick={() => setAuditPage((p) => p + 1)}>
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="dash-card p-0 overflow-hidden">
@@ -287,7 +324,7 @@ export default function AdminPanel() {
               {authEvents.length === 0 && (
                 <tr><td colSpan={6} className="text-center py-6 text-muted-foreground">No authentication events recorded yet.</td></tr>
               )}
-              {authEvents.map((e: any) => (
+              {pagedAuthEvents.map((e: any) => (
                 <tr key={e.id} className="border-b border-border/50">
                   <td className="py-2 px-4 tabular-nums text-muted-foreground">{new Date(e.created_at).toLocaleString()}</td>
                   <td className="py-2 px-4 text-muted-foreground">{e.email || "—"}</td>
@@ -305,6 +342,22 @@ export default function AdminPanel() {
           </table>
           )}
         </div>
+        {!authEventsQuery.isLoading && !authEventsQuery.isError && authEvents.length > AUTH_EVENTS_PAGE_SIZE && (
+          <div className="px-5 py-3 border-t border-border flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              Showing {authEventsStart + 1}-{authEventsStart + pagedAuthEvents.length} of {authEvents.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" disabled={authEventsPage === 1} onClick={() => setAuthEventsPage((p) => p - 1)}>
+                Previous
+              </Button>
+              <span className="text-xs text-muted-foreground tabular-nums">Page {authEventsPage} of {authEventsTotalPages}</span>
+              <Button size="sm" variant="outline" disabled={authEventsPage === authEventsTotalPages} onClick={() => setAuthEventsPage((p) => p + 1)}>
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <ConfirmationDialog
