@@ -77,8 +77,17 @@ const statusClass: Record<string, string> = {
   pending: "bg-warning/10 text-warning",
 };
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object" && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) return message;
+  }
+  return "The account change could not be completed";
+}
+
 export default function AdminPanel() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, profile } = useAuth();
   const qc = useQueryClient();
   const usersQuery = useQuery({ queryKey: ["admin-users"], queryFn: fetchUsers });
   const auditQuery = useQuery({ queryKey: ["audit-logs"], queryFn: fetchAuditLogs });
@@ -109,13 +118,18 @@ export default function AdminPanel() {
 
   const confirmUserAction = async () => {
     if (!pendingAction) return;
+    if (profile?.status !== "active") {
+      toast.error("Only active administrators can change roles or account status");
+      setPendingAction(null);
+      return;
+    }
     setIsUpdating(true);
     try {
       if (pendingAction.type === "status") await updateStatus(pendingAction.user.id, pendingAction.value);
       else await setUserRole(pendingAction.user.id, pendingAction.value);
       setPendingAction(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "The account change could not be completed");
+      toast.error(getErrorMessage(error));
     } finally {
       setIsUpdating(false);
     }
@@ -168,7 +182,15 @@ export default function AdminPanel() {
                     <td className="py-3 px-4 font-medium text-foreground">{u.full_name || "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">{u.email}</td>
                     <td className="py-3 px-4">
-                      <Select disabled={u.id === currentUser?.id} value={u.role ?? ""} onValueChange={(v) => setPendingAction({ type: "role", user: u, value: v as Role })}>
+                      <Select
+                        disabled={u.id === currentUser?.id || profile?.status !== "active"}
+                        value={u.role ?? ""}
+                        onValueChange={(v) => {
+                          const nextRole = v as Role;
+                          if (u.role === nextRole) return;
+                          setPendingAction({ type: "role", user: u, value: nextRole });
+                        }}
+                      >
                         <SelectTrigger className="h-8 w-32 text-xs bg-muted/50 border-border rounded-lg">
                           <SelectValue placeholder="Set role">
                             {u.role ? <span className={`font-medium ${roleClass[u.role]}`}>{ROLE_LABELS[u.role]}</span> : "No role"}
@@ -189,10 +211,10 @@ export default function AdminPanel() {
                     <td className="py-3 px-4">
                       <div className="flex gap-1">
                         {u.id !== currentUser?.id && u.status !== "active" && (
-                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setPendingAction({ type: "status", user: u, value: "active" })}>Approve</Button>
+                          <Button size="sm" variant="outline" className="h-7 text-xs" disabled={profile?.status !== "active"} onClick={() => setPendingAction({ type: "status", user: u, value: "active" })}>Approve</Button>
                         )}
                         {u.id !== currentUser?.id && u.status !== "suspended" && (
-                          <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => setPendingAction({ type: "status", user: u, value: "suspended" })}>Suspend</Button>
+                          <Button size="sm" variant="destructive" className="h-7 text-xs" disabled={profile?.status !== "active"} onClick={() => setPendingAction({ type: "status", user: u, value: "suspended" })}>Suspend</Button>
                         )}
                       </div>
                     </td>
