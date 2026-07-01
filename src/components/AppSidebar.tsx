@@ -6,6 +6,8 @@ import {
   Database,
   BarChart3,
   FileText,
+  Bell,
+  UserCircle2,
   Shield,
   Settings,
   LogOut,
@@ -19,6 +21,7 @@ import { useRole, Permission } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import { useUnreadNotificationsCount } from "@/hooks/useNotifications";
 
 type NavItem = { to: string; icon: typeof LayoutDashboard; label: string; perm?: Permission };
 type AppSidebarProps = { mobile?: boolean; onNavigate?: () => void };
@@ -29,6 +32,8 @@ const mainNav: NavItem[] = [
   { to: "/records", icon: Database, label: "Records", perm: "view_own_records" },
   { to: "/analytics", icon: BarChart3, label: "Analytics", perm: "view_analytics" },
   { to: "/reports", icon: FileText, label: "Reports", perm: "view_reports" },
+  { to: "/notifications", icon: Bell, label: "Notifications" },
+  { to: "/profile", icon: UserCircle2, label: "Profile" },
 ];
 
 const systemNav: NavItem[] = [
@@ -42,6 +47,7 @@ export function AppSidebar({ mobile = false, onNavigate }: AppSidebarProps) {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const { can } = useRole();
   const { signOut } = useAuth();
+  const { data: unreadCount = 0 } = useUnreadNotificationsCount();
   const navigate = useNavigate();
   const visibleMain = mainNav.filter((i) => !i.perm || can(i.perm));
   const visibleSystem = systemNav.filter((i) => !i.perm || can(i.perm));
@@ -76,7 +82,13 @@ export function AppSidebar({ mobile = false, onNavigate }: AppSidebarProps) {
       <nav className="flex-1 px-3 pt-4 pb-3 space-y-1 overflow-y-auto">
         {(mobile || !collapsed) && <p className="px-3 py-1.5 text-[10px] uppercase tracking-widest font-semibold text-sidebar-foreground/40">Main Menu</p>}
         {visibleMain.map((item) => (
-          <SidebarNavLink key={item.to} {...item} collapsed={!mobile && collapsed} onNavigate={onNavigate} />
+          <SidebarNavLink
+            key={item.to}
+            {...item}
+            collapsed={!mobile && collapsed}
+            onNavigate={onNavigate}
+            badgeCount={item.to === "/notifications" ? unreadCount : undefined}
+          />
         ))}
 
         <div className="my-3 border-t border-sidebar-border" />

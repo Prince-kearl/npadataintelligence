@@ -8,9 +8,11 @@ interface SidebarNavLinkProps {
   label: string;
   collapsed?: boolean;
   onNavigate?: () => void;
+  badgeCount?: number;
 }
 
-export function SidebarNavLink({ to, icon: Icon, label, collapsed, onNavigate }: SidebarNavLinkProps) {
+export function SidebarNavLink({ to, icon: Icon, label, collapsed, onNavigate, badgeCount }: SidebarNavLinkProps) {
+  const showBadge = Boolean(badgeCount && badgeCount > 0);
   return (
     <RouterNavLink
       to={to}
@@ -27,6 +29,11 @@ export function SidebarNavLink({ to, icon: Icon, label, collapsed, onNavigate }:
     >
       <Icon className="h-[18px] w-[18px] shrink-0" />
       {!collapsed && <span>{label}</span>}
+      {!collapsed && showBadge && (
+        <span className="ml-auto inline-flex min-w-5 h-5 px-1.5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[11px] font-semibold tabular-nums">
+          {badgeCount! > 99 ? "99+" : badgeCount}
+        </span>
+      )}
     </RouterNavLink>
   );
 }

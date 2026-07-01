@@ -383,6 +383,87 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          daily_summary: boolean
+          email_alerts: boolean
+          in_app_alerts: boolean
+          notify_on_new_incident: boolean
+          notify_on_status_change: boolean
+          quiet_hours: boolean
+          quiet_hours_end: string
+          quiet_hours_start: string
+          sms_critical: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_summary?: boolean
+          email_alerts?: boolean
+          in_app_alerts?: boolean
+          notify_on_new_incident?: boolean
+          notify_on_status_change?: boolean
+          quiet_hours?: boolean
+          quiet_hours_end?: string
+          quiet_hours_start?: string
+          sms_critical?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_summary?: boolean
+          email_alerts?: boolean
+          in_app_alerts?: boolean
+          notify_on_new_incident?: boolean
+          notify_on_status_change?: boolean
+          quiet_hours?: boolean
+          quiet_hours_end?: string
+          quiet_hours_start?: string
+          sms_critical?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          metadata: Json
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          metadata?: Json
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          metadata?: Json
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -500,6 +581,14 @@ export type Database = {
         Returns: boolean
       }
       is_active_user: { Args: { _user_id: string }; Returns: boolean }
+      get_unread_notifications_count: {
+        Args: never
+        Returns: number
+      }
+      mark_all_notifications_read: {
+        Args: never
+        Returns: number
+      }
       finalize_incident_submission: {
         Args: { _incident_id: string }
         Returns: Database["public"]["Tables"]["incidents"]["Row"]

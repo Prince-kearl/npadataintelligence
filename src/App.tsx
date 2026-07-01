@@ -18,6 +18,8 @@ const Analytics = lazy(() => import("@/pages/Analytics"));
 const Reports = lazy(() => import("@/pages/Reports"));
 const AdminPanel = lazy(() => import("@/pages/AdminPanel"));
 const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
+const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
+const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
 const Login = lazy(() => import("@/pages/Login"));
 const SignUp = lazy(() => import("@/pages/SignUp"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
@@ -78,6 +80,9 @@ const App = () => (
                     </RequireRole>
                   }
                 />
+                <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/profiles" element={<ProfilePage />} />
                 <Route
                   path="/admin"
                   element={
