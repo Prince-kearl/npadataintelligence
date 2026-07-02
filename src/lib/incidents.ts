@@ -97,7 +97,7 @@ export async function getIncident(id: string): Promise<IncidentRow | null> {
 }
 
 export async function updateIncidentStatus(id: string, status: IncidentStatus, note?: string) {
-  const { error } = await supabase.rpc("transition_incident_status", {
+  const { error } = await (supabase.rpc as any)("transition_incident_status", {
     _incident_id: id,
     _to_status: status,
     _note: note ?? null,
@@ -134,22 +134,23 @@ export async function beginIncidentSubmission(
   payload: Json,
   expectedAttachments: number
 ): Promise<IncidentRow> {
-  const { data, error } = await supabase.rpc("begin_incident_submission", {
+  const { data, error } = await (supabase.rpc as any)("begin_incident_submission", {
     _submission_id: submissionId,
     _payload: payload,
     _expected_attachments: expectedAttachments,
   });
   if (error) throw error;
-  return data;
+  return data as IncidentRow;
 }
 
 export async function finalizeIncidentSubmission(incidentId: string): Promise<IncidentRow> {
-  const { data, error } = await supabase.rpc("finalize_incident_submission", {
+  const { data, error } = await (supabase.rpc as any)("finalize_incident_submission", {
     _incident_id: incidentId,
   });
   if (error) throw error;
-  return data;
+  return data as IncidentRow;
 }
+
 
 // ============ Attachments (multi-file evidence) ============
 
