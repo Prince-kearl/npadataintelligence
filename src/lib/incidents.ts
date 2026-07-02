@@ -72,10 +72,10 @@ export async function listIncidents(): Promise<IncidentRow[]> {
   // migration. Keep read-only views operational until that migration is applied.
   if (incidentSchemaMode === "legacy") return listLegacyIncidents();
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase
     .from("incidents")
     .select("*")
-    .is("deleted_at", null)
+    .is("deleted_at", null) as any)
     .eq("submission_state", "complete")
     .order("incident_date", { ascending: false });
   if (error) {
@@ -87,6 +87,7 @@ export async function listIncidents(): Promise<IncidentRow[]> {
   }
   incidentSchemaMode = "hardened";
   return data ?? [];
+
 }
 
 export async function getIncident(id: string): Promise<IncidentRow | null> {
@@ -96,7 +97,7 @@ export async function getIncident(id: string): Promise<IncidentRow | null> {
 }
 
 export async function updateIncidentStatus(id: string, status: IncidentStatus, note?: string) {
-  const { error } = await supabase.rpc("transition_incident_status", {
+  const { error } = await (supabase.rpc as any)("transition_incident_status", {
     _incident_id: id,
     _to_status: status,
     _note: note ?? null,
@@ -133,22 +134,23 @@ export async function beginIncidentSubmission(
   payload: Json,
   expectedAttachments: number
 ): Promise<IncidentRow> {
-  const { data, error } = await supabase.rpc("begin_incident_submission", {
+  const { data, error } = await (supabase.rpc as any)("begin_incident_submission", {
     _submission_id: submissionId,
     _payload: payload,
     _expected_attachments: expectedAttachments,
   });
   if (error) throw error;
-  return data;
+  return data as IncidentRow;
 }
 
 export async function finalizeIncidentSubmission(incidentId: string): Promise<IncidentRow> {
-  const { data, error } = await supabase.rpc("finalize_incident_submission", {
+  const { data, error } = await (supabase.rpc as any)("finalize_incident_submission", {
     _incident_id: incidentId,
   });
   if (error) throw error;
-  return data;
+  return data as IncidentRow;
 }
+
 
 // ============ Attachments (multi-file evidence) ============
 
@@ -400,7 +402,8 @@ export async function updateIncidentDetails(incidentId: string, payload: Inciden
 export async function deleteIncidentRecord(incidentId: string, reason?: string): Promise<IncidentRow> {
   const { data, error } = await supabase.rpc("delete_incident_record", {
     _incident_id: incidentId,
-    _reason: reason ?? null,
+    _reason: reason ?? undefined,
+
   });
   if (error) throw error;
   return data;
@@ -409,7 +412,7 @@ export async function deleteIncidentRecord(incidentId: string, reason?: string):
 export async function restoreIncidentRecord(incidentId: string, reason?: string): Promise<IncidentRow> {
   const { data, error } = await supabase.rpc("restore_incident_record", {
     _incident_id: incidentId,
-    _reason: reason ?? null,
+    _reason: reason ?? undefined,
   });
   if (error) throw error;
   return data;
