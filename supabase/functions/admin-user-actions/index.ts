@@ -16,7 +16,11 @@ function json(body: unknown, status = 200) {
 interface Payload {
   user_id: string;
   action: "resend_invite" | "force_password_reset";
+  redirect_to?: string | null;
 }
+
+const DEFAULT_SITE_URL = Deno.env.get("PUBLIC_SITE_URL") ?? "https://npadataintelligence.vercel.app";
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
