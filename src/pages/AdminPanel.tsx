@@ -195,7 +195,7 @@ export default function AdminPanel() {
     setProcessingUserActionId(userId);
     try {
       const { data, error } = await supabase.functions.invoke("admin-user-actions", {
-        body: { user_id: userId, action },
+        body: { user_id: userId, action, redirect_to: `${window.location.origin}/login` },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
