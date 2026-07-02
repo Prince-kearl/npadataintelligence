@@ -16,40 +16,40 @@ export type Database = {
     Tables: {
       app_settings: {
         Row: {
-          id: number
-          require_mfa_for_admins: boolean
-          lock_pending_accounts: boolean
-          incident_retention_days: number
           audit_retention_days: number
-          scanner_health_alerts: boolean
-          weekly_security_digest: boolean
-          updated_by: string | null
           created_at: string
+          id: number
+          incident_retention_days: number
+          lock_pending_accounts: boolean
+          require_mfa_for_admins: boolean
+          scanner_health_alerts: boolean
           updated_at: string
+          updated_by: string | null
+          weekly_security_digest: boolean
         }
         Insert: {
-          id?: number
-          require_mfa_for_admins?: boolean
-          lock_pending_accounts?: boolean
-          incident_retention_days?: number
           audit_retention_days?: number
-          scanner_health_alerts?: boolean
-          weekly_security_digest?: boolean
-          updated_by?: string | null
           created_at?: string
+          id: number
+          incident_retention_days?: number
+          lock_pending_accounts?: boolean
+          require_mfa_for_admins?: boolean
+          scanner_health_alerts?: boolean
           updated_at?: string
+          updated_by?: string | null
+          weekly_security_digest?: boolean
         }
         Update: {
-          id?: number
-          require_mfa_for_admins?: boolean
-          lock_pending_accounts?: boolean
-          incident_retention_days?: number
           audit_retention_days?: number
-          scanner_health_alerts?: boolean
-          weekly_security_digest?: boolean
-          updated_by?: string | null
           created_at?: string
+          id?: number
+          incident_retention_days?: number
+          lock_pending_accounts?: boolean
+          require_mfa_for_admins?: boolean
+          scanner_health_alerts?: boolean
           updated_at?: string
+          updated_by?: string | null
+          weekly_security_digest?: boolean
         }
         Relationships: []
       }
@@ -322,7 +322,6 @@ export type Database = {
           attachments: Json
           casualties: number
           category: string
-          client_submission_id: string | null
           created_at: string
           deleted_at: string | null
           department: string | null
@@ -346,8 +345,6 @@ export type Database = {
           source_contact: string | null
           source_notes: string | null
           status: Database["public"]["Enums"]["incident_status"]
-          submission_state: Database["public"]["Enums"]["submission_state"]
-          expected_attachments: number
           updated_at: string
           verification_notes: string | null
           verification_score: number | null
@@ -356,7 +353,6 @@ export type Database = {
           attachments?: Json
           casualties?: number
           category: string
-          client_submission_id?: string | null
           created_at?: string
           deleted_at?: string | null
           department?: string | null
@@ -380,8 +376,6 @@ export type Database = {
           source_contact?: string | null
           source_notes?: string | null
           status?: Database["public"]["Enums"]["incident_status"]
-          submission_state?: Database["public"]["Enums"]["submission_state"]
-          expected_attachments?: number
           updated_at?: string
           verification_notes?: string | null
           verification_score?: number | null
@@ -390,7 +384,6 @@ export type Database = {
           attachments?: Json
           casualties?: number
           category?: string
-          client_submission_id?: string | null
           created_at?: string
           deleted_at?: string | null
           department?: string | null
@@ -414,8 +407,6 @@ export type Database = {
           source_contact?: string | null
           source_notes?: string | null
           status?: Database["public"]["Enums"]["incident_status"]
-          submission_state?: Database["public"]["Enums"]["submission_state"]
-          expected_attachments?: number
           updated_at?: string
           verification_notes?: string | null
           verification_score?: number | null
@@ -592,30 +583,129 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      admin_set_user_role: {
-        Args: { _user_id: string; _role: Database["public"]["Enums"]["app_role"] }
-        Returns: undefined
-      }
       admin_set_account_status: {
-        Args: { _user_id: string; _status: Database["public"]["Enums"]["account_status"] }
-        Returns: Database["public"]["Tables"]["profiles"]["Row"]
+        Args: {
+          _status: Database["public"]["Enums"]["account_status"]
+          _user_id: string
+        }
+        Returns: {
+          created_at: string
+          department: string | null
+          email: string
+          full_name: string | null
+          id: string
+          status: Database["public"]["Enums"]["account_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
-      begin_incident_submission: {
-        Args: { _submission_id: string; _payload: Json; _expected_attachments?: number }
-        Returns: Database["public"]["Tables"]["incidents"]["Row"]
+      admin_set_user_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: undefined
       }
       create_incident_response_action: {
         Args: {
-          _incident_id: string
           _action: Database["public"]["Enums"]["response_action_type"]
+          _incident_id: string
           _instructions: string
         }
-        Returns: Database["public"]["Tables"]["incident_response_actions"]["Row"]
+        Returns: {
+          action_type: Database["public"]["Enums"]["response_action_type"]
+          created_at: string
+          id: string
+          incident_id: string
+          instructions: string
+          priority: Database["public"]["Enums"]["incident_severity"]
+          requested_by: string | null
+          requested_by_email: string | null
+          status: Database["public"]["Enums"]["response_action_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "incident_response_actions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_self_notification: {
+        Args: {
+          _category?: string
+          _message: string
+          _metadata?: Json
+          _title: string
+        }
+        Returns: {
+          category: string
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          metadata: Json
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notifications"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       current_role_level: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      delete_incident_record: {
+        Args: { _incident_id: string; _reason?: string }
+        Returns: {
+          attachments: Json
+          casualties: number
+          category: string
+          created_at: string
+          deleted_at: string | null
+          department: string | null
+          description: string
+          district: string | null
+          fatalities: number
+          gps_coordinates: string | null
+          id: string
+          incident_date: string
+          incident_type: string | null
+          injury_type: string | null
+          location_name: string
+          previous_channel: string | null
+          product_type: string | null
+          reference_code: string | null
+          region: string
+          reporter_id: string | null
+          reporter_name: string | null
+          severity: Database["public"]["Enums"]["incident_severity"]
+          source: string | null
+          source_contact: string | null
+          source_notes: string | null
+          status: Database["public"]["Enums"]["incident_status"]
+          updated_at: string
+          verification_notes: string | null
+          verification_score: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "incidents"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_unread_notifications_count: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -626,47 +716,180 @@ export type Database = {
       is_active_user: { Args: { _user_id: string }; Returns: boolean }
       list_deleted_incidents: {
         Args: { _limit?: number }
-        Returns: Database["public"]["Tables"]["incidents"]["Row"][]
+        Returns: {
+          attachments: Json
+          casualties: number
+          category: string
+          created_at: string
+          deleted_at: string | null
+          department: string | null
+          description: string
+          district: string | null
+          fatalities: number
+          gps_coordinates: string | null
+          id: string
+          incident_date: string
+          incident_type: string | null
+          injury_type: string | null
+          location_name: string
+          previous_channel: string | null
+          product_type: string | null
+          reference_code: string | null
+          region: string
+          reporter_id: string | null
+          reporter_name: string | null
+          severity: Database["public"]["Enums"]["incident_severity"]
+          source: string | null
+          source_contact: string | null
+          source_notes: string | null
+          status: Database["public"]["Enums"]["incident_status"]
+          updated_at: string
+          verification_notes: string | null
+          verification_score: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "incidents"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
-      get_unread_notifications_count: {
-        Args: never
-        Returns: number
-      }
-      mark_all_notifications_read: {
-        Args: never
-        Returns: number
-      }
+      mark_all_notifications_read: { Args: never; Returns: number }
       mark_notification_read: {
         Args: { _id: string; _is_read: boolean }
-        Returns: Database["public"]["Tables"]["notifications"]["Row"]
+        Returns: {
+          category: string
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          metadata: Json
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notifications"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
-      create_self_notification: {
-        Args: { _title: string; _message: string; _category?: string; _metadata?: Json }
-        Returns: Database["public"]["Tables"]["notifications"]["Row"]
-      }
-      delete_incident_record: {
-        Args: { _incident_id: string; _reason?: string | null }
-        Returns: Database["public"]["Tables"]["incidents"]["Row"]
-      }
-      finalize_incident_submission: {
-        Args: { _incident_id: string }
-        Returns: Database["public"]["Tables"]["incidents"]["Row"]
+      notify_role_members: {
+        Args: {
+          _category?: string
+          _exclude_user?: string
+          _message: string
+          _metadata?: Json
+          _role: Database["public"]["Enums"]["app_role"]
+          _title: string
+        }
+        Returns: number
       }
       restore_incident_record: {
-        Args: { _incident_id: string; _reason?: string | null }
-        Returns: Database["public"]["Tables"]["incidents"]["Row"]
-      }
-      transition_incident_status: {
-        Args: { _incident_id: string; _to_status: Database["public"]["Enums"]["incident_status"]; _note?: string | null }
-        Returns: Database["public"]["Tables"]["incidents"]["Row"]
+        Args: { _incident_id: string; _reason?: string }
+        Returns: {
+          attachments: Json
+          casualties: number
+          category: string
+          created_at: string
+          deleted_at: string | null
+          department: string | null
+          description: string
+          district: string | null
+          fatalities: number
+          gps_coordinates: string | null
+          id: string
+          incident_date: string
+          incident_type: string | null
+          injury_type: string | null
+          location_name: string
+          previous_channel: string | null
+          product_type: string | null
+          reference_code: string | null
+          region: string
+          reporter_id: string | null
+          reporter_name: string | null
+          severity: Database["public"]["Enums"]["incident_severity"]
+          source: string | null
+          source_contact: string | null
+          source_notes: string | null
+          status: Database["public"]["Enums"]["incident_status"]
+          updated_at: string
+          verification_notes: string | null
+          verification_score: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "incidents"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       update_incident_details: {
         Args: { _incident_id: string; _payload: Json }
-        Returns: Database["public"]["Tables"]["incidents"]["Row"]
+        Returns: {
+          attachments: Json
+          casualties: number
+          category: string
+          created_at: string
+          deleted_at: string | null
+          department: string | null
+          description: string
+          district: string | null
+          fatalities: number
+          gps_coordinates: string | null
+          id: string
+          incident_date: string
+          incident_type: string | null
+          injury_type: string | null
+          location_name: string
+          previous_channel: string | null
+          product_type: string | null
+          reference_code: string | null
+          region: string
+          reporter_id: string | null
+          reporter_name: string | null
+          severity: Database["public"]["Enums"]["incident_severity"]
+          source: string | null
+          source_contact: string | null
+          source_notes: string | null
+          status: Database["public"]["Enums"]["incident_status"]
+          updated_at: string
+          verification_notes: string | null
+          verification_score: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "incidents"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       update_query_template: {
-        Args: { _id: string; _name: string; _description: string; _definition: Json; _is_shared: boolean }
-        Returns: Database["public"]["Tables"]["query_templates"]["Row"]
+        Args: {
+          _definition: Json
+          _description: string
+          _id: string
+          _is_shared: boolean
+          _name: string
+        }
+        Returns: {
+          created_at: string
+          definition: Json
+          description: string | null
+          id: string
+          is_shared: boolean
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "query_templates"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {
@@ -684,13 +907,16 @@ export type Database = {
         | "returned"
         | "verified"
         | "archived"
-      submission_state: "staging" | "complete" | "failed"
+      response_action_status:
+        | "requested"
+        | "acknowledged"
+        | "completed"
+        | "cancelled"
       response_action_type:
         | "dispatch_team"
         | "escalate_alert"
         | "lockdown_protocol"
         | "request_reinforcement"
-      response_action_status: "requested" | "acknowledged" | "completed" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -833,14 +1059,18 @@ export const Constants = {
         "verified",
         "archived",
       ],
-      submission_state: ["staging", "complete", "failed"],
+      response_action_status: [
+        "requested",
+        "acknowledged",
+        "completed",
+        "cancelled",
+      ],
       response_action_type: [
         "dispatch_team",
         "escalate_alert",
         "lockdown_protocol",
         "request_reinforcement",
       ],
-      response_action_status: ["requested", "acknowledged", "completed", "cancelled"],
     },
   },
 } as const
