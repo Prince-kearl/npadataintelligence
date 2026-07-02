@@ -172,6 +172,7 @@ export default function AdminPanel() {
           department: inviteDepartment.trim() || null,
           role: inviteRole,
           status: inviteStatus,
+          redirect_to: `${window.location.origin}/login`,
         },
       });
       if (error) throw error;
