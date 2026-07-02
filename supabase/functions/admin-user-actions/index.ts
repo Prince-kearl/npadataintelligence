@@ -16,7 +16,11 @@ function json(body: unknown, status = 200) {
 interface Payload {
   user_id: string;
   action: "resend_invite" | "force_password_reset";
+  redirect_to?: string | null;
 }
+
+const DEFAULT_SITE_URL = Deno.env.get("PUBLIC_SITE_URL") ?? "https://npadataintelligence.vercel.app";
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -61,8 +65,12 @@ Deno.serve(async (req) => {
       return json({ error: targetError?.message || "target user not found" }, 404);
     }
 
+    const redirectTo = (body.redirect_to && /^https?:\/\//i.test(body.redirect_to))
+      ? body.redirect_to
+      : `${DEFAULT_SITE_URL.replace(/\/$/, "")}/login`;
+
     if (body.action === "resend_invite") {
-      const invited = await admin.auth.admin.inviteUserByEmail(target.user.email);
+      const invited = await admin.auth.admin.inviteUserByEmail(target.user.email, { redirectTo });
       if (invited.error) return json({ error: invited.error.message }, 400);
 
       await admin.from("notifications").insert({
@@ -76,7 +84,7 @@ Deno.serve(async (req) => {
       return json({ ok: true, action: body.action });
     }
 
-    const reset = await admin.auth.resetPasswordForEmail(target.user.email);
+    const reset = await admin.auth.resetPasswordForEmail(target.user.email, { redirectTo });
     if (reset.error) return json({ error: reset.error.message }, 400);
 
     await admin.from("notifications").insert({

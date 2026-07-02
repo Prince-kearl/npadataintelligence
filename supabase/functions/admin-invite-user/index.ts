@@ -19,7 +19,11 @@ interface Payload {
   department?: string | null;
   role: "collector" | "analyst" | "admin";
   status: "pending" | "active" | "suspended";
+  redirect_to?: string | null;
 }
+
+const DEFAULT_SITE_URL = Deno.env.get("PUBLIC_SITE_URL") ?? "https://npadataintelligence.vercel.app";
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -62,11 +66,16 @@ Deno.serve(async (req) => {
       return json({ error: "active administrator required" }, 403);
     }
 
+    const redirectTo = (body.redirect_to && /^https?:\/\//i.test(body.redirect_to))
+      ? body.redirect_to
+      : `${DEFAULT_SITE_URL.replace(/\/$/, "")}/login`;
+
     const invited = await admin.auth.admin.inviteUserByEmail(email, {
       data: {
         full_name: body.full_name ?? email,
         department: body.department ?? "",
       },
+      redirectTo,
     });
     if (invited.error || !invited.data.user) {
       return json({ error: invited.error?.message || "invite failed" }, 400);
