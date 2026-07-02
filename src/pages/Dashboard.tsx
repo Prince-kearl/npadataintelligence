@@ -477,16 +477,16 @@ export default function Dashboard() {
             <span className="section-title">Threat Distribution</span>
             <span className="dash-card-period">live · {incidents.length} incidents</span>
           </div>
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-            <div className="w-full sm:w-[55%] h-[200px]">
+          <div className="flex flex-col xl:flex-row items-center gap-3">
+            <div className="w-full xl:w-[52%] xl:min-w-[190px] xl:shrink-0 h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                 <Pie
                   data={threatDistribution}
                   cx="50%"
                   cy="50%"
-                  outerRadius={75}
-                  innerRadius={48}
+                  outerRadius={70}
+                  innerRadius={44}
                   dataKey="value"
                   strokeWidth={2}
                   stroke="#fff"
@@ -501,7 +501,7 @@ export default function Dashboard() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <div className="w-full sm:flex-1 space-y-1.5">
+            <div className="w-full xl:flex-1 min-w-0 space-y-1.5">
               {threatDistribution.map((d) => (
                 <button
                   key={d.name}
@@ -665,33 +665,42 @@ export default function Dashboard() {
       </div>
 
       {/* Regulatory Command Panel */}
-      {canIssueCommand && <div className="dash-card bg-gradient-to-r from-navy via-accent to-navy text-navy-foreground border-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center">
-              <ShieldAlert className="h-5 w-5 text-primary" />
+      {canIssueCommand && (
+        <div className="dash-card bg-gradient-to-r from-navy via-accent to-navy text-navy-foreground border-0">
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+              <div className="flex items-start gap-3 min-w-0">
+                <div className="h-10 w-10 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
+                  <ShieldAlert className="h-5 w-5 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">Regulatory Command Panel</p>
+                  <p className="text-[11px] text-navy-foreground/75 max-w-[46ch]">Quick actions for incident response and enforcement across active cases.</p>
+                </div>
+              </div>
+              <div className="text-[11px] text-navy-foreground/75 sm:text-right">
+                <p>{eligibleIncidents.length} active incidents available</p>
+                {role === "analyst" && <p>Lockdown protocol is administrator-only</p>}
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-semibold">Regulatory Command Panel</p>
-              <p className="text-[11px] text-navy-foreground/70">Quick actions for incident response & enforcement</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2">
+              <Button size="sm" onClick={() => openCommand("dispatch_team")} disabled={!canIssueCommand || !eligibleIncidents.length} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-9 disabled:opacity-50">
+                <Send className="h-3.5 w-3.5 mr-1.5" /> Dispatch Team
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => openCommand("escalate_alert")} disabled={!canIssueCommand || !eligibleIncidents.length} className="w-full bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-9 disabled:opacity-50">
+                <AlertTriangle className="h-3.5 w-3.5 mr-1.5" /> Escalate Alert
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => openCommand("lockdown_protocol")} disabled={role !== "admin" || !eligibleIncidents.length} className="w-full bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-9 disabled:opacity-50">
+                <Lock className="h-3.5 w-3.5 mr-1.5" /> Lockdown Protocol
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => openCommand("request_reinforcement")} disabled={!canIssueCommand || !eligibleIncidents.length} className="w-full bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-9 disabled:opacity-50">
+                <PhoneCall className="h-3.5 w-3.5 mr-1.5" /> Request Reinforcement
+              </Button>
             </div>
-          </div>
-          <div className="grid grid-cols-1 sm:flex sm:items-center gap-2 w-full sm:w-auto">
-            <Button size="sm" onClick={() => openCommand("dispatch_team")} disabled={!canIssueCommand || !eligibleIncidents.length} className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 h-9 disabled:opacity-50">
-              <Send className="h-3.5 w-3.5 mr-1.5" /> Dispatch Team
-            </Button>
-            <Button size="sm" variant="secondary" onClick={() => openCommand("escalate_alert")} disabled={!canIssueCommand || !eligibleIncidents.length} className="w-full sm:w-auto bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-9 disabled:opacity-50">
-              <AlertTriangle className="h-3.5 w-3.5 mr-1.5" /> Escalate Alert
-            </Button>
-            <Button size="sm" variant="secondary" onClick={() => openCommand("lockdown_protocol")} disabled={role !== "admin" || !eligibleIncidents.length} className="w-full sm:w-auto bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-9 disabled:opacity-50">
-              <Lock className="h-3.5 w-3.5 mr-1.5" /> Lockdown Protocol
-            </Button>
-            <Button size="sm" variant="secondary" onClick={() => openCommand("request_reinforcement")} disabled={!canIssueCommand || !eligibleIncidents.length} className="w-full sm:w-auto bg-navy-foreground/10 text-navy-foreground border border-navy-foreground/20 hover:bg-navy-foreground/15 h-9 disabled:opacity-50">
-              <PhoneCall className="h-3.5 w-3.5 mr-1.5" /> Request Reinforcement
-            </Button>
           </div>
         </div>
-      </div>}
+      )}
 
       <Dialog open={selectedAction !== null} onOpenChange={(open) => !open && setSelectedAction(null)}>
         <DialogContent className="sm:max-w-lg">

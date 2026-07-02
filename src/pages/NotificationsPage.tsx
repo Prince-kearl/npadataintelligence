@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, Mail, Smartphone, Moon } from "lucide-react";
+import { Bell, Mail, Smartphone, Moon, PlusCircle, Trash2, CheckCircle2, Circle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,7 +7,13 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useMarkAllNotificationsRead, useNotificationsList } from "@/hooks/useNotifications";
+import {
+  useCreateSelfNotification,
+  useDeleteNotification,
+  useMarkAllNotificationsRead,
+  useMarkNotificationRead,
+  useNotificationsList,
+} from "@/hooks/useNotifications";
 
 interface NotificationSettings {
   inAppAlerts: boolean;
@@ -37,9 +43,14 @@ export default function NotificationsPage() {
   const { user } = useAuth();
   const { data: notifications = [] } = useNotificationsList();
   const markAllRead = useMarkAllNotificationsRead();
+  const markOne = useMarkNotificationRead();
+  const createSelf = useCreateSelfNotification();
+  const removeOne = useDeleteNotification();
   const [settings, setSettings] = useState<NotificationSettings>(defaults);
   const [isLoadingPrefs, setIsLoadingPrefs] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [composeTitle, setComposeTitle] = useState("");
+  const [composeMessage, setComposeMessage] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -108,6 +119,28 @@ export default function NotificationsPage() {
 
   const unreadCount = notifications.filter((item) => !item.is_read).length;
 
+  const createNotification = async () => {
+    const title = composeTitle.trim();
+    const message = composeMessage.trim();
+    if (!title || !message) {
+      toast.error("Enter both title and message to create a notification");
+      return;
+    }
+    try {
+      await createSelf.mutateAsync({
+        title,
+        message,
+        category: "manual",
+        metadata: { source: "notifications_page" },
+      });
+      setComposeTitle("");
+      setComposeMessage("");
+      toast.success("Notification created");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not create notification");
+    }
+  };
+
   return (
     <div className="space-y-5 max-w-5xl">
       <div>
@@ -116,6 +149,28 @@ export default function NotificationsPage() {
       </div>
 
       <section className="dash-card p-5 space-y-4">
+        <div className="rounded-xl border border-border p-3 sm:p-4 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Create Notification</p>
+          <div className="grid grid-cols-1 md:grid-cols-[220px,1fr,auto] gap-2">
+            <Input
+              value={composeTitle}
+              onChange={(e) => setComposeTitle(e.target.value)}
+              placeholder="Title"
+              maxLength={160}
+            />
+            <Input
+              value={composeMessage}
+              onChange={(e) => setComposeMessage(e.target.value)}
+              placeholder="Message"
+              maxLength={2000}
+            />
+            <Button onClick={createNotification} disabled={createSelf.isPending}>
+              <PlusCircle className="h-4 w-4 mr-1" />
+              {createSelf.isPending ? "Adding..." : "Add"}
+            </Button>
+          </div>
+        </div>
+
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="section-title">Inbox</h2>
@@ -129,9 +184,29 @@ export default function NotificationsPage() {
           {notifications.length === 0 && <p className="text-sm text-muted-foreground">No notifications yet.</p>}
           {notifications.map((item) => (
             <div key={item.id} className={`rounded-xl border p-3 ${item.is_read ? "border-border" : "border-primary/40 bg-primary/5"}`}>
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-foreground">{item.title}</p>
-                <span className="text-[11px] text-muted-foreground tabular-nums">{new Date(item.created_at).toLocaleString()}</span>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
+                  <p className="text-[11px] text-muted-foreground tabular-nums mt-0.5">{new Date(item.created_at).toLocaleString()}</p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => markOne.mutate({ id: item.id, isRead: !item.is_read })}
+                    title={item.is_read ? "Mark as unread" : "Mark as read"}
+                  >
+                    {item.is_read ? <Circle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => removeOne.mutate(item.id)}
+                    title="Delete notification"
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
               </div>
               <p className="text-sm text-muted-foreground mt-1">{item.message}</p>
             </div>

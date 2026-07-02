@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 
 export interface NotificationItem {
   id: string;
@@ -52,6 +53,60 @@ export function useMarkAllNotificationsRead() {
       const { data, error } = await supabase.rpc("mark_all_notifications_read");
       if (error) throw error;
       return data ?? 0;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}
+
+export function useMarkNotificationRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, isRead }: { id: string; isRead: boolean }) => {
+      const { data, error } = await supabase.rpc("mark_notification_read", {
+        _id: id,
+        _is_read: isRead,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}
+
+export function useCreateSelfNotification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      title: string;
+      message: string;
+      category?: string;
+      metadata?: Record<string, unknown>;
+    }) => {
+      const { data, error } = await supabase.rpc("create_self_notification", {
+        _title: payload.title,
+        _message: payload.message,
+        _category: payload.category ?? "system",
+        _metadata: (payload.metadata ?? {}) as Json,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}
+
+export function useDeleteNotification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("notifications").delete().eq("id", id);
+      if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["notifications"] });

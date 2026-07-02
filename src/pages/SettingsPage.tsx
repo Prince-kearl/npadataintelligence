@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AdminSettings {
   requireMfaForAdmins: boolean;
@@ -14,8 +16,6 @@ interface AdminSettings {
   scannerHealthAlerts: boolean;
   weeklySecurityDigest: boolean;
 }
-
-const STORAGE_KEY = "npa.admin.settings.v1";
 
 const defaults: AdminSettings = {
   requireMfaForAdmins: true,
@@ -27,25 +27,59 @@ const defaults: AdminSettings = {
 };
 
 export default function SettingsPage() {
+  const { user } = useAuth();
   const [settings, setSettings] = useState<AdminSettings>(defaults);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    try {
-      const saved = JSON.parse(raw) as Partial<AdminSettings>;
-      setSettings({ ...defaults, ...saved });
-    } catch {
-      // Ignore malformed local preferences and continue with defaults.
-    }
+    const load = async () => {
+      setIsLoading(true);
+      const { data, error } = await supabase.from("app_settings").select("*").eq("id", 1).maybeSingle();
+      if (error) {
+        toast.error(error.message);
+        setIsLoading(false);
+        return;
+      }
+      if (data) {
+        setSettings({
+          requireMfaForAdmins: data.require_mfa_for_admins,
+          lockPendingAccounts: data.lock_pending_accounts,
+          incidentRetentionDays: data.incident_retention_days,
+          auditRetentionDays: data.audit_retention_days,
+          scannerHealthAlerts: data.scanner_health_alerts,
+          weeklySecurityDigest: data.weekly_security_digest,
+        });
+      }
+      setIsLoading(false);
+    };
+    void load();
   }, []);
 
   const updateSetting = <K extends keyof AdminSettings>(key: K, value: AdminSettings[K]) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
-  const save = () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  const save = async () => {
+    setIsSaving(true);
+    const { error } = await supabase.from("app_settings").upsert(
+      {
+        id: 1,
+        require_mfa_for_admins: settings.requireMfaForAdmins,
+        lock_pending_accounts: settings.lockPendingAccounts,
+        incident_retention_days: settings.incidentRetentionDays,
+        audit_retention_days: settings.auditRetentionDays,
+        scanner_health_alerts: settings.scannerHealthAlerts,
+        weekly_security_digest: settings.weeklySecurityDigest,
+        updated_by: user?.id ?? null,
+      },
+      { onConflict: "id" }
+    );
+    setIsSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Settings saved");
   };
 
@@ -125,9 +159,9 @@ export default function SettingsPage() {
         <p className="text-xs text-muted-foreground">
           These controls are workspace preferences for administrators. Core infrastructure secrets and policy enforcement remain managed in Supabase and deployment configuration.
         </p>
-        <Button onClick={save} className="shrink-0">
+        <Button onClick={save} disabled={isLoading || isSaving} className="shrink-0">
           <SettingsIcon className="h-4 w-4 mr-1" />
-          Save Settings
+          {isSaving ? "Saving..." : "Save Settings"}
         </Button>
       </div>
     </div>

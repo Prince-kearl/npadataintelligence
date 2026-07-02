@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          id: number
+          require_mfa_for_admins: boolean
+          lock_pending_accounts: boolean
+          incident_retention_days: number
+          audit_retention_days: number
+          scanner_health_alerts: boolean
+          weekly_security_digest: boolean
+          updated_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          require_mfa_for_admins?: boolean
+          lock_pending_accounts?: boolean
+          incident_retention_days?: number
+          audit_retention_days?: number
+          scanner_health_alerts?: boolean
+          weekly_security_digest?: boolean
+          updated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          require_mfa_for_admins?: boolean
+          lock_pending_accounts?: boolean
+          incident_retention_days?: number
+          audit_retention_days?: number
+          scanner_health_alerts?: boolean
+          weekly_security_digest?: boolean
+          updated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -588,6 +627,14 @@ export type Database = {
       mark_all_notifications_read: {
         Args: never
         Returns: number
+      }
+      mark_notification_read: {
+        Args: { _id: string; _is_read: boolean }
+        Returns: Database["public"]["Tables"]["notifications"]["Row"]
+      }
+      create_self_notification: {
+        Args: { _title: string; _message: string; _category?: string; _metadata?: Json }
+        Returns: Database["public"]["Tables"]["notifications"]["Row"]
       }
       finalize_incident_submission: {
         Args: { _incident_id: string }
