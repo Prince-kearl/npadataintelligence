@@ -19,7 +19,11 @@ interface Payload {
   department?: string | null;
   role: "collector" | "analyst" | "admin";
   status: "pending" | "active" | "suspended";
+  redirect_to?: string | null;
 }
+
+const DEFAULT_SITE_URL = Deno.env.get("PUBLIC_SITE_URL") ?? "https://npadataintelligence.vercel.app";
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
