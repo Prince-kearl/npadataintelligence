@@ -72,10 +72,10 @@ export async function listIncidents(): Promise<IncidentRow[]> {
   // migration. Keep read-only views operational until that migration is applied.
   if (incidentSchemaMode === "legacy") return listLegacyIncidents();
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase
     .from("incidents")
     .select("*")
-    .is("deleted_at", null)
+    .is("deleted_at", null) as any)
     .eq("submission_state", "complete")
     .order("incident_date", { ascending: false });
   if (error) {
@@ -87,6 +87,7 @@ export async function listIncidents(): Promise<IncidentRow[]> {
   }
   incidentSchemaMode = "hardened";
   return data ?? [];
+
 }
 
 export async function getIncident(id: string): Promise<IncidentRow | null> {
