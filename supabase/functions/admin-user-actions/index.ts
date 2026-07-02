@@ -70,18 +70,27 @@ Deno.serve(async (req) => {
       : `${DEFAULT_SITE_URL.replace(/\/$/, "")}/login`;
 
     if (body.action === "resend_invite") {
-      const invited = await admin.auth.admin.inviteUserByEmail(target.user.email, { redirectTo });
-      if (invited.error) return json({ error: invited.error.message }, 400);
+      const alreadyConfirmed = Boolean((target.user as any).email_confirmed_at || (target.user as any).confirmed_at);
+      const linkType = alreadyConfirmed ? "magiclink" : "invite";
+
+      const linked = await admin.auth.admin.generateLink({
+        type: linkType as any,
+        email: target.user.email,
+        options: { redirectTo },
+      });
+      if (linked.error) return json({ error: linked.error.message }, 400);
 
       await admin.from("notifications").insert({
         user_id: target.user.id,
-        title: "Invitation resent",
-        message: "An administrator resent your invitation email.",
+        title: alreadyConfirmed ? "Sign-in link sent" : "Invitation resent",
+        message: alreadyConfirmed
+          ? "An administrator sent you a new sign-in link."
+          : "An administrator resent your invitation email.",
         category: "account",
-        metadata: { action: "resend_invite" },
+        metadata: { action: "resend_invite", link_type: linkType },
       });
 
-      return json({ ok: true, action: body.action });
+      return json({ ok: true, action: body.action, link_type: linkType });
     }
 
     const reset = await admin.auth.resetPasswordForEmail(target.user.email, { redirectTo });
