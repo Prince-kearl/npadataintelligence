@@ -453,7 +453,7 @@ export default function IncidentCase() {
               <Detail label="Source" value={incident.source} />
               <Detail label="Source contact" value={incident.source_contact} />
               <Detail label="Previous channel" value={incident.previous_channel} />
-              <Detail label="Submission state" value={incident.submission_state} />
+              <Detail label="Submission state" value={(incident as any).submission_state} />
             </dl>
             <div>
               <h3 className="text-sm font-semibold text-foreground">Incident description</h3>
