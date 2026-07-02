@@ -402,7 +402,8 @@ export async function updateIncidentDetails(incidentId: string, payload: Inciden
 export async function deleteIncidentRecord(incidentId: string, reason?: string): Promise<IncidentRow> {
   const { data, error } = await supabase.rpc("delete_incident_record", {
     _incident_id: incidentId,
-    _reason: reason ?? null,
+    _reason: reason ?? undefined,
+
   });
   if (error) throw error;
   return data;
