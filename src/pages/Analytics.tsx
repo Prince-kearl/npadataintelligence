@@ -19,7 +19,7 @@ import {
   Line,
   Legend,
 } from "recharts";
-import { ErrorState, LoadingState } from "@/components/ReliabilityState";
+import { ChartPageSkeleton, ErrorState } from "@/components/ReliabilityState";
 
 const COLORS = [
   "hsl(228, 62%, 26%)",
@@ -50,7 +50,7 @@ export default function Analytics() {
   const trendData = useMemo(() => monthlyTrend(incidents), [incidents]);
   const productData = useMemo(() => incidentsByProduct(incidents), [incidents]);
 
-  if (isLoading) return <LoadingState label="Preparing incident analytics…" className="min-h-[55vh]" />;
+  if (isLoading) return <ChartPageSkeleton className="min-h-[55vh]" />;
   if (isError) return <ErrorState title="Analytics data is unavailable" error={error} onRetry={() => void refetch()} className="min-h-[55vh]" />;
 
   return (

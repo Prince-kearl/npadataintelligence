@@ -39,7 +39,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { ErrorState, LoadingState } from "@/components/ReliabilityState";
+import { DetailPageSkeleton, ErrorState } from "@/components/ReliabilityState";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { useIncidents } from "@/hooks/useIncidents";
 import { useRole } from "@/hooks/useRole";
@@ -364,7 +364,7 @@ export default function IncidentCase() {
   };
 
   if (incidentQuery.isLoading) {
-    return <LoadingState label="Loading incident case…" className="min-h-[55vh]" />;
+    return <DetailPageSkeleton className="min-h-[55vh]" />;
   }
 
   if (incidentQuery.isError) {

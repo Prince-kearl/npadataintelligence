@@ -13,7 +13,7 @@ import { useRole } from "@/hooks/useRole";
 import { useIncidents } from "@/hooks/useIncidents";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ErrorState, LoadingState } from "@/components/ReliabilityState";
+import { ErrorState, LoadingState, PageSkeleton } from "@/components/ReliabilityState";
 import { useState } from "react";
 import type { Database as SupabaseDatabase } from "@/integrations/supabase/types";
 
@@ -127,7 +127,7 @@ export default function Reports() {
       )}
 
       {isLoading ? (
-        <LoadingState label="Loading report data…" />
+        <PageSkeleton />
       ) : isError ? (
         <ErrorState title="Report data is unavailable" error={error} onRetry={() => void refetch()} />
       ) : (

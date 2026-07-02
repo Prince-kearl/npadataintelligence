@@ -8,7 +8,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RequireRole } from "@/components/RequireRole";
-import { LoadingState } from "@/components/ReliabilityState";
+import { PageSkeleton } from "@/components/ReliabilityState";
 
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const SubmitIncident = lazy(() => import("@/pages/SubmitIncident"));
@@ -33,7 +33,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Suspense fallback={<main className="p-4 sm:p-6"><LoadingState label="Loading page…" className="min-h-[45vh]" /></main>}>
+          <Suspense fallback={<main className="p-4 sm:p-6"><PageSkeleton /></main>}>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />

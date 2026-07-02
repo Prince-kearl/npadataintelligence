@@ -91,6 +91,15 @@ function getErrorMessage(error: unknown): string {
   return "The account change could not be completed";
 }
 
+function getEdgeInvokeMessage(error: unknown, functionName: string): string {
+  const raw = getErrorMessage(error);
+  const lowered = raw.toLowerCase();
+  if (lowered.includes("failed to send a request to the edge function") || lowered.includes("non-2xx status code")) {
+    return `Could not reach Supabase function '${functionName}'. Deploy it in your Lovable/Supabase project and try again.`;
+  }
+  return raw;
+}
+
 export default function AdminPanel() {
   const { user: currentUser, profile } = useAuth();
   const qc = useQueryClient();
@@ -175,7 +184,7 @@ export default function AdminPanel() {
       setInviteStatus("pending");
       await qc.invalidateQueries({ queryKey: ["admin-users"] });
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      toast.error(getEdgeInvokeMessage(error, "admin-invite-user"));
     } finally {
       setIsInviting(false);
     }
@@ -191,7 +200,7 @@ export default function AdminPanel() {
       if (data?.error) throw new Error(data.error);
       toast.success(action === "resend_invite" ? "Invite resent" : "Password reset email sent");
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      toast.error(getEdgeInvokeMessage(error, "admin-user-actions"));
     } finally {
       setProcessingUserActionId(null);
     }

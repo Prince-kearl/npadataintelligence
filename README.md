@@ -55,7 +55,7 @@ Role-based browser tests require `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE
    `{ "clean": true|false, "signature": "optional", "engine": "optional" }`.
    Missing or unavailable scanning fails closed: evidence remains unreadable and the incident cannot finalize.
 
-5. Deploy `log-auth-event` and `scan-attachment`, then deploy the frontend with production `VITE_` values.
+5. Deploy `log-auth-event`, `scan-attachment`, `admin-invite-user` and `admin-user-actions`, then deploy the frontend with production `VITE_` values.
 6. Run the smoke, RLS and role suites against staging before promotion.
 
 Detailed operational procedures are in [docs/OPERATIONS.md](docs/OPERATIONS.md).

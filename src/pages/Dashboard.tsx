@@ -47,7 +47,7 @@ import { HotspotMap } from "@/components/HotspotMap";
 import { useIncidents } from "@/hooks/useIncidents";
 import { useRole } from "@/hooks/useRole";
 import { toast } from "sonner";
-import { ErrorState, LoadingState } from "@/components/ReliabilityState";
+import { ErrorState, PageSkeleton } from "@/components/ReliabilityState";
 import { useAuth } from "@/hooks/useAuth";
 
 const statusClass: Record<string, string> = {
@@ -267,7 +267,7 @@ export default function Dashboard() {
         ? { title: "Executive Command Overview", subtitle: "Sector-wide incident intelligence and system oversight", eyebrow: "Administrator workspace" }
         : { title: "Incident Dashboard", subtitle: "Your account has not yet been assigned an operational role", eyebrow: "Limited workspace" };
 
-  if (isLoading) return <LoadingState label="Loading your operational dashboard…" className="min-h-[55vh]" />;
+  if (isLoading) return <PageSkeleton className="min-h-[55vh]" />;
   if (isError) return <ErrorState title="Dashboard data is unavailable" error={error} onRetry={() => void refetch()} className="min-h-[55vh]" />;
 
   return (

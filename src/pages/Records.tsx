@@ -32,7 +32,7 @@ import {
 } from "@/lib/incidents";
 import { incidentsToCSV, downloadBlob, timestampedName } from "@/lib/exporters";
 import { toast } from "sonner";
-import { ErrorState, LoadingState } from "@/components/ReliabilityState";
+import { ErrorState, LoadingState, TablePageSkeleton } from "@/components/ReliabilityState";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -502,7 +502,7 @@ export default function Records() {
         </div>
       </div>
 
-      {isLoading ? <LoadingState label="Loading incident records…" /> : isError ? (
+      {isLoading ? <TablePageSkeleton /> : isError ? (
         <ErrorState title="Incident records are unavailable" error={error} onRetry={() => void refetch()} />
       ) : (
         <>
