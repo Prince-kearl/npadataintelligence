@@ -71,14 +71,21 @@ Deno.serve(async (req) => {
 
     if (body.action === "resend_invite") {
       const alreadyConfirmed = Boolean((target.user as any).email_confirmed_at || (target.user as any).confirmed_at);
-      const linkType = alreadyConfirmed ? "magiclink" : "invite";
+      let linkType: "invite" | "magiclink";
 
-      const linked = await admin.auth.admin.generateLink({
-        type: linkType as any,
-        email: target.user.email,
-        options: { redirectTo },
-      });
-      if (linked.error) return json({ error: linked.error.message }, 400);
+      if (alreadyConfirmed) {
+        // Confirmed users can't be "invited" again — send a magic sign-in link that actually emails.
+        const otp = await admin.auth.signInWithOtp({
+          email: target.user.email,
+          options: { emailRedirectTo: redirectTo, shouldCreateUser: false },
+        });
+        if (otp.error) return json({ error: otp.error.message }, 400);
+        linkType = "magiclink";
+      } else {
+        const invited = await admin.auth.admin.inviteUserByEmail(target.user.email, { redirectTo });
+        if (invited.error) return json({ error: invited.error.message }, 400);
+        linkType = "invite";
+      }
 
       await admin.from("notifications").insert({
         user_id: target.user.id,
