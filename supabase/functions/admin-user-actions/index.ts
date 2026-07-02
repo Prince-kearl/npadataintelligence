@@ -65,8 +65,12 @@ Deno.serve(async (req) => {
       return json({ error: targetError?.message || "target user not found" }, 404);
     }
 
+    const redirectTo = (body.redirect_to && /^https?:\/\//i.test(body.redirect_to))
+      ? body.redirect_to
+      : `${DEFAULT_SITE_URL.replace(/\/$/, "")}/login`;
+
     if (body.action === "resend_invite") {
-      const invited = await admin.auth.admin.inviteUserByEmail(target.user.email);
+      const invited = await admin.auth.admin.inviteUserByEmail(target.user.email, { redirectTo });
       if (invited.error) return json({ error: invited.error.message }, 400);
 
       await admin.from("notifications").insert({
@@ -80,7 +84,7 @@ Deno.serve(async (req) => {
       return json({ ok: true, action: body.action });
     }
 
-    const reset = await admin.auth.resetPasswordForEmail(target.user.email);
+    const reset = await admin.auth.resetPasswordForEmail(target.user.email, { redirectTo });
     if (reset.error) return json({ error: reset.error.message }, 400);
 
     await admin.from("notifications").insert({
