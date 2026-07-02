@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -17,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { ErrorState, LoadingState } from "@/components/ReliabilityState";
+import { adminSetAccountStatus } from "@/lib/incidents";
 
 type AccountStatus = "pending" | "active" | "suspended";
 
@@ -106,10 +108,16 @@ export default function AdminPanel() {
     | null
   >(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
+  const [inviteDepartment, setInviteDepartment] = useState("");
+  const [inviteRole, setInviteRole] = useState<Role>("collector");
+  const [inviteStatus, setInviteStatus] = useState<AccountStatus>("pending");
+  const [isInviting, setIsInviting] = useState(false);
+  const [processingUserActionId, setProcessingUserActionId] = useState<string | null>(null);
 
   const updateStatus = async (id: string, status: AccountStatus) => {
-    const { error } = await supabase.from("profiles").update({ status }).eq("id", id);
-    if (error) throw error;
+    await adminSetAccountStatus(id, status);
     toast.success(`Account ${status}`);
     qc.invalidateQueries({ queryKey: ["admin-users"] });
   };
@@ -137,6 +145,55 @@ export default function AdminPanel() {
       toast.error(getErrorMessage(error));
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const inviteUser = async () => {
+    const email = inviteEmail.trim().toLowerCase();
+    if (!email) {
+      toast.error("Enter a valid email");
+      return;
+    }
+    setIsInviting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-invite-user", {
+        body: {
+          email,
+          full_name: inviteName.trim() || null,
+          department: inviteDepartment.trim() || null,
+          role: inviteRole,
+          status: inviteStatus,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`Invitation sent to ${email}`);
+      setInviteEmail("");
+      setInviteName("");
+      setInviteDepartment("");
+      setInviteRole("collector");
+      setInviteStatus("pending");
+      await qc.invalidateQueries({ queryKey: ["admin-users"] });
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setIsInviting(false);
+    }
+  };
+
+  const runUserLifecycleAction = async (userId: string, action: "resend_invite" | "force_password_reset") => {
+    setProcessingUserActionId(userId);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-user-actions", {
+        body: { user_id: userId, action },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(action === "resend_invite" ? "Invite resent" : "Password reset email sent");
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setProcessingUserActionId(null);
     }
   };
 
@@ -173,6 +230,39 @@ export default function AdminPanel() {
         <KPICard title="Total Users" value={counts.total} icon={Users} iconBg="bg-accent/10" iconClass="text-accent" />
         <KPICard title="Active Accounts" value={counts.active} icon={Activity} iconBg="bg-success/10" iconClass="text-success" />
         <KPICard title="Pending Approvals" value={counts.pending} icon={Shield} iconBg="bg-warning/10" iconClass="text-warning" />
+      </div>
+
+      <div className="dash-card p-5 space-y-4">
+        <div>
+          <h3 className="section-title">Invite or Create User</h3>
+          <p className="meta-text mt-1">Provision a new account, assign initial role, and set approval status.</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+          <Input placeholder="Email address" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
+          <Input placeholder="Full name (optional)" value={inviteName} onChange={(e) => setInviteName(e.target.value)} />
+          <Input placeholder="Department (optional)" value={inviteDepartment} onChange={(e) => setInviteDepartment(e.target.value)} />
+          <Select value={inviteRole} onValueChange={(value) => setInviteRole(value as Role)}>
+            <SelectTrigger><SelectValue placeholder="Role" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="collector">Collector</SelectItem>
+              <SelectItem value="analyst">Analyst</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={inviteStatus} onValueChange={(value) => setInviteStatus(value as AccountStatus)}>
+            <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="suspended">Suspended</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex justify-end">
+          <Button onClick={inviteUser} disabled={isInviting || !inviteEmail.trim()}>
+            {isInviting ? "Inviting..." : "Invite User"}
+          </Button>
+        </div>
       </div>
 
       <div className="dash-card p-0 overflow-hidden">
@@ -230,12 +320,34 @@ export default function AdminPanel() {
                     </td>
                     <td className="py-3 px-4 tabular-nums text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</td>
                     <td className="py-3 px-4">
-                      <div className="flex gap-1">
+                      <div className="flex flex-wrap gap-1">
                         {u.id !== currentUser?.id && u.status !== "active" && (
                           <Button size="sm" variant="outline" className="h-7 text-xs" disabled={profile?.status !== "active"} onClick={() => setPendingAction({ type: "status", user: u, value: "active" })}>Approve</Button>
                         )}
                         {u.id !== currentUser?.id && u.status !== "suspended" && (
                           <Button size="sm" variant="destructive" className="h-7 text-xs" disabled={profile?.status !== "active"} onClick={() => setPendingAction({ type: "status", user: u, value: "suspended" })}>Suspend</Button>
+                        )}
+                        {u.id !== currentUser?.id && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            disabled={profile?.status !== "active" || processingUserActionId === u.id}
+                            onClick={() => runUserLifecycleAction(u.id, "resend_invite")}
+                          >
+                            Resend invite
+                          </Button>
+                        )}
+                        {u.id !== currentUser?.id && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            disabled={profile?.status !== "active" || processingUserActionId === u.id}
+                            onClick={() => runUserLifecycleAction(u.id, "force_password_reset")}
+                          >
+                            Force reset
+                          </Button>
                         )}
                       </div>
                     </td>

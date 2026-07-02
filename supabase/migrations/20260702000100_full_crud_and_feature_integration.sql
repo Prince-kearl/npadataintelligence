@@ -235,3 +235,294 @@ REVOKE ALL ON FUNCTION public.notify_response_action_events() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.notify_role_members(public.app_role, text, text, text, jsonb, uuid) TO service_role;
 
 NOTIFY pgrst, 'reload schema';
+
+-- ======================================================
+-- 4) Strict CRUD RPCs for incidents and templates
+-- ======================================================
+CREATE OR REPLACE FUNCTION public.update_incident_details(
+  _incident_id uuid,
+  _payload jsonb
+)
+RETURNS public.incidents
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_inc public.incidents;
+  v_role public.app_role;
+BEGIN
+  IF NOT public.is_active_user(auth.uid()) THEN
+    RAISE EXCEPTION 'Active account required';
+  END IF;
+
+  v_role := public.current_role_level();
+  IF v_role NOT IN ('analyst', 'admin') THEN
+    RAISE EXCEPTION 'Analyst or administrator role required';
+  END IF;
+
+  SELECT * INTO v_inc
+    FROM public.incidents
+   WHERE id = _incident_id
+     AND deleted_at IS NULL
+   FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Incident not found';
+  END IF;
+
+  UPDATE public.incidents
+     SET location_name = coalesce(nullif(_payload->>'location_name', ''), location_name),
+         district = coalesce(nullif(_payload->>'district', ''), district),
+         gps_coordinates = nullif(_payload->>'gps_coordinates', ''),
+         category = coalesce(nullif(_payload->>'category', ''), category),
+         incident_type = nullif(_payload->>'incident_type', ''),
+         severity = coalesce((_payload->>'severity')::public.incident_severity, severity),
+         product_type = nullif(_payload->>'product_type', ''),
+         injury_type = nullif(_payload->>'injury_type', ''),
+         casualties = coalesce((_payload->>'casualties')::integer, casualties),
+         fatalities = coalesce((_payload->>'fatalities')::integer, fatalities),
+         description = coalesce(nullif(_payload->>'description', ''), description),
+         source = nullif(_payload->>'source', ''),
+         source_contact = nullif(_payload->>'source_contact', ''),
+         source_notes = nullif(_payload->>'source_notes', ''),
+         previous_channel = nullif(_payload->>'previous_channel', ''),
+         updated_at = now()
+   WHERE id = _incident_id
+  RETURNING * INTO v_inc;
+
+  RETURN v_inc;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.delete_incident_record(
+  _incident_id uuid,
+  _reason text DEFAULT NULL
+)
+RETURNS public.incidents
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_inc public.incidents;
+BEGIN
+  IF NOT public.is_active_user(auth.uid()) OR NOT public.has_role(auth.uid(), 'admin') THEN
+    RAISE EXCEPTION 'Active administrator required';
+  END IF;
+
+  UPDATE public.incidents
+     SET deleted_at = now(),
+         updated_at = now()
+   WHERE id = _incident_id
+     AND deleted_at IS NULL
+  RETURNING * INTO v_inc;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Incident not found or already deleted';
+  END IF;
+
+  INSERT INTO public.audit_logs (user_id, user_email, action, table_name, record_id, details)
+  VALUES (
+    auth.uid(),
+    (SELECT email FROM auth.users WHERE id = auth.uid()),
+    'delete_incident_record',
+    'incidents',
+    _incident_id::text,
+    jsonb_build_object('reason', left(coalesce(_reason, ''), 1000), 'reference_code', v_inc.reference_code)
+  );
+
+  RETURN v_inc;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.restore_incident_record(
+  _incident_id uuid,
+  _reason text DEFAULT NULL
+)
+RETURNS public.incidents
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_inc public.incidents;
+BEGIN
+  IF NOT public.is_active_user(auth.uid()) OR NOT public.has_role(auth.uid(), 'admin') THEN
+    RAISE EXCEPTION 'Active administrator required';
+  END IF;
+
+  UPDATE public.incidents
+     SET deleted_at = NULL,
+         updated_at = now()
+   WHERE id = _incident_id
+     AND deleted_at IS NOT NULL
+  RETURNING * INTO v_inc;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Incident not found or not deleted';
+  END IF;
+
+  INSERT INTO public.audit_logs (user_id, user_email, action, table_name, record_id, details)
+  VALUES (
+    auth.uid(),
+    (SELECT email FROM auth.users WHERE id = auth.uid()),
+    'restore_incident_record',
+    'incidents',
+    _incident_id::text,
+    jsonb_build_object('reason', left(coalesce(_reason, ''), 1000), 'reference_code', v_inc.reference_code)
+  );
+
+  RETURN v_inc;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.list_deleted_incidents(_limit integer DEFAULT 100)
+RETURNS SETOF public.incidents
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT *
+  FROM public.incidents
+  WHERE deleted_at IS NOT NULL
+    AND public.is_active_user(auth.uid())
+    AND public.has_role(auth.uid(), 'admin')
+  ORDER BY deleted_at DESC
+  LIMIT greatest(1, least(coalesce(_limit, 100), 500))
+$$;
+
+CREATE OR REPLACE FUNCTION public.update_query_template(
+  _id uuid,
+  _name text,
+  _description text,
+  _definition jsonb,
+  _is_shared boolean
+)
+RETURNS public.query_templates
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_tpl public.query_templates;
+BEGIN
+  UPDATE public.query_templates
+     SET name = left(coalesce(nullif(_name, ''), name), 120),
+         description = nullif(left(coalesce(_description, ''), 500), ''),
+         definition = coalesce(_definition, definition),
+         is_shared = coalesce(_is_shared, is_shared),
+         updated_at = now()
+   WHERE id = _id
+     AND owner_id = auth.uid()
+  RETURNING * INTO v_tpl;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Template not found or access denied';
+  END IF;
+
+  RETURN v_tpl;
+END;
+$$;
+
+-- ======================================================
+-- 5) Admin lifecycle RPC with integrated notifications
+-- ======================================================
+CREATE OR REPLACE FUNCTION public.admin_set_account_status(
+  _user_id uuid,
+  _status public.account_status
+)
+RETURNS public.profiles
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_profile public.profiles;
+BEGIN
+  IF NOT public.is_active_user(auth.uid()) OR NOT public.has_role(auth.uid(), 'admin') THEN
+    RAISE EXCEPTION 'Active administrator required';
+  END IF;
+  IF _user_id = auth.uid() THEN
+    RAISE EXCEPTION 'Administrators cannot change their own account status';
+  END IF;
+
+  UPDATE public.profiles
+     SET status = _status,
+         updated_at = now()
+   WHERE id = _user_id
+  RETURNING * INTO v_profile;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'User not found';
+  END IF;
+
+  INSERT INTO public.notifications (user_id, title, message, category, metadata)
+  VALUES (
+    _user_id,
+    'Account status updated',
+    format('Your account status is now %s.', _status),
+    'account',
+    jsonb_build_object('status', _status)
+  );
+
+  RETURN v_profile;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.admin_set_user_role(_user_id uuid, _role public.app_role)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT public.is_active_user(auth.uid()) OR NOT public.has_role(auth.uid(), 'admin') THEN
+    RAISE EXCEPTION 'Active administrator required';
+  END IF;
+  IF _user_id = auth.uid() THEN
+    RAISE EXCEPTION 'Administrators cannot change their own role';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = _user_id) THEN
+    RAISE EXCEPTION 'User not found';
+  END IF;
+
+  DELETE FROM public.user_roles WHERE user_id = _user_id;
+  INSERT INTO public.user_roles (user_id, role) VALUES (_user_id, _role);
+
+  INSERT INTO public.notifications (user_id, title, message, category, metadata)
+  VALUES (
+    _user_id,
+    'Role permissions updated',
+    format('Your operational role is now %s.', _role),
+    'account',
+    jsonb_build_object('role', _role)
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.update_incident_details(uuid, jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.delete_incident_record(uuid, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.restore_incident_record(uuid, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.update_query_template(uuid, text, text, jsonb, boolean) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.admin_set_account_status(uuid, public.account_status) FROM PUBLIC;
+
+GRANT EXECUTE ON FUNCTION public.update_incident_details(uuid, jsonb) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_incident_record(uuid, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.restore_incident_record(uuid, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.list_deleted_incidents(integer) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.update_query_template(uuid, text, text, jsonb, boolean) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_set_account_status(uuid, public.account_status) TO authenticated;
+
+DROP POLICY IF EXISTS "Attachments: admins delete" ON public.incident_attachments;
+DROP POLICY IF EXISTS "Attachments: owners and elevated delete" ON public.incident_attachments;
+CREATE POLICY "Attachments: owners and elevated delete"
+  ON public.incident_attachments FOR DELETE TO authenticated
+  USING (
+    uploaded_by = auth.uid()
+    OR public.has_role(auth.uid(), 'analyst')
+    OR public.has_role(auth.uid(), 'admin')
+  );
+
+NOTIFY pgrst, 'reload schema';

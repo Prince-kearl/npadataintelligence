@@ -596,6 +596,10 @@ export type Database = {
         Args: { _user_id: string; _role: Database["public"]["Enums"]["app_role"] }
         Returns: undefined
       }
+      admin_set_account_status: {
+        Args: { _user_id: string; _status: Database["public"]["Enums"]["account_status"] }
+        Returns: Database["public"]["Tables"]["profiles"]["Row"]
+      }
       begin_incident_submission: {
         Args: { _submission_id: string; _payload: Json; _expected_attachments?: number }
         Returns: Database["public"]["Tables"]["incidents"]["Row"]
@@ -620,6 +624,10 @@ export type Database = {
         Returns: boolean
       }
       is_active_user: { Args: { _user_id: string }; Returns: boolean }
+      list_deleted_incidents: {
+        Args: { _limit?: number }
+        Returns: Database["public"]["Tables"]["incidents"]["Row"][]
+      }
       get_unread_notifications_count: {
         Args: never
         Returns: number
@@ -636,13 +644,29 @@ export type Database = {
         Args: { _title: string; _message: string; _category?: string; _metadata?: Json }
         Returns: Database["public"]["Tables"]["notifications"]["Row"]
       }
+      delete_incident_record: {
+        Args: { _incident_id: string; _reason?: string | null }
+        Returns: Database["public"]["Tables"]["incidents"]["Row"]
+      }
       finalize_incident_submission: {
         Args: { _incident_id: string }
+        Returns: Database["public"]["Tables"]["incidents"]["Row"]
+      }
+      restore_incident_record: {
+        Args: { _incident_id: string; _reason?: string | null }
         Returns: Database["public"]["Tables"]["incidents"]["Row"]
       }
       transition_incident_status: {
         Args: { _incident_id: string; _to_status: Database["public"]["Enums"]["incident_status"]; _note?: string | null }
         Returns: Database["public"]["Tables"]["incidents"]["Row"]
+      }
+      update_incident_details: {
+        Args: { _incident_id: string; _payload: Json }
+        Returns: Database["public"]["Tables"]["incidents"]["Row"]
+      }
+      update_query_template: {
+        Args: { _id: string; _name: string; _description: string; _definition: Json; _is_shared: boolean }
+        Returns: Database["public"]["Tables"]["query_templates"]["Row"]
       }
     }
     Enums: {

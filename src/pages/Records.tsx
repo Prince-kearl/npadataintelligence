@@ -20,8 +20,11 @@ import {
   STATUS_LABELS,
   SEVERITY_LABELS,
   recordExport,
+  listDeletedIncidents,
+  restoreIncidentRecord,
   listQueryTemplates,
   saveQueryTemplate,
+  updateQueryTemplate,
   deleteQueryTemplate,
   type IncidentStatus,
   type IncidentSeverity,
@@ -51,6 +54,8 @@ const severityClass: Record<IncidentSeverity, string> = {
   high: "bg-warning/10 text-warning",
   critical: "bg-destructive/10 text-destructive",
 };
+
+const TRASH_PAGE_SIZE = 8;
 
 export default function Records() {
   const incidentsQuery = useIncidents();
@@ -83,14 +88,51 @@ export default function Records() {
   const templatesQuery = useQuery({ queryKey: ["query-templates"], queryFn: listQueryTemplates });
   const { data: templates = [] } = templatesQuery;
   const [saveOpen, setSaveOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [tplName, setTplName] = useState("");
   const [tplDesc, setTplDesc] = useState("");
   const [tplShared, setTplShared] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [templateToDelete, setTemplateToDelete] = useState<{ id: string; name: string } | null>(null);
   const [isDeletingTemplate, setIsDeletingTemplate] = useState(false);
   const [pendingTransition, setPendingTransition] = useState<{ id: string; reference: string; status: IncidentStatus } | null>(null);
   const [transitionNote, setTransitionNote] = useState("");
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [showTrash, setShowTrash] = useState(false);
+  const [trashSearch, setTrashSearch] = useState("");
+  const [trashPage, setTrashPage] = useState(1);
+  const [pendingRestore, setPendingRestore] = useState<{ id: string; reference: string } | null>(null);
+  const [restoreReason, setRestoreReason] = useState("");
+  const [isRestoring, setIsRestoring] = useState(false);
+
+  const deletedIncidentsQuery = useQuery({
+    queryKey: ["deleted-incidents"],
+    queryFn: () => listDeletedIncidents(200),
+    enabled: can("manage_users") && showTrash,
+  });
+  const { data: deletedIncidents = [] } = deletedIncidentsQuery;
+
+  const filteredTrash = useMemo(() => {
+    const q = trashSearch.trim().toLowerCase();
+    if (!q) return deletedIncidents;
+    return deletedIncidents.filter((inc) =>
+      [inc.reference_code, inc.region, inc.category, inc.location_name, inc.district]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(q))
+    );
+  }, [deletedIncidents, trashSearch]);
+
+  const trashTotalPages = Math.max(1, Math.ceil(filteredTrash.length / TRASH_PAGE_SIZE));
+  const trashStart = (trashPage - 1) * TRASH_PAGE_SIZE;
+  const pagedTrash = filteredTrash.slice(trashStart, trashStart + TRASH_PAGE_SIZE);
+
+  useEffect(() => {
+    setTrashPage((prev) => Math.min(prev, trashTotalPages));
+  }, [trashTotalPages]);
+
+  useEffect(() => {
+    setTrashPage(1);
+  }, [trashSearch]);
 
   const currentFilters: QueryFilters = {
     search: searchTerm || undefined,
@@ -220,6 +262,55 @@ export default function Records() {
     finally { setIsDeletingTemplate(false); }
   };
 
+  const handleRestoreIncident = async () => {
+    if (!pendingRestore) return;
+    setIsRestoring(true);
+    try {
+      await restoreIncidentRecord(pendingRestore.id, restoreReason.trim() || undefined);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["incidents"] }),
+        qc.invalidateQueries({ queryKey: ["deleted-incidents"] }),
+      ]);
+      toast.success("Incident restored");
+      setPendingRestore(null);
+      setRestoreReason("");
+    } catch (err: any) {
+      toast.error(err.message || "Could not restore incident");
+    } finally {
+      setIsRestoring(false);
+    }
+  };
+
+  const openEditTemplate = (tpl: any) => {
+    setEditingTemplateId(tpl.id);
+    setTplName(tpl.name || "");
+    setTplDesc(tpl.description || "");
+    setTplShared(Boolean(tpl.is_shared));
+    setEditOpen(true);
+  };
+
+  const handleUpdateTemplate = async () => {
+    if (!editingTemplateId || !tplName.trim()) return;
+    try {
+      await updateQueryTemplate({
+        id: editingTemplateId,
+        name: tplName.trim(),
+        description: tplDesc.trim() || undefined,
+        definition: currentFilters,
+        isShared: tplShared,
+      });
+      toast.success("Template updated");
+      setEditOpen(false);
+      setEditingTemplateId(null);
+      setTplName("");
+      setTplDesc("");
+      setTplShared(false);
+      await qc.invalidateQueries({ queryKey: ["query-templates"] });
+    } catch (err: any) {
+      toast.error(err.message || "Template update failed");
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -228,6 +319,11 @@ export default function Records() {
           <p className="meta-text mt-1">{isLoading ? "Loading..." : `${filtered.length} of ${incidents.length} records`}</p>
         </div>
         <div className="grid grid-cols-1 sm:flex gap-2 w-full sm:w-auto">
+          {can("manage_users") && (
+            <Button variant="outline" onClick={() => setShowTrash((v) => !v)} className="w-full sm:w-auto">
+              <Trash2 className="h-4 w-4 mr-1" /> {showTrash ? "Hide Trash" : "Show Trash"}
+            </Button>
+          )}
           {can("manage_templates") && (
             <Button variant="outline" onClick={() => setSaveOpen(true)} disabled={!user} className="w-full sm:w-auto">
               <BookmarkPlus className="h-4 w-4 mr-1" /> Save Filter
@@ -256,9 +352,14 @@ export default function Records() {
                   {t.name}{t.is_shared && " ★"}
                 </button>
                 {t.owner_id === user?.id && (
-                  <button onClick={() => setTemplateToDelete({ id: t.id, name: t.name })} className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label={`Delete ${t.name}`}>
-                    <Trash2 className="h-3 w-3" />
-                  </button>
+                  <div className="inline-flex items-center gap-1">
+                    <button onClick={() => openEditTemplate(t)} className="rounded p-1 text-muted-foreground hover:bg-info/10 hover:text-info" aria-label={`Edit ${t.name}`}>
+                      <Bookmark className="h-3 w-3" />
+                    </button>
+                    <button onClick={() => setTemplateToDelete({ id: t.id, name: t.name })} className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label={`Delete ${t.name}`}>
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
@@ -269,6 +370,71 @@ export default function Records() {
         <div className="flex flex-col gap-2 rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
           <span>Saved filters could not be loaded. Incident records are still available.</span>
           <Button size="sm" variant="outline" onClick={() => void templatesQuery.refetch()}>Retry filters</Button>
+        </div>
+      )}
+
+      {can("manage_users") && showTrash && (
+        <div className="dash-card space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="section-title">Deleted Incident Records</h3>
+            <span className="text-xs text-muted-foreground">{filteredTrash.length} deleted</span>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={trashSearch}
+              onChange={(e) => setTrashSearch(e.target.value)}
+              placeholder="Search deleted incidents by reference, region, category, or location..."
+              className="pl-9"
+            />
+          </div>
+          {deletedIncidentsQuery.isLoading && <LoadingState label="Loading deleted incidents…" className="min-h-28" />}
+          {deletedIncidentsQuery.isError && <ErrorState title="Deleted incidents could not be loaded" error={deletedIncidentsQuery.error} onRetry={() => void deletedIncidentsQuery.refetch()} className="min-h-28" />}
+          {!deletedIncidentsQuery.isLoading && !deletedIncidentsQuery.isError && filteredTrash.length === 0 && (
+            <p className="text-sm text-muted-foreground">No deleted incidents available.</p>
+          )}
+          {!deletedIncidentsQuery.isLoading && !deletedIncidentsQuery.isError && filteredTrash.length > 0 && (
+            <div className="overflow-x-auto overscroll-x-contain">
+              <table className="w-full min-w-[760px] text-sm">
+                <thead className="bg-muted/50">
+                  <tr className="border-b border-border">
+                    <th className="data-table-header text-left py-2.5 px-3">Reference</th>
+                    <th className="data-table-header text-left py-2.5 px-3">Date</th>
+                    <th className="data-table-header text-left py-2.5 px-3">Region</th>
+                    <th className="data-table-header text-left py-2.5 px-3">Category</th>
+                    <th className="data-table-header text-left py-2.5 px-3">Deleted At</th>
+                    <th className="data-table-header text-left py-2.5 px-3">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagedTrash.map((inc) => (
+                    <tr key={inc.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                      <td className="py-2.5 px-3 tabular-nums text-foreground font-medium">{inc.reference_code || inc.id.slice(0, 8)}</td>
+                      <td className="py-2.5 px-3 tabular-nums text-muted-foreground">{inc.incident_date}</td>
+                      <td className="py-2.5 px-3 text-muted-foreground">{inc.region}</td>
+                      <td className="py-2.5 px-3 text-muted-foreground">{inc.category}</td>
+                      <td className="py-2.5 px-3 tabular-nums text-muted-foreground">{inc.deleted_at ? new Date(inc.deleted_at).toLocaleString() : "—"}</td>
+                      <td className="py-2.5 px-3">
+                        <Button size="sm" variant="outline" onClick={() => setPendingRestore({ id: inc.id, reference: inc.reference_code || inc.id.slice(0, 8) })}>Restore</Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {!deletedIncidentsQuery.isLoading && !deletedIncidentsQuery.isError && filteredTrash.length > TRASH_PAGE_SIZE && (
+            <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
+              <p className="text-xs text-muted-foreground">
+                Showing {trashStart + 1}-{trashStart + pagedTrash.length} of {filteredTrash.length}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" disabled={trashPage === 1} onClick={() => setTrashPage((p) => p - 1)}>Previous</Button>
+                <span className="text-xs text-muted-foreground tabular-nums">Page {trashPage} of {trashTotalPages}</span>
+                <Button size="sm" variant="outline" disabled={trashPage === trashTotalPages} onClick={() => setTrashPage((p) => p + 1)}>Next</Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -475,6 +641,29 @@ export default function Records() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={editOpen} onOpenChange={(open) => { if (!open) { setEditOpen(false); setEditingTemplateId(null); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update saved template</DialogTitle>
+            <DialogDescription>
+              Rename this template and overwrite it with your current filters.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input placeholder="Template name" value={tplName} onChange={(e) => setTplName(e.target.value)} />
+            <Input placeholder="Description (optional)" value={tplDesc} onChange={(e) => setTplDesc(e.target.value)} />
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={tplShared} onChange={(e) => setTplShared(e.target.checked)} />
+              Share with all users
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button onClick={handleUpdateTemplate} disabled={!tplName.trim()}>Update</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={Boolean(pendingTransition)} onOpenChange={(open) => { if (!open && !isTransitioning) { setPendingTransition(null); setTransitionNote(""); } }}>
         <DialogContent>
           <DialogHeader>
@@ -503,6 +692,24 @@ export default function Records() {
         pending={isDeletingTemplate}
         onConfirm={handleDeleteTemplate}
       />
+
+      <Dialog open={Boolean(pendingRestore)} onOpenChange={(open) => { if (!open && !isRestoring) { setPendingRestore(null); setRestoreReason(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Restore deleted incident?</DialogTitle>
+            <DialogDescription>
+              Restore {pendingRestore?.reference} to active records. Include a reason for audit traceability.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea value={restoreReason} onChange={(e) => setRestoreReason(e.target.value)} placeholder="Reason for restoring this incident (optional but recommended)…" maxLength={1000} />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingRestore(null)} disabled={isRestoring}>Cancel</Button>
+            <Button onClick={handleRestoreIncident} disabled={isRestoring}>
+              {isRestoring && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Restore
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

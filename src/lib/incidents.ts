@@ -316,6 +316,24 @@ export interface QueryFilters {
   date_to?: string;
 }
 
+export interface IncidentUpdatePayload {
+  location_name?: string;
+  district?: string;
+  gps_coordinates?: string;
+  category?: string;
+  incident_type?: string;
+  severity?: IncidentSeverity;
+  product_type?: string;
+  injury_type?: string;
+  casualties?: number;
+  fatalities?: number;
+  description?: string;
+  source?: string;
+  source_contact?: string;
+  source_notes?: string;
+  previous_channel?: string;
+}
+
 export async function listQueryTemplates() {
   const { data, error } = await supabase
     .from("query_templates")
@@ -347,7 +365,69 @@ export async function saveQueryTemplate(input: {
   return data;
 }
 
+export async function updateQueryTemplate(input: {
+  id: string;
+  name: string;
+  description?: string;
+  definition: QueryFilters;
+  isShared?: boolean;
+}) {
+  const { data, error } = await supabase.rpc("update_query_template", {
+    _id: input.id,
+    _name: input.name,
+    _description: input.description ?? "",
+    _definition: input.definition as unknown as Json,
+    _is_shared: !!input.isShared,
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function deleteQueryTemplate(id: string) {
   const { error } = await supabase.from("query_templates").delete().eq("id", id);
   if (error) throw error;
+}
+
+export async function updateIncidentDetails(incidentId: string, payload: IncidentUpdatePayload): Promise<IncidentRow> {
+  const { data, error } = await supabase.rpc("update_incident_details", {
+    _incident_id: incidentId,
+    _payload: payload as unknown as Json,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteIncidentRecord(incidentId: string, reason?: string): Promise<IncidentRow> {
+  const { data, error } = await supabase.rpc("delete_incident_record", {
+    _incident_id: incidentId,
+    _reason: reason ?? null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function restoreIncidentRecord(incidentId: string, reason?: string): Promise<IncidentRow> {
+  const { data, error } = await supabase.rpc("restore_incident_record", {
+    _incident_id: incidentId,
+    _reason: reason ?? null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function listDeletedIncidents(limit = 100): Promise<IncidentRow[]> {
+  const { data, error } = await supabase.rpc("list_deleted_incidents", {
+    _limit: limit,
+  });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function adminSetAccountStatus(userId: string, status: Database["public"]["Enums"]["account_status"]) {
+  const { data, error } = await supabase.rpc("admin_set_account_status", {
+    _user_id: userId,
+    _status: status,
+  });
+  if (error) throw error;
+  return data;
 }
