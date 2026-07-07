@@ -717,7 +717,18 @@ export default function IncidentCase() {
             </div>
             <div className="space-y-1">
               <Label htmlFor="edit-district">District</Label>
-              <Input id="edit-district" value={editDraft.district} onChange={(e) => setEditDraft((p) => ({ ...p, district: e.target.value }))} />
+              <Input
+                id="edit-district"
+                list="edit-district-options"
+                placeholder="Type or select a district"
+                value={editDraft.district}
+                onChange={(e) => setEditDraft((p) => ({ ...p, district: e.target.value }))}
+              />
+              <datalist id="edit-district-options">
+                {Array.from(new Set(incidents.map((i) => (i.district ?? "").trim()).filter(Boolean))).sort().map((d) => (
+                  <option key={d} value={d} />
+                ))}
+              </datalist>
             </div>
             <div className="space-y-1">
               <Label htmlFor="edit-gps">GPS coordinates</Label>
