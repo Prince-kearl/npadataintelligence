@@ -394,17 +394,6 @@ export default function SubmitIncident() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="label-text">Severity *</Label>
-              <Select required value={severity} onValueChange={(v) => setSeverity(v as IncidentSeverity)}>
-                <SelectTrigger className="bg-muted/50 border-border rounded-lg min-h-12"><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-card border-border">
-                  {(Object.keys(SEVERITY_LABELS) as IncidentSeverity[]).map((s) => (
-                    <SelectItem key={s} value={s}>{SEVERITY_LABELS[s]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
               <Label className="label-text">Petroleum Product Type *</Label>
               <Select required value={productType} onValueChange={setProductType}>
                 <SelectTrigger className="bg-muted/50 border-border rounded-lg min-h-12"><SelectValue placeholder="Select product type" /></SelectTrigger>
