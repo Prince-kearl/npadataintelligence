@@ -308,7 +308,7 @@ export default function Dashboard() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="flex items-center gap-2 font-semibold text-foreground"><ShieldAlert className="h-4 w-4 text-warning" />Command and governance</p>
-              <p className="mt-1 text-sm text-muted-foreground">{kpis.critical} high-priority cases and {kpis.open} open cases need system-wide oversight.</p>
+              <p className="mt-1 text-sm text-muted-foreground">{kpis.open} open cases across the network need system-wide oversight.</p>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:flex">
               <Button onClick={() => navigate("/admin")}><Settings className="mr-2 h-4 w-4" />Admin controls</Button>
@@ -330,11 +330,11 @@ export default function Dashboard() {
           iconClass="text-destructive"
         />
         <KPICard
-          title="High / Critical Severity"
-          value={kpis.critical}
+          title="Casualties (all-time)"
+          value={kpis.casualties}
           icon={ShieldAlert}
-          change={kpis.total ? `${Math.round((kpis.critical / kpis.total) * 100)}% of all` : "—"}
-          changeType={kpis.critical > 0 ? "negative" : "positive"}
+          change={kpis.total ? `${(kpis.casualties / kpis.total).toFixed(1)} avg / incident` : "—"}
+          changeType={kpis.casualties > 0 ? "negative" : "positive"}
           iconBg="bg-warning/10"
           iconClass="text-warning"
         />
@@ -388,7 +388,7 @@ export default function Dashboard() {
             {liveFeed.length === 0 && <p className="px-5 py-10 text-center text-sm text-muted-foreground">No incidents are currently visible to your role.</p>}
             {liveFeed.map((f, i) => (
               <div key={i} className="flex items-start sm:items-center gap-3 px-4 sm:px-5 py-3 hover:bg-muted/30 transition-colors">
-                <span className={`w-1 h-10 rounded-full ${severityBarClass[f.severity]}`} />
+                <span className={`w-1 h-10 rounded-full ${statusFeedClass[f.status] || "bg-primary"}`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{f.title}</p>
                   {f.meta && <p className="text-[11px] text-muted-foreground mt-0.5">{f.meta}</p>}
@@ -398,9 +398,9 @@ export default function Dashboard() {
                     <Clock className="h-3 w-3" /> {f.time}
                   </span>
                   <Badge variant="secondary" className={
-                    f.severity === "Critical" ? "status-new" :
-                    f.severity === "High" ? "bg-warning/15 text-warning border border-warning/20" :
-                    f.severity === "Medium" ? "status-reviewed" : "status-closed"
+                    f.status === "New" || f.status === "submitted" ? "status-new" :
+                    f.status === "Reviewed" || f.status === "under_review" ? "status-reviewed" :
+                    "status-closed"
                   }>
                     {f.tag}
                   </Badge>
