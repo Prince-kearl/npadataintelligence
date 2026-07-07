@@ -57,6 +57,7 @@ const App = () => (
                     </RequireRole>
                   }
                 />
+                <Route path="/drafts" element={<RequireRole permission="submit_incident"><Drafts /></RequireRole>} />
                 <Route
                   path="/incidents/:id"
                   element={
