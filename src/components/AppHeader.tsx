@@ -19,7 +19,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
           <Menu className="h-5 w-5" />
         </button>
         <h2 className="text-xs sm:text-sm font-medium text-navy-foreground/90 truncate">
-          Incident & Field Data Intelligence System
+          Consumer Data Intelligence System
         </h2>
       </div>
 
