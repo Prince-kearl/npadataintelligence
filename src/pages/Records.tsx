@@ -18,7 +18,6 @@ import {
   updateIncidentStatus,
   LIFECYCLE_STATUSES,
   STATUS_LABELS,
-  SEVERITY_LABELS,
   recordExport,
   listDeletedIncidents,
   restoreIncidentRecord,
@@ -27,7 +26,6 @@ import {
   updateQueryTemplate,
   deleteQueryTemplate,
   type IncidentStatus,
-  type IncidentSeverity,
   type QueryFilters,
 } from "@/lib/incidents";
 import { incidentsToCSV, downloadBlob, timestampedName } from "@/lib/exporters";
@@ -48,13 +46,6 @@ const statusClass: Record<string, string> = {
   Reviewed: "bg-warning/10 text-warning border border-warning/20",
 };
 
-const severityClass: Record<IncidentSeverity, string> = {
-  low: "bg-success/10 text-success",
-  medium: "bg-info/10 text-info",
-  high: "bg-warning/10 text-warning",
-  critical: "bg-destructive/10 text-destructive",
-};
-
 const TRASH_PAGE_SIZE = 8;
 
 export default function Records() {
@@ -71,7 +62,7 @@ export default function Records() {
   const [districtFilter, setDistrictFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [productFilter, setProductFilter] = useState<string>("all");
-  const [severityFilter, setSeverityFilter] = useState<string>("all");
+  
   const [reporterFilter, setReporterFilter] = useState<string>("");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
@@ -141,7 +132,7 @@ export default function Records() {
     district: districtFilter !== "all" ? districtFilter : undefined,
     category: categoryFilter !== "all" ? categoryFilter : undefined,
     product_type: productFilter !== "all" ? productFilter : undefined,
-    severity: severityFilter !== "all" ? severityFilter : undefined,
+    
     reporter: reporterFilter || undefined,
     date_from: dateFrom || undefined,
     date_to: dateTo || undefined,
@@ -154,7 +145,7 @@ export default function Records() {
     setDistrictFilter(def.district ?? "all");
     setCategoryFilter(def.category ?? "all");
     setProductFilter(def.product_type ?? "all");
-    setSeverityFilter(def.severity ?? "all");
+    
     setReporterFilter(def.reporter ?? "");
     setDateFrom(def.date_from ?? "");
     setDateTo(def.date_to ?? "");
@@ -162,7 +153,7 @@ export default function Records() {
 
   const resetFilters = () => {
     setSearchTerm(""); setStatusFilter("all"); setRegionFilter("all"); setDistrictFilter("all");
-    setCategoryFilter("all"); setProductFilter("all"); setSeverityFilter("all");
+    setCategoryFilter("all"); setProductFilter("all");
     setReporterFilter(""); setDateFrom(""); setDateTo("");
     setSearchParams({});
   };
@@ -175,7 +166,7 @@ export default function Records() {
       if (districtFilter !== "all" && inc.district !== districtFilter) return false;
       if (categoryFilter !== "all" && inc.category !== categoryFilter) return false;
       if (productFilter !== "all" && inc.product_type !== productFilter) return false;
-      if (severityFilter !== "all" && inc.severity !== severityFilter) return false;
+      
       if (reporterFilter && !(inc.reporter_name || "").toLowerCase().includes(reporterFilter.toLowerCase())) return false;
       if (dateFrom && inc.incident_date < dateFrom) return false;
       if (dateTo && inc.incident_date > dateTo) return false;
@@ -189,7 +180,7 @@ export default function Records() {
         (inc.description || "").toLowerCase().includes(q)
       );
     });
-  }, [incidents, urlId, searchTerm, statusFilter, regionFilter, districtFilter, categoryFilter, productFilter, severityFilter, reporterFilter, dateFrom, dateTo]);
+  }, [incidents, urlId, searchTerm, statusFilter, regionFilter, districtFilter, categoryFilter, productFilter, reporterFilter, dateFrom, dateTo]);
 
   const regions = useMemo(() => Array.from(new Set(incidents.map((i) => i.region).filter(Boolean))).sort(), [incidents]);
   const districts = useMemo(() => Array.from(new Set(incidents.map((i) => i.district).filter(Boolean))).sort() as string[], [incidents]);
@@ -458,13 +449,6 @@ export default function Records() {
               <SelectItem value="Reviewed">Reviewed (legacy)</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={severityFilter} onValueChange={setSeverityFilter}>
-            <SelectTrigger className="bg-muted/50 border-border rounded-lg"><SelectValue placeholder="Severity" /></SelectTrigger>
-            <SelectContent className="bg-card border-border">
-              <SelectItem value="all">All Severity</SelectItem>
-              {Object.entries(SEVERITY_LABELS).map(([v, l]) => (<SelectItem key={v} value={v}>{l}</SelectItem>))}
-            </SelectContent>
-          </Select>
           <Select value={regionFilter} onValueChange={setRegionFilter}>
             <SelectTrigger className="bg-muted/50 border-border rounded-lg"><SelectValue placeholder="Region" /></SelectTrigger>
             <SelectContent className="bg-card border-border">
@@ -517,7 +501,7 @@ export default function Records() {
                   <th className="data-table-header text-left py-3 px-4">Location</th>
                   <th className="data-table-header text-left py-3 px-4">Category</th>
                   <th className="data-table-header text-left py-3 px-4">Product</th>
-                  <th className="data-table-header text-left py-3 px-4">Severity</th>
+                  <th className="data-table-header text-left py-3 px-4">District</th>
                   <th className="data-table-header text-right py-3 px-4">Cas.</th>
                   <th className="data-table-header text-right py-3 px-4">Fat.</th>
                   <th className="data-table-header text-left py-3 px-4">Reporter</th>
@@ -538,11 +522,7 @@ export default function Records() {
                     <td className="py-3 px-4 max-w-[160px] truncate text-muted-foreground">{inc.location_name}</td>
                     <td className="py-3 px-4 text-muted-foreground">{inc.category}</td>
                     <td className="py-3 px-4 text-muted-foreground">{inc.product_type}</td>
-                    <td className="py-3 px-4">
-                      <Badge variant="secondary" className={severityClass[inc.severity as IncidentSeverity] || ""}>
-                        {SEVERITY_LABELS[inc.severity as IncidentSeverity] || inc.severity}
-                      </Badge>
-                    </td>
+                    <td className="py-3 px-4 text-muted-foreground">{inc.district || "—"}</td>
                     <td className="py-3 px-4 text-right tabular-nums text-muted-foreground">{inc.casualties}</td>
                     <td className="py-3 px-4 text-right tabular-nums text-muted-foreground">{inc.fatalities}</td>
                     <td className="py-3 px-4 max-w-[140px] truncate text-muted-foreground">{inc.reporter_name}</td>
