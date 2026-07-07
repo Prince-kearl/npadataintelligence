@@ -132,11 +132,11 @@ export default function Analytics() {
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 90%)" />
               <XAxis dataKey="product" tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
               <YAxis yAxisId="left" tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
-              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} domain={[0, 6]} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
               <Tooltip {...tooltipStyle} />
               <Legend wrapperStyle={{ fontSize: "12px", color: "hsl(220, 15%, 50%)" }} />
               <Bar yAxisId="left" dataKey="incidents" fill="hsl(228, 62%, 26%)" radius={[4, 4, 0, 0]} name="Incidents" />
-              <Line yAxisId="right" type="monotone" dataKey="severity" stroke="hsl(40, 82%, 52%)" strokeWidth={2} dot={{ r: 4, fill: "hsl(40, 82%, 52%)" }} name="Severity" />
+              <Line yAxisId="right" type="monotone" dataKey="casualties" stroke="hsl(40, 82%, 52%)" strokeWidth={2} dot={{ r: 4, fill: "hsl(40, 82%, 52%)" }} name="Casualties" />
             </ComposedChart>
           </ResponsiveContainer>
         </div>

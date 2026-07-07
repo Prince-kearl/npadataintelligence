@@ -373,7 +373,7 @@ export interface QueryFilters {
   district?: string;
   category?: string;
   product_type?: string;
-  severity?: string;
+  
   reporter?: string;
   date_from?: string;
   date_to?: string;
