@@ -151,17 +151,23 @@ export default function SubmitIncident() {
     })();
   }, [draftId]);
 
-  // Auto-save every 8s (no files — those are too large for IDB drafts)
+  // Persist on every change (debounced) + on tab hide, so refresh never loses data.
   useEffect(() => {
-    const t = setInterval(() => {
-      saveDraft(draftId, {
-        submissionId,
-        incidentDate, region, district, locationName, gps, category, incidentType,
-        productType, injuryType, casualties, fatalities, description, source, sourceContact,
-        sourceNotes, previousChannel,
-      }).catch(() => {});
-    }, 8000);
-    return () => clearInterval(t);
+    const payload = {
+      submissionId,
+      incidentDate, region, district, locationName, gps, category, incidentType,
+      productType, injuryType, casualties, fatalities, description, source, sourceContact,
+      sourceNotes, previousChannel,
+    };
+    const t = setTimeout(() => { saveDraft(draftId, payload).catch(() => {}); }, 400);
+    const flush = () => { saveDraft(draftId, payload).catch(() => {}); };
+    window.addEventListener("beforeunload", flush);
+    document.addEventListener("visibilitychange", flush);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("beforeunload", flush);
+      document.removeEventListener("visibilitychange", flush);
+    };
   }, [
     draftId, submissionId, incidentDate, region, district, locationName, gps, category, incidentType,
     productType, injuryType, casualties, fatalities, description, source, sourceContact,
@@ -194,17 +200,28 @@ export default function SubmitIncident() {
 
   const captureGps = () => {
     if (!navigator.geolocation) {
-      toast.error("Geolocation not supported");
+      toast.error("Geolocation is not supported by this browser.");
       return;
     }
+    // Detect iframe / Permissions-Policy block up front (Lovable preview blocks by default).
+    const inIframe = typeof window !== "undefined" && window.self !== window.top;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setGps(`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`);
         toast.success("GPS captured");
       },
-      (err) => toast.error(err.message)
+      (err) => {
+        const msg = /permission|denied|disallowed|policy/i.test(err.message)
+          ? inIframe
+            ? "Geolocation is blocked in the preview iframe. Open the published URL in a new tab, or enter coordinates manually."
+            : "Location permission denied. Enable location access for this site in your browser settings, or enter coordinates manually."
+          : err.message || "Unable to retrieve location. Enter coordinates manually.";
+        toast.error(msg, { duration: 6000 });
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
+
 
   const finalizeSubmit = async (verificationScore?: number, verificationNotes?: string) => {
     setDialogOpen(false);
