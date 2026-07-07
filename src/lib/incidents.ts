@@ -151,7 +151,7 @@ async function legacyDirectInsert(payload: any): Promise<IncidentRow> {
     gps_coordinates: payload.gps_coordinates ?? null,
     category: payload.category,
     incident_type: payload.incident_type ?? null,
-    severity: payload.severity ?? "medium",
+    
     product_type: payload.product_type ?? null,
     injury_type: payload.injury_type ?? null,
     casualties: payload.casualties ?? 0,
