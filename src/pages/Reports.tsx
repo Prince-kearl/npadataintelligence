@@ -265,28 +265,48 @@ export default function Reports() {
                 <Input type="date" value={filters.to} onChange={(e) => setFilters({ ...filters, to: e.target.value })} />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Period type</Label>
-                <Select value={filters.period} onValueChange={(v) => setFilters({ ...filters, period: v as Filters["period"], periodValue: "" })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Label className="text-xs">Year</Label>
+                <Select
+                  value={filters.year || "any"}
+                  onValueChange={(v) => setFilters({ ...filters, year: v === "any" ? "" : v, quarter: "", month: "" })}
+                >
+                  <SelectTrigger><SelectValue placeholder="All years" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All time</SelectItem>
-                    <SelectItem value="month">Month</SelectItem>
-                    <SelectItem value="quarter">Quarter</SelectItem>
-                    <SelectItem value="year">Year</SelectItem>
+                    <SelectItem value="any">All years</SelectItem>
+                    {availableYears.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Period value</Label>
+                <Label className="text-xs">Quarter</Label>
                 <Select
-                  value={filters.periodValue || "any"}
-                  onValueChange={(v) => setFilters({ ...filters, periodValue: v === "any" ? "" : v })}
-                  disabled={filters.period === "all"}
+                  value={filters.quarter || "any"}
+                  onValueChange={(v) => setFilters({ ...filters, quarter: v === "any" ? "" : v, month: "" })}
+                  disabled={!filters.year}
                 >
-                  <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={filters.year ? "All quarters" : "Select a year first"} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="any">Any</SelectItem>
-                    {periodOptions.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    <SelectItem value="any">All quarters</SelectItem>
+                    <SelectItem value="1">Q1 (Jan – Mar)</SelectItem>
+                    <SelectItem value="2">Q2 (Apr – Jun)</SelectItem>
+                    <SelectItem value="3">Q3 (Jul – Sep)</SelectItem>
+                    <SelectItem value="4">Q4 (Oct – Dec)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Month</Label>
+                <Select
+                  value={filters.month || "any"}
+                  onValueChange={(v) => setFilters({ ...filters, month: v === "any" ? "" : v })}
+                  disabled={!filters.quarter}
+                >
+                  <SelectTrigger><SelectValue placeholder={filters.quarter ? "All months in quarter" : "Select a quarter first"} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">All months in quarter</SelectItem>
+                    {(QUARTER_MONTHS[filters.quarter] || []).map((m) => (
+                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
