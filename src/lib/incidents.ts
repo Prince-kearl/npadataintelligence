@@ -385,7 +385,7 @@ export interface IncidentUpdatePayload {
   gps_coordinates?: string;
   category?: string;
   incident_type?: string;
-  severity?: IncidentSeverity;
+  
   product_type?: string;
   injury_type?: string;
   casualties?: number;
