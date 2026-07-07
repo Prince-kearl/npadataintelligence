@@ -381,7 +381,7 @@ export default function Reports() {
                 <Eye className="h-4 w-4 mr-1" /> {showPreview ? "Hide preview" : "Preview report"}
               </Button>
               <Button variant="outline" size="sm" onClick={() => window.print()}>
-                <FileText className="h-4 w-4 mr-1" /> Print
+                <Printer className="h-4 w-4 mr-1" /> Print report
               </Button>
             </div>
           </div>
