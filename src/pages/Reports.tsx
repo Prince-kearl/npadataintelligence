@@ -202,19 +202,14 @@ export default function Reports() {
     return runExport("PDF", name, () => incidentsToPDF(filtered));
   };
 
-  const periodOptions = useMemo(() => {
+  const availableYears = useMemo(() => {
     const set = new Set<string>();
     incidents.forEach((i: any) => {
       if (!i.incident_date) return;
-      const d = new Date(i.incident_date);
-      const y = d.getFullYear();
-      const m = d.getMonth() + 1;
-      if (filters.period === "year") set.add(String(y));
-      else if (filters.period === "month") set.add(`${y}-${String(m).padStart(2, "0")}`);
-      else if (filters.period === "quarter") set.add(`${y}-Q${Math.ceil(m / 3)}`);
+      set.add(String(new Date(i.incident_date).getFullYear()));
     });
     return Array.from(set).sort().reverse();
-  }, [incidents, filters.period]);
+  }, [incidents]);
 
   return (
     <div className="space-y-5 max-w-6xl">
