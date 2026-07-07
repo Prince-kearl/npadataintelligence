@@ -16,7 +16,7 @@ import {
   ClipboardCheck,
   FileEdit,
   BarChart3,
-  Settings,
+  
 } from "lucide-react";
 import { KPICard } from "@/components/KPICard";
 import { incidentsByProduct, incidentsByRegion, monthlyTrend } from "@/lib/analytics";
