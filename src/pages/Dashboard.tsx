@@ -326,20 +326,6 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-      {role === "admin" && (
-        <div className="dash-card border-warning/20 bg-warning/5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="flex items-center gap-2 font-semibold text-foreground"><ShieldAlert className="h-4 w-4 text-warning" />Command and governance</p>
-              <p className="mt-1 text-sm text-muted-foreground">{kpis.open} open cases across the network need system-wide oversight.</p>
-            </div>
-            <div className="grid grid-cols-1 gap-2 sm:flex">
-              <Button onClick={() => navigate("/admin")}><Settings className="mr-2 h-4 w-4" />Admin controls</Button>
-              <Button variant="outline" onClick={() => navigate("/reports")}>Compliance reports</Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
