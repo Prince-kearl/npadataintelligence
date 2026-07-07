@@ -13,6 +13,7 @@ import { PageSkeleton } from "@/components/ReliabilityState";
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const SubmitIncident = lazy(() => import("@/pages/SubmitIncident"));
 const Records = lazy(() => import("@/pages/Records"));
+const Drafts = lazy(() => import("@/pages/Drafts"));
 const IncidentCase = lazy(() => import("@/pages/IncidentCase"));
 const Analytics = lazy(() => import("@/pages/Analytics"));
 const Reports = lazy(() => import("@/pages/Reports"));
