@@ -122,15 +122,12 @@ export default function Reports() {
       const d = i.incident_date ? new Date(i.incident_date) : null;
       if (filters.from && d && d < new Date(filters.from)) return false;
       if (filters.to && d && d > new Date(filters.to + "T23:59:59")) return false;
-      if (filters.period !== "all" && filters.periodValue && d) {
+      if (d) {
         const y = d.getFullYear();
         const m = d.getMonth() + 1;
-        if (filters.period === "year" && String(y) !== filters.periodValue) return false;
-        if (filters.period === "month" && `${y}-${String(m).padStart(2, "0")}` !== filters.periodValue) return false;
-        if (filters.period === "quarter") {
-          const q = Math.ceil(m / 3);
-          if (`${y}-Q${q}` !== filters.periodValue) return false;
-        }
+        if (filters.year && String(y) !== filters.year) return false;
+        if (filters.year && filters.quarter && String(Math.ceil(m / 3)) !== filters.quarter) return false;
+        if (filters.year && filters.quarter && filters.month && String(m) !== filters.month) return false;
       }
       if (filters.region !== "all" && i.region !== filters.region) return false;
       if (filters.district && !(i.district ?? "").toLowerCase().includes(filters.district.toLowerCase())) return false;
