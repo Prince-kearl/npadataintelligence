@@ -21,7 +21,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import {
   REGIONS,
-  DISTRICTS,
   INCIDENT_CATEGORIES,
   INCIDENT_TYPES,
   PRODUCT_TYPES,
@@ -42,9 +41,7 @@ import {
   attachToIncident,
   scanAttachment,
   validateAttachment,
-  SEVERITY_LABELS,
   type AttachmentMeta,
-  type IncidentSeverity,
 } from "@/lib/incidents";
 import { saveDraft, loadDraft, deleteDraft } from "@/lib/draft-store";
 
@@ -85,7 +82,7 @@ export default function SubmitIncident() {
   const [gps, setGps] = useState("");
   const [category, setCategory] = useState("");
   const [incidentType, setIncidentType] = useState("");
-  const [severity, setSeverity] = useState<IncidentSeverity>("medium");
+  
   const [productType, setProductType] = useState("");
   const [injuryType, setInjuryType] = useState("");
   const [casualties, setCasualties] = useState(0);
@@ -126,7 +123,7 @@ export default function SubmitIncident() {
         if (p.gps) setGps(p.gps);
         if (p.category) setCategory(p.category);
         if (p.incidentType) setIncidentType(p.incidentType);
-        if (p.severity) setSeverity(p.severity);
+        
         if (p.productType) setProductType(p.productType);
         if (p.injuryType) setInjuryType(p.injuryType);
         if (typeof p.casualties === "number") setCasualties(p.casualties);
@@ -148,14 +145,14 @@ export default function SubmitIncident() {
     const t = setInterval(() => {
       saveDraft(draftId, {
         submissionId,
-        incidentDate, region, district, locationName, gps, category, incidentType, severity,
+        incidentDate, region, district, locationName, gps, category, incidentType,
         productType, injuryType, casualties, fatalities, description, source, sourceContact,
         sourceNotes, previousChannel,
       }).catch(() => {});
     }, 8000);
     return () => clearInterval(t);
   }, [
-    draftId, submissionId, incidentDate, region, district, locationName, gps, category, incidentType, severity,
+    draftId, submissionId, incidentDate, region, district, locationName, gps, category, incidentType,
     productType, injuryType, casualties, fatalities, description, source, sourceContact,
     sourceNotes, previousChannel,
   ]);
@@ -218,7 +215,6 @@ export default function SubmitIncident() {
         gps_coordinates: gps || null,
         category,
         incident_type: incidentType || null,
-        severity,
         product_type: productType || null,
         injury_type: injuryType || null,
         casualties,
@@ -260,7 +256,7 @@ export default function SubmitIncident() {
       // Save offline — will need manual retry when back online
       await saveDraft(draftId, {
         submissionId,
-        incidentDate, region, district, locationName, gps, category, incidentType, severity,
+        incidentDate, region, district, locationName, gps, category, incidentType,
         productType, injuryType, casualties, fatalities, description, source, sourceContact,
         sourceNotes, previousChannel,
       });
@@ -290,7 +286,7 @@ export default function SubmitIncident() {
   const handleSaveDraft = async () => {
     await saveDraft(draftId, {
       submissionId,
-      incidentDate, region, district, locationName, gps, category, incidentType, severity,
+      incidentDate, region, district, locationName, gps, category, incidentType,
       productType, injuryType, casualties, fatalities, description, source, sourceContact,
       sourceNotes, previousChannel,
     });
@@ -302,7 +298,7 @@ export default function SubmitIncident() {
     setSubmissionId(crypto.randomUUID());
     formRef.current?.reset();
     setIncidentDate(""); setRegion(""); setDistrict(""); setLocationName(""); setGps("");
-    setCategory(""); setIncidentType(""); setSeverity("medium"); setProductType(""); setInjuryType("");
+    setCategory(""); setIncidentType(""); setProductType(""); setInjuryType("");
     setCasualties(0); setFatalities(0); setDescription(""); setSource(""); setSourceContact("");
     setSourceNotes(""); setPreviousChannel("None — first time reported"); setFiles([]);
     toast.success("Draft discarded");
@@ -346,13 +342,19 @@ export default function SubmitIncident() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="label-text">District *</Label>
-              <Select required value={district} onValueChange={setDistrict}>
-                <SelectTrigger className="bg-muted/50 border-border rounded-lg min-h-12"><SelectValue placeholder="Select district" /></SelectTrigger>
-                <SelectContent className="bg-card border-border">
-                  {DISTRICTS.map((d) => (<SelectItem key={d} value={d}>{d}</SelectItem>))}
-                </SelectContent>
-              </Select>
+              <Label className="label-text" htmlFor="submit-district">District *</Label>
+              <Input
+                id="submit-district"
+                list="submit-district-options"
+                placeholder="Type or select a district"
+                required
+                value={district}
+                onChange={(e) => setDistrict(e.target.value)}
+                className="bg-muted/50 border-border rounded-lg min-h-12"
+              />
+              <datalist id="submit-district-options">
+                {districtSuggestions.map((d) => (<option key={d} value={d} />))}
+              </datalist>
             </div>
             <div className="space-y-2">
               <Label className="label-text">Location / Facility Name *</Label>
