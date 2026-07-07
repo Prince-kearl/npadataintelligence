@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, FileText, FileSpreadsheet, File, Database, Loader2, Filter, Eye, X } from "lucide-react";
+import { Download, FileText, FileSpreadsheet, File, Database, Loader2, Filter, Eye, X, Printer } from "lucide-react";
 import { toast } from "sonner";
 import {
   incidentsToCSV,
@@ -13,12 +13,14 @@ import {
   timestampedName,
 } from "@/lib/exporters";
 import { useRole } from "@/hooks/useRole";
+import { useAuth } from "@/hooks/useAuth";
 import { useIncidents } from "@/hooks/useIncidents";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ErrorState, LoadingState, PageSkeleton } from "@/components/ReliabilityState";
 import { useMemo, useState } from "react";
 import type { Database as SupabaseDatabase } from "@/integrations/supabase/types";
+import npaLogo from "@/assets/npa-logo-white.png";
 
 type ExportHistoryRow = SupabaseDatabase["public"]["Tables"]["export_history"]["Row"];
 
