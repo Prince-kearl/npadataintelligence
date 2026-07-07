@@ -356,9 +356,9 @@ export default function SubmitIncident() {
         <div className="dash-card space-y-4">
           <h3 className="section-title">Location & Date</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="label-text">Incident Date *</Label>
-              <Input type="date" required value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="bg-muted/50 border-border rounded-lg min-h-12" />
+            <div className="space-y-2 min-w-0">
+              <Label className="label-text block text-left">Incident Date *</Label>
+              <Input type="date" required value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="bg-muted/50 border-border rounded-lg min-h-12 w-full max-w-full block appearance-none" />
             </div>
             <div className="space-y-2">
               <Label className="label-text">Region *</Label>
