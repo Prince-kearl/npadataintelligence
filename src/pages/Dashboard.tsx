@@ -388,7 +388,7 @@ export default function Dashboard() {
           ctaLabel="View open cases"
         />
         <KPICard
-          title="Total On Record"
+          title="All-Time Records"
           value={kpis.total}
           icon={Flame}
           change="All-time"
@@ -396,7 +396,7 @@ export default function Dashboard() {
           iconBg="bg-primary/15"
           iconClass="text-primary"
           to="/records"
-          ctaLabel="Browse all records"
+          ctaLabel="Browse all-time records"
         />
       </div>
 
