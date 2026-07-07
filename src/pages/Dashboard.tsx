@@ -79,11 +79,14 @@ const tooltipStyle = {
   },
 };
 
-const severityBarClass: Record<string, string> = {
-  Critical: "bg-destructive",
-  High: "bg-warning",
-  Medium: "bg-info",
-  Low: "bg-success",
+const statusFeedClass: Record<string, string> = {
+  New: "bg-info",
+  Reviewed: "bg-warning",
+  Closed: "bg-success",
+  submitted: "bg-info",
+  under_review: "bg-warning",
+  verified: "bg-success",
+  archived: "bg-muted-foreground",
 };
 
 const RESPONSE_ACTIONS: Record<ResponseActionType, { label: string; prompt: string }> = {
@@ -127,12 +130,6 @@ function CategoryTooltip({ active, payload }: any) {
   );
 }
 
-const SEVERITY_COLORS: Record<string, string> = {
-  critical: COLORS.red,
-  high: COLORS.orange,
-  medium: COLORS.gold,
-  low: COLORS.green,
-};
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -191,7 +188,7 @@ export default function Dashboard() {
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .slice(0, 4)
     .map((incident) => ({
-      severity: incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1),
+      status: incident.status,
       title: `${incident.category}: ${incident.location_name}`,
       time: new Date(incident.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       tag: STATUS_LABELS[incident.status] || incident.status,
@@ -214,18 +211,29 @@ export default function Dashboard() {
       .sort((a, b) => b.value - a.value);
   }, [incidents]);
 
-  const severityDistribution = useMemo(() => {
+  const statusDistribution = useMemo(() => {
     const counts = new Map<string, number>();
     incidents.forEach((inc) => {
-      const sev = (inc as any).severity || "medium";
-      counts.set(sev, (counts.get(sev) || 0) + 1);
+      counts.set(inc.status, (counts.get(inc.status) || 0) + 1);
     });
+    const palette: Record<string, string> = {
+      New: COLORS.blue,
+      submitted: COLORS.blue,
+      under_review: COLORS.gold,
+      Reviewed: COLORS.gold,
+      returned: COLORS.orange,
+      verified: COLORS.teal,
+      Closed: COLORS.green,
+      archived: COLORS.navy,
+      draft: COLORS.navy,
+    };
     return Array.from(counts.entries()).map(([name, value]) => ({
-      name: name.charAt(0).toUpperCase() + name.slice(1),
+      name: STATUS_LABELS[name] || name,
       value,
-      fill: SEVERITY_COLORS[name] || COLORS.navy,
+      fill: palette[name] || COLORS.navy,
     }));
   }, [incidents]);
+
 
   const topCauses = useMemo(() => {
     const counts = new Map<string, number>();
@@ -248,11 +256,11 @@ export default function Dashboard() {
       return now - t > 30 * day && now - t <= 60 * day;
     });
     const delta = prev30.length ? Math.round(((last30.length - prev30.length) / prev30.length) * 100) : 0;
-    const critical = incidents.filter((i: any) => i.severity === "critical" || i.severity === "high").length;
+    const casualties = incidents.reduce((sum, i) => sum + (i.casualties ?? 0), 0);
     const open = incidents.filter((i) => !["Closed", "archived"].includes(i.status as any)).length;
     const closed = incidents.filter((i) => ["Closed", "archived"].includes(i.status)).length;
     const resolveRate = incidents.length ? Math.round((closed / incidents.length) * 100) : 0;
-    return { total: incidents.length, last30: last30.length, delta, open, closed, critical, resolveRate };
+    return { total: incidents.length, last30: last30.length, delta, open, closed, casualties, resolveRate };
   }, [incidents]);
 
   const drillDown = (category: string) => {
@@ -323,7 +331,7 @@ export default function Dashboard() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="flex items-center gap-2 font-semibold text-foreground"><ShieldAlert className="h-4 w-4 text-warning" />Command and governance</p>
-              <p className="mt-1 text-sm text-muted-foreground">{kpis.critical} high-priority cases and {kpis.open} open cases need system-wide oversight.</p>
+              <p className="mt-1 text-sm text-muted-foreground">{kpis.open} open cases across the network need system-wide oversight.</p>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:flex">
               <Button onClick={() => navigate("/admin")}><Settings className="mr-2 h-4 w-4" />Admin controls</Button>
@@ -345,11 +353,11 @@ export default function Dashboard() {
           iconClass="text-destructive"
         />
         <KPICard
-          title="High / Critical Severity"
-          value={kpis.critical}
+          title="Casualties (all-time)"
+          value={kpis.casualties}
           icon={ShieldAlert}
-          change={kpis.total ? `${Math.round((kpis.critical / kpis.total) * 100)}% of all` : "—"}
-          changeType={kpis.critical > 0 ? "negative" : "positive"}
+          change={kpis.total ? `${(kpis.casualties / kpis.total).toFixed(1)} avg / incident` : "—"}
+          changeType={kpis.casualties > 0 ? "negative" : "positive"}
           iconBg="bg-warning/10"
           iconClass="text-warning"
         />
@@ -403,7 +411,7 @@ export default function Dashboard() {
             {liveFeed.length === 0 && <p className="px-5 py-10 text-center text-sm text-muted-foreground">No incidents are currently visible to your role.</p>}
             {liveFeed.map((f, i) => (
               <div key={i} className="flex items-start sm:items-center gap-3 px-4 sm:px-5 py-3 hover:bg-muted/30 transition-colors">
-                <span className={`w-1 h-10 rounded-full ${severityBarClass[f.severity]}`} />
+                <span className={`w-1 h-10 rounded-full ${statusFeedClass[f.status] || "bg-primary"}`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{f.title}</p>
                   {f.meta && <p className="text-[11px] text-muted-foreground mt-0.5">{f.meta}</p>}
@@ -413,9 +421,9 @@ export default function Dashboard() {
                     <Clock className="h-3 w-3" /> {f.time}
                   </span>
                   <Badge variant="secondary" className={
-                    f.severity === "Critical" ? "status-new" :
-                    f.severity === "High" ? "bg-warning/15 text-warning border border-warning/20" :
-                    f.severity === "Medium" ? "status-reviewed" : "status-closed"
+                    f.status === "New" || f.status === "submitted" ? "status-new" :
+                    f.status === "Reviewed" || f.status === "under_review" ? "status-reviewed" :
+                    "status-closed"
                   }>
                     {f.tag}
                   </Badge>
@@ -519,27 +527,27 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Row: Severity distribution + Top recurring causes */}
+      {/* Row: Status distribution + Top recurring causes */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="dash-card">
           <div className="dash-card-header">
-            <span className="section-title">Severity Distribution</span>
+            <span className="section-title">Case Status Distribution</span>
             <span className="dash-card-period">live</span>
           </div>
-          {severityDistribution.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-12">No severity data yet</p>
+          {statusDistribution.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-12">No incident data yet</p>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
-                <Pie data={severityDistribution} cx="50%" cy="50%" outerRadius={75} innerRadius={48} dataKey="value" strokeWidth={2} stroke="#fff">
-                  {severityDistribution.map((d, i) => <Cell key={i} fill={d.fill} />)}
+                <Pie data={statusDistribution} cx="50%" cy="50%" outerRadius={75} innerRadius={48} dataKey="value" strokeWidth={2} stroke="#fff">
+                  {statusDistribution.map((d, i) => <Cell key={i} fill={d.fill} />)}
                 </Pie>
                 <Tooltip {...tooltipStyle} />
               </PieChart>
             </ResponsiveContainer>
           )}
           <div className="flex items-center justify-center gap-3 text-[11px] text-muted-foreground mt-1 flex-wrap">
-            {severityDistribution.map((d) => (
+            {statusDistribution.map((d) => (
               <span key={d.name} className="flex items-center gap-1">
                 <span className="h-2 w-2 rounded-full" style={{ background: d.fill }} /> {d.name} ({d.value})
               </span>
@@ -558,15 +566,14 @@ export default function Dashboard() {
             <div className="space-y-2.5">
               {topCauses.map((c, i) => {
                 const max = topCauses[0].value || 1;
-                const pct = Math.round((c.value / max) * 100);
                 return (
-                  <div key={c.name}>
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="font-medium text-foreground truncate">{i + 1}. {c.name}</span>
-                      <span className="tabular-nums text-muted-foreground">{c.value}</span>
+                  <div key={i} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-foreground truncate">{c.name}</span>
+                      <span className="tabular-nums font-medium text-muted-foreground">{c.value}</span>
                     </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: pieColors[i % pieColors.length] }} />
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div className="h-full bg-primary rounded-full" style={{ width: `${(c.value / max) * 100}%` }} />
                     </div>
                   </div>
                 );
@@ -575,6 +582,7 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
 
 
 

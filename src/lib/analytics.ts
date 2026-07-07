@@ -1,7 +1,5 @@
 import type { IncidentRow } from "./incidents";
 
-const severityScore = { low: 1, medium: 2, high: 3, critical: 4 } as const;
-
 export function monthlyTrend(rows: IncidentRow[], months = 6) {
   const now = new Date();
   const buckets = Array.from({ length: months }, (_, offset) => {
@@ -34,17 +32,20 @@ export function incidentsByCategory(rows: IncidentRow[]) {
 }
 
 export function incidentsByProduct(rows: IncidentRow[]) {
-  const groups = new Map<string, { incidents: number; score: number }>();
+  const groups = new Map<string, { incidents: number; casualties: number; fatalities: number }>();
   for (const row of rows) {
     const product = row.product_type || "Unspecified";
-    const current = groups.get(product) ?? { incidents: 0, score: 0 };
+    const current = groups.get(product) ?? { incidents: 0, casualties: 0, fatalities: 0 };
     current.incidents += 1;
-    current.score += severityScore[row.severity];
+    current.casualties += row.casualties ?? 0;
+    current.fatalities += row.fatalities ?? 0;
     groups.set(product, current);
   }
   return [...groups].map(([product, value]) => ({
     product,
     incidents: value.incidents,
-    severity: Number((value.score / value.incidents).toFixed(2)),
+    casualties: value.casualties,
+    fatalities: value.fatalities,
   })).sort((a, b) => b.incidents - a.incidents);
 }
+

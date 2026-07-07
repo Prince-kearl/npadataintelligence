@@ -189,12 +189,12 @@ export async function incidentsToPDF(rows: IncidentRow[], generatedAt = new Date
   document.text(`Generated ${generatedAt.toLocaleString("en-GH")} · ${rows.length} record${rows.length === 1 ? "" : "s"}`, 36, 57);
   autoTable(document, {
     startY: 72,
-    head: [["Reference", "Date", "Region", "Location", "Category", "Severity", "Status"]],
-    body: rows.map((row) => [row.reference_code ?? "", row.incident_date, row.region, row.location_name, row.category, row.severity, row.status]),
+    head: [["Reference", "Date", "Region", "District", "Location", "Category", "Status"]],
+    body: rows.map((row) => [row.reference_code ?? "", row.incident_date, row.region, row.district ?? "", row.location_name, row.category, row.status]),
     styles: { fontSize: 7, cellPadding: 4, overflow: "linebreak" },
     headStyles: { fillColor: [27, 47, 107], textColor: 255 },
     alternateRowStyles: { fillColor: [245, 247, 250] },
-    columnStyles: { 0: { cellWidth: 88 }, 1: { cellWidth: 62 }, 2: { cellWidth: 75 }, 3: { cellWidth: 140 } },
+    columnStyles: { 0: { cellWidth: 88 }, 1: { cellWidth: 62 }, 2: { cellWidth: 75 }, 3: { cellWidth: 75 }, 4: { cellWidth: 130 } },
     didDrawPage: ({ pageNumber }) => {
       document.setFontSize(7);
       document.setTextColor(120);

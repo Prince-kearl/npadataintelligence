@@ -3,7 +3,6 @@ import type { Database, Json } from "@/integrations/supabase/types";
 
 export type IncidentRow = Database["public"]["Tables"]["incidents"]["Row"];
 export type IncidentStatus = Database["public"]["Enums"]["incident_status"];
-export type IncidentSeverity = Database["public"]["Enums"]["incident_severity"];
 export type AttachmentRow = Database["public"]["Tables"]["incident_attachments"]["Row"];
 export type ResponseActionType = Database["public"]["Enums"]["response_action_type"];
 export type ResponseActionRow = Database["public"]["Tables"]["incident_response_actions"]["Row"];
@@ -33,13 +32,6 @@ export const STATUS_LABELS: Record<string, string> = {
   Closed: "Closed",
 };
 
-export const SEVERITY_LABELS: Record<IncidentSeverity, string> = {
-  low: "Low",
-  medium: "Medium",
-  high: "High",
-  critical: "Critical",
-};
-
 export interface AttachmentMeta {
   path: string;
   name: string;
@@ -48,6 +40,7 @@ export interface AttachmentMeta {
   tags?: string[];
   version?: number;
 }
+
 
 let incidentSchemaMode: "unknown" | "hardened" | "legacy" = "unknown";
 
@@ -158,7 +151,7 @@ async function legacyDirectInsert(payload: any): Promise<IncidentRow> {
     gps_coordinates: payload.gps_coordinates ?? null,
     category: payload.category,
     incident_type: payload.incident_type ?? null,
-    severity: payload.severity ?? "medium",
+    
     product_type: payload.product_type ?? null,
     injury_type: payload.injury_type ?? null,
     casualties: payload.casualties ?? 0,
@@ -380,7 +373,7 @@ export interface QueryFilters {
   district?: string;
   category?: string;
   product_type?: string;
-  severity?: string;
+  
   reporter?: string;
   date_from?: string;
   date_to?: string;
@@ -392,7 +385,7 @@ export interface IncidentUpdatePayload {
   gps_coordinates?: string;
   category?: string;
   incident_type?: string;
-  severity?: IncidentSeverity;
+  
   product_type?: string;
   injury_type?: string;
   casualties?: number;

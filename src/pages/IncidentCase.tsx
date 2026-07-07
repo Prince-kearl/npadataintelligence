@@ -57,12 +57,10 @@ import {
   attachToIncident,
   scanAttachment,
   validateAttachment,
-  SEVERITY_LABELS,
   STATUS_LABELS,
   updateIncidentDetails,
   updateIncidentStatus,
   type AttachmentMeta,
-  type IncidentSeverity,
   type IncidentStatus,
 } from "@/lib/incidents";
 import { useAuth } from "@/hooks/useAuth";
@@ -86,7 +84,7 @@ const statusClass: Record<string, string> = {
   Reviewed: "bg-warning/10 text-warning border-warning/20",
 };
 
-const severityClass: Record<IncidentSeverity, string> = {
+const priorityClass: Record<string, string> = {
   low: "bg-success/10 text-success border-success/20",
   medium: "bg-info/10 text-info border-info/20",
   high: "bg-warning/10 text-warning border-warning/20",
@@ -409,7 +407,7 @@ export default function IncidentCase() {
                 {incident.reference_code || incident.id}
               </h1>
               <Badge variant="outline" className={statusClass[incident.status]}>{STATUS_LABELS[incident.status] || incident.status}</Badge>
-              <Badge variant="outline" className={severityClass[incident.severity]}>{SEVERITY_LABELS[incident.severity]}</Badge>
+              <Badge variant="outline" className={statusClass[incident.status]}>{STATUS_LABELS[incident.status] || incident.status}</Badge>
             </div>
             <p className="mt-2 text-base font-medium text-foreground">{incident.category} · {incident.location_name}</p>
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
@@ -633,7 +631,7 @@ export default function IncidentCase() {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="font-semibold text-foreground">{actionLabels[action.action_type] || action.action_type}</p>
                       <div className="flex gap-1.5">
-                        <Badge variant="outline" className={severityClass[action.priority]}>{action.priority}</Badge>
+                        <Badge variant="outline" className={priorityClass[String(action.priority ?? "").toLowerCase()] || ""}>{action.priority}</Badge>
                         <Badge variant="secondary">{action.status}</Badge>
                       </div>
                     </div>
@@ -719,7 +717,18 @@ export default function IncidentCase() {
             </div>
             <div className="space-y-1">
               <Label htmlFor="edit-district">District</Label>
-              <Input id="edit-district" value={editDraft.district} onChange={(e) => setEditDraft((p) => ({ ...p, district: e.target.value }))} />
+              <Input
+                id="edit-district"
+                list="edit-district-options"
+                placeholder="Type or select a district"
+                value={editDraft.district}
+                onChange={(e) => setEditDraft((p) => ({ ...p, district: e.target.value }))}
+              />
+              <datalist id="edit-district-options">
+                {Array.from(new Set(incidents.map((i) => (i.district ?? "").trim()).filter(Boolean))).sort().map((d) => (
+                  <option key={d} value={d} />
+                ))}
+              </datalist>
             </div>
             <div className="space-y-1">
               <Label htmlFor="edit-gps">GPS coordinates</Label>
