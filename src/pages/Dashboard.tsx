@@ -79,11 +79,14 @@ const tooltipStyle = {
   },
 };
 
-const severityBarClass: Record<string, string> = {
-  Critical: "bg-destructive",
-  High: "bg-warning",
-  Medium: "bg-info",
-  Low: "bg-success",
+const statusFeedClass: Record<string, string> = {
+  New: "bg-info",
+  Reviewed: "bg-warning",
+  Closed: "bg-success",
+  submitted: "bg-info",
+  under_review: "bg-warning",
+  verified: "bg-success",
+  archived: "bg-muted-foreground",
 };
 
 const RESPONSE_ACTIONS: Record<ResponseActionType, { label: string; prompt: string }> = {
@@ -127,12 +130,6 @@ function CategoryTooltip({ active, payload }: any) {
   );
 }
 
-const SEVERITY_COLORS: Record<string, string> = {
-  critical: COLORS.red,
-  high: COLORS.orange,
-  medium: COLORS.gold,
-  low: COLORS.green,
-};
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -191,7 +188,7 @@ export default function Dashboard() {
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .slice(0, 4)
     .map((incident) => ({
-      severity: incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1),
+      status: incident.status,
       title: `${incident.category}: ${incident.location_name}`,
       time: new Date(incident.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       tag: STATUS_LABELS[incident.status] || incident.status,
