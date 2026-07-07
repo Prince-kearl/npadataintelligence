@@ -554,12 +554,35 @@ export default function Dashboard() {
             ))}
           </div>
         </div>
+
+        <div className="dash-card lg:col-span-2">
+          <div className="dash-card-header">
+            <span className="section-title">Top Recurring Causes</span>
+            <span className="dash-card-period">category · product</span>
+          </div>
+          {topCauses.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-12">No incident data yet</p>
+          ) : (
+            <div className="space-y-2.5">
+              {topCauses.map((c, i) => {
+                const max = topCauses[0].value || 1;
+                return (
+                  <div key={i} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-foreground truncate">{c.name}</span>
+                      <span className="tabular-nums font-medium text-muted-foreground">{c.value}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div className="h-full bg-primary rounded-full" style={{ width: `${(c.value / max) * 100}%` }} />
+                    </div>
+                  </div>
                 );
               })}
             </div>
           )}
         </div>
       </div>
+
 
 
 
