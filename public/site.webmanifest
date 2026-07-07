@@ -1,6 +1,6 @@
 {
-  "name": "NPA Incident & Field Data Intelligence System",
-  "short_name": "NPA Intelligence",
+  "name": "Consumer Data Intelligence System",
+  "short_name": "Consumer Data Intelligence",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f7f8fa",
