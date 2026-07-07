@@ -576,7 +576,7 @@ export default function Records() {
                   <span className="flex min-w-0 items-center gap-2"><MapPin className="h-4 w-4 shrink-0" /><span className="truncate">{inc.location_name} · {inc.region}</span></span>
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <Badge variant="secondary" className={severityClass[inc.severity as IncidentSeverity] || ""}>{SEVERITY_LABELS[inc.severity as IncidentSeverity]}</Badge>
+                  {inc.district && <Badge variant="outline">{inc.district}</Badge>}
                   {inc.product_type && <Badge variant="outline">{inc.product_type}</Badge>}
                   {(inc.casualties > 0 || inc.fatalities > 0) && <span className="text-xs text-muted-foreground">{inc.casualties} casualties · {inc.fatalities} fatalities</span>}
                 </div>
