@@ -142,7 +142,9 @@ export default function Reports() {
   const activeFilterCount = useMemo(() => {
     let n = 0;
     if (filters.from || filters.to) n++;
-    if (filters.period !== "all" && filters.periodValue) n++;
+    if (filters.year) n++;
+    if (filters.year && filters.quarter) n++;
+    if (filters.year && filters.quarter && filters.month) n++;
     if (filters.region !== "all") n++;
     if (filters.district) n++;
     if (filters.category !== "all") n++;
