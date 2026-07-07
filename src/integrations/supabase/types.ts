@@ -236,7 +236,7 @@ export type Database = {
           id: string
           incident_id: string
           instructions: string
-          priority: Database["public"]["Enums"]["incident_severity"]
+          priority: string
           requested_by: string | null
           requested_by_email: string | null
           status: Database["public"]["Enums"]["response_action_status"]
@@ -248,7 +248,7 @@ export type Database = {
           id?: string
           incident_id: string
           instructions: string
-          priority: Database["public"]["Enums"]["incident_severity"]
+          priority: string
           requested_by?: string | null
           requested_by_email?: string | null
           status?: Database["public"]["Enums"]["response_action_status"]
@@ -260,7 +260,7 @@ export type Database = {
           id?: string
           incident_id?: string
           instructions?: string
-          priority?: Database["public"]["Enums"]["incident_severity"]
+          priority?: string
           requested_by?: string | null
           requested_by_email?: string | null
           status?: Database["public"]["Enums"]["response_action_status"]
@@ -340,7 +340,6 @@ export type Database = {
           region: string
           reporter_id: string | null
           reporter_name: string | null
-          severity: Database["public"]["Enums"]["incident_severity"]
           source: string | null
           source_contact: string | null
           source_notes: string | null
@@ -371,7 +370,6 @@ export type Database = {
           region: string
           reporter_id?: string | null
           reporter_name?: string | null
-          severity?: Database["public"]["Enums"]["incident_severity"]
           source?: string | null
           source_contact?: string | null
           source_notes?: string | null
@@ -402,7 +400,6 @@ export type Database = {
           region?: string
           reporter_id?: string | null
           reporter_name?: string | null
-          severity?: Database["public"]["Enums"]["incident_severity"]
           source?: string | null
           source_contact?: string | null
           source_notes?: string | null
@@ -623,7 +620,7 @@ export type Database = {
           id: string
           incident_id: string
           instructions: string
-          priority: Database["public"]["Enums"]["incident_severity"]
+          priority: string
           requested_by: string | null
           requested_by_email: string | null
           status: Database["public"]["Enums"]["response_action_status"]
@@ -689,7 +686,6 @@ export type Database = {
           region: string
           reporter_id: string | null
           reporter_name: string | null
-          severity: Database["public"]["Enums"]["incident_severity"]
           source: string | null
           source_contact: string | null
           source_notes: string | null
@@ -738,7 +734,6 @@ export type Database = {
           region: string
           reporter_id: string | null
           reporter_name: string | null
-          severity: Database["public"]["Enums"]["incident_severity"]
           source: string | null
           source_contact: string | null
           source_notes: string | null
@@ -810,7 +805,6 @@ export type Database = {
           region: string
           reporter_id: string | null
           reporter_name: string | null
-          severity: Database["public"]["Enums"]["incident_severity"]
           source: string | null
           source_contact: string | null
           source_notes: string | null
@@ -850,7 +844,6 @@ export type Database = {
           region: string
           reporter_id: string | null
           reporter_name: string | null
-          severity: Database["public"]["Enums"]["incident_severity"]
           source: string | null
           source_contact: string | null
           source_notes: string | null
@@ -896,7 +889,6 @@ export type Database = {
       account_status: "pending" | "active" | "suspended"
       app_role: "collector" | "analyst" | "admin"
       attachment_scan_status: "pending" | "clean" | "infected" | "skipped"
-      incident_severity: "low" | "medium" | "high" | "critical"
       incident_status:
         | "New"
         | "Reviewed"
@@ -1047,7 +1039,6 @@ export const Constants = {
       account_status: ["pending", "active", "suspended"],
       app_role: ["collector", "analyst", "admin"],
       attachment_scan_status: ["pending", "clean", "infected", "skipped"],
-      incident_severity: ["low", "medium", "high", "critical"],
       incident_status: [
         "New",
         "Reviewed",
