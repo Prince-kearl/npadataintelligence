@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -96,6 +96,17 @@ export default function SubmitIncident() {
   const [submissionId, setSubmissionId] = useState(() => crypto.randomUUID());
 
   const formRef = useRef<HTMLFormElement>(null);
+
+  // District autocomplete: unique district values from existing incidents
+  const districtQuery = useQuery({
+    queryKey: ["incidents", "districts"],
+    queryFn: async () => (await listIncidents()).map((i) => i.district).filter(Boolean) as string[],
+    staleTime: 60_000,
+  });
+  const districtSuggestions = useMemo(() => {
+    const values = new Set<string>((districtQuery.data ?? []).map((v) => v.trim()).filter(Boolean));
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [districtQuery.data]);
 
   // Online/offline indicator
   useEffect(() => {
