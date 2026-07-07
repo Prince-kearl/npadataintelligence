@@ -97,12 +97,25 @@ export async function getIncident(id: string): Promise<IncidentRow | null> {
 }
 
 export async function updateIncidentStatus(id: string, status: IncidentStatus, note?: string) {
+  // Try the hardened RPC first; fall back to direct update on legacy schema.
   const { error } = await (supabase.rpc as any)("transition_incident_status", {
     _incident_id: id,
     _to_status: status,
     _note: note ?? null,
   });
-  if (error) throw error;
+  if (error) {
+    const code = (error as { code?: string }).code;
+    // 42883 = function does not exist, PGRST202 = PostgREST couldn't find the RPC
+    if (code === "42883" || code === "PGRST202") {
+      const { error: updErr } = await supabase
+        .from("incidents")
+        .update({ status: status as any })
+        .eq("id", id);
+      if (updErr) throw updErr;
+      return;
+    }
+    throw error;
+  }
 }
 
 export async function createIncidentResponseAction(
@@ -129,6 +142,45 @@ export async function listResponseActions(incidentId: string): Promise<ResponseA
   return data ?? [];
 }
 
+async function legacyDirectInsert(payload: any): Promise<IncidentRow> {
+  // Legacy schema path: insert directly into incidents.
+  // Strip fields that don't exist on the legacy table.
+  const { data: authData } = await supabase.auth.getUser();
+  const reporterId = authData.user?.id ?? null;
+  const insertRow: any = {
+    reporter_id: reporterId,
+    reporter_name: payload.reporter_name ?? null,
+    department: payload.department ?? null,
+    incident_date: payload.incident_date,
+    region: payload.region,
+    district: payload.district ?? null,
+    location_name: payload.location_name,
+    gps_coordinates: payload.gps_coordinates ?? null,
+    category: payload.category,
+    incident_type: payload.incident_type ?? null,
+    severity: payload.severity ?? "medium",
+    product_type: payload.product_type ?? null,
+    injury_type: payload.injury_type ?? null,
+    casualties: payload.casualties ?? 0,
+    fatalities: payload.fatalities ?? 0,
+    description: payload.description,
+    source: payload.source ?? null,
+    source_contact: payload.source_contact ?? null,
+    source_notes: payload.source_notes ?? null,
+    previous_channel: payload.previous_channel ?? null,
+    verification_score: payload.verification_score ?? null,
+    verification_notes: payload.verification_notes ?? null,
+    status: "New" as any,
+  };
+  const { data, error } = await supabase
+    .from("incidents")
+    .insert(insertRow)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as IncidentRow;
+}
+
 export async function beginIncidentSubmission(
   submissionId: string,
   payload: Json,
@@ -139,7 +191,14 @@ export async function beginIncidentSubmission(
     _payload: payload,
     _expected_attachments: expectedAttachments,
   });
-  if (error) throw error;
+  if (error) {
+    const code = (error as { code?: string }).code;
+    if (code === "42883" || code === "PGRST202") {
+      incidentSchemaMode = "legacy";
+      return legacyDirectInsert(payload);
+    }
+    throw error;
+  }
   return data as IncidentRow;
 }
 
@@ -147,7 +206,16 @@ export async function finalizeIncidentSubmission(incidentId: string): Promise<In
   const { data, error } = await (supabase.rpc as any)("finalize_incident_submission", {
     _incident_id: incidentId,
   });
-  if (error) throw error;
+  if (error) {
+    const code = (error as { code?: string }).code;
+    if (code === "42883" || code === "PGRST202") {
+      // Legacy schema — the incident is already "final" after insert.
+      const existing = await getIncident(incidentId);
+      if (!existing) throw new Error("Incident not found after submission");
+      return existing;
+    }
+    throw error;
+  }
   return data as IncidentRow;
 }
 
