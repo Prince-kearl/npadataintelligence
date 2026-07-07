@@ -16,7 +16,7 @@ import {
   ClipboardCheck,
   FileEdit,
   BarChart3,
-  Settings,
+  
 } from "lucide-react";
 import { KPICard } from "@/components/KPICard";
 import { incidentsByProduct, incidentsByRegion, monthlyTrend } from "@/lib/analytics";
@@ -322,20 +322,6 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 gap-2 sm:flex">
               <Button onClick={() => navigate("/records?status=submitted")}>Open review queue</Button>
               <Button variant="outline" onClick={() => navigate("/analytics")}><BarChart3 className="mr-2 h-4 w-4" />Analyse trends</Button>
-            </div>
-          </div>
-        </div>
-      )}
-      {role === "admin" && (
-        <div className="dash-card border-warning/20 bg-warning/5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="flex items-center gap-2 font-semibold text-foreground"><ShieldAlert className="h-4 w-4 text-warning" />Command and governance</p>
-              <p className="mt-1 text-sm text-muted-foreground">{kpis.open} open cases across the network need system-wide oversight.</p>
-            </div>
-            <div className="grid grid-cols-1 gap-2 sm:flex">
-              <Button onClick={() => navigate("/admin")}><Settings className="mr-2 h-4 w-4" />Admin controls</Button>
-              <Button variant="outline" onClick={() => navigate("/reports")}>Compliance reports</Button>
             </div>
           </div>
         </div>

@@ -198,25 +198,69 @@ export default function SubmitIncident() {
       )
     );
 
-  const captureGps = () => {
+  const [locating, setLocating] = useState(false);
+
+  const reverseGeocode = async (lat: number, lon: number) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&addressdetails=1`,
+        { headers: { "Accept-Language": "en" } }
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      const a = data.address || {};
+      const regionGuess = (a.state || a.region || "").replace(/\s+Region$/i, "").trim();
+      const matchedRegion = REGIONS.find((r) => r.toLowerCase() === regionGuess.toLowerCase());
+      if (matchedRegion) setRegion(matchedRegion);
+      const districtGuess = a.county || a.city_district || a.municipality || a.city || a.town || a.village || "";
+      if (districtGuess && !district) setDistrict(districtGuess);
+      const nameGuess = a.suburb || a.neighbourhood || a.hamlet || a.road || data.display_name?.split(",")[0];
+      if (nameGuess && !locationName) setLocationName(nameGuess);
+    } catch {
+      /* reverse geocode is best-effort */
+    }
+  };
+
+  const captureGps = async () => {
     if (!navigator.geolocation) {
       toast.error("Geolocation is not supported by this browser.");
       return;
     }
-    // Detect iframe / Permissions-Policy block up front (Lovable preview blocks by default).
     const inIframe = typeof window !== "undefined" && window.self !== window.top;
+    setLocating(true);
+    const loadingId = toast.loading("Detecting your current location…");
+    const finish = (lat: number, lon: number, source: string) => {
+      setGps(`${lat.toFixed(5)}, ${lon.toFixed(5)}`);
+      toast.success(`Location captured via ${source}`, { id: loadingId });
+      void reverseGeocode(lat, lon);
+      setLocating(false);
+    };
+    const ipFallback = async (reason: string) => {
+      try {
+        const res = await fetch("https://ipapi.co/json/");
+        if (!res.ok) throw new Error("IP lookup failed");
+        const data = await res.json();
+        if (typeof data.latitude === "number" && typeof data.longitude === "number") {
+          finish(data.latitude, data.longitude, "approximate IP location");
+          return;
+        }
+        throw new Error("IP lookup returned no coordinates");
+      } catch {
+        toast.error(reason, { id: loadingId, duration: 6000 });
+        setLocating(false);
+      }
+    };
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setGps(`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`);
-        toast.success("GPS captured");
-      },
+      (pos) => finish(pos.coords.latitude, pos.coords.longitude, "GPS"),
       (err) => {
-        const msg = /permission|denied|disallowed|policy/i.test(err.message)
+        const permissionBlocked = /permission|denied|disallowed|policy/i.test(err.message);
+        const reason = permissionBlocked
           ? inIframe
-            ? "Geolocation is blocked in the preview iframe. Open the published URL in a new tab, or enter coordinates manually."
-            : "Location permission denied. Enable location access for this site in your browser settings, or enter coordinates manually."
-          : err.message || "Unable to retrieve location. Enter coordinates manually.";
-        toast.error(msg, { duration: 6000 });
+            ? "Geolocation is blocked in this preview. Falling back to approximate location — open the published URL for precise GPS."
+            : "Location permission denied. Falling back to approximate location — enable location for this site in your browser to get precise GPS."
+          : err.message || "Unable to retrieve precise location.";
+        toast.message(reason, { duration: 5000 });
+        void ipFallback("Could not determine your location automatically. Enter coordinates manually.");
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
@@ -356,9 +400,9 @@ export default function SubmitIncident() {
         <div className="dash-card space-y-4">
           <h3 className="section-title">Location & Date</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="label-text">Incident Date *</Label>
-              <Input type="date" required value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="bg-muted/50 border-border rounded-lg min-h-12" />
+            <div className="space-y-2 min-w-0">
+              <Label className="label-text block text-left">Incident Date *</Label>
+              <Input type="date" required value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="bg-muted/50 border-border rounded-lg min-h-12 w-full max-w-full block appearance-none" />
             </div>
             <div className="space-y-2">
               <Label className="label-text">Region *</Label>
@@ -392,8 +436,8 @@ export default function SubmitIncident() {
               <Label className="label-text">GPS Coordinates</Label>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Input placeholder="e.g., 5.6037, -0.1870" value={gps} onChange={(e) => setGps(e.target.value)} className="bg-muted/50 border-border rounded-lg min-h-12 flex-1 min-w-0" />
-                <Button type="button" variant="outline" onClick={captureGps} className="min-h-12 w-full sm:w-auto">
-                  <MapPin className="h-4 w-4 mr-1" /> Use My Location
+                <Button type="button" variant="outline" onClick={captureGps} disabled={locating} className="min-h-12 w-full sm:w-auto">
+                  <MapPin className="h-4 w-4 mr-1" /> {locating ? "Locating…" : "Use Current Location"}
                 </Button>
               </div>
             </div>

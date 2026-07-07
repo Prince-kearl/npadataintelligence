@@ -202,3 +202,46 @@
   box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
   padding: 6px 10px !important;
 }
+
+/* Print: only the report content is visible, rendered as an official document. */
+@media print {
+  @page { size: A4; margin: 16mm 14mm 20mm 14mm; }
+
+  html, body { background: #fff !important; }
+
+  /* Hide the entire app shell */
+  body * { visibility: hidden !important; }
+
+  /* Show only the print-area subtree */
+  .print-area, .print-area * { visibility: visible !important; }
+  .print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
+
+  /* Never show interactive/no-print elements */
+  .no-print, .no-print * { display: none !important; }
+
+  /* Print-only elements are hidden on screen (see below) but shown here */
+  .print-only { display: block !important; }
+
+  /* Table styling for the printed body */
+  .print-area table { width: 100%; border-collapse: collapse; font-size: 10.5pt; }
+  .print-area thead { display: table-header-group; }
+  .print-area tfoot { display: table-footer-group; }
+  .print-area tr, .print-area td, .print-area th { page-break-inside: avoid; }
+  .print-area th, .print-area td {
+    border: 1px solid #444;
+    padding: 4px 6px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .print-area th { background: #1B2F6B !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* Repeating page footer via fixed positioning */
+  .print-footer {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    font-size: 9pt; color: #333; text-align: center;
+    border-top: 1px solid #999; padding-top: 4px;
+  }
+}
+
+/* Print-only content stays hidden on screen */
+.print-only { display: none; }

@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, FileText, FileSpreadsheet, File, Database, Loader2, Filter, Eye, X } from "lucide-react";
+import { Download, FileText, FileSpreadsheet, File, Database, Loader2, Filter, Eye, X, Printer } from "lucide-react";
 import { toast } from "sonner";
 import {
   incidentsToCSV,
@@ -13,12 +13,14 @@ import {
   timestampedName,
 } from "@/lib/exporters";
 import { useRole } from "@/hooks/useRole";
+import { useAuth } from "@/hooks/useAuth";
 import { useIncidents } from "@/hooks/useIncidents";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ErrorState, LoadingState, PageSkeleton } from "@/components/ReliabilityState";
 import { useMemo, useState } from "react";
 import type { Database as SupabaseDatabase } from "@/integrations/supabase/types";
+import npaLogo from "@/assets/npa-logo-white.png";
 
 type ExportHistoryRow = SupabaseDatabase["public"]["Tables"]["export_history"]["Row"];
 
@@ -56,8 +58,9 @@ async function logExportRow(payload: { file_name: string; format: string; row_co
 type Filters = {
   from: string;
   to: string;
-  period: "all" | "month" | "quarter" | "year";
-  periodValue: string;
+  year: string;      // "" = all years
+  quarter: string;   // "" = all quarters (only when year set)
+  month: string;     // "" = all months (only when quarter set); values 1-12
   region: string;
   district: string;
   category: string;
@@ -69,8 +72,9 @@ type Filters = {
 const emptyFilters: Filters = {
   from: "",
   to: "",
-  period: "all",
-  periodValue: "",
+  year: "",
+  quarter: "",
+  month: "",
   region: "all",
   district: "",
   category: "all",
@@ -79,12 +83,22 @@ const emptyFilters: Filters = {
   status: "all",
 };
 
+const QUARTER_MONTHS: Record<string, { value: string; label: string }[]> = {
+  "1": [{ value: "1", label: "January" }, { value: "2", label: "February" }, { value: "3", label: "March" }],
+  "2": [{ value: "4", label: "April" }, { value: "5", label: "May" }, { value: "6", label: "June" }],
+  "3": [{ value: "7", label: "July" }, { value: "8", label: "August" }, { value: "9", label: "September" }],
+  "4": [{ value: "10", label: "October" }, { value: "11", label: "November" }, { value: "12", label: "December" }],
+};
+
+const MONTH_NAMES = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
 function uniq(values: (string | null | undefined)[]): string[] {
   return Array.from(new Set(values.filter((v): v is string => !!v && v.trim() !== ""))).sort();
 }
 
 export default function Reports() {
   const { can } = useRole();
+  const { profile, user } = useAuth();
   const allowed = can("export_data");
   const incidentsQuery = useIncidents();
   const { data: incidents = [], isLoading, isError, error, refetch } = incidentsQuery;
@@ -109,15 +123,12 @@ export default function Reports() {
       const d = i.incident_date ? new Date(i.incident_date) : null;
       if (filters.from && d && d < new Date(filters.from)) return false;
       if (filters.to && d && d > new Date(filters.to + "T23:59:59")) return false;
-      if (filters.period !== "all" && filters.periodValue && d) {
+      if (d) {
         const y = d.getFullYear();
         const m = d.getMonth() + 1;
-        if (filters.period === "year" && String(y) !== filters.periodValue) return false;
-        if (filters.period === "month" && `${y}-${String(m).padStart(2, "0")}` !== filters.periodValue) return false;
-        if (filters.period === "quarter") {
-          const q = Math.ceil(m / 3);
-          if (`${y}-Q${q}` !== filters.periodValue) return false;
-        }
+        if (filters.year && String(y) !== filters.year) return false;
+        if (filters.year && filters.quarter && String(Math.ceil(m / 3)) !== filters.quarter) return false;
+        if (filters.year && filters.quarter && filters.month && String(m) !== filters.month) return false;
       }
       if (filters.region !== "all" && i.region !== filters.region) return false;
       if (filters.district && !(i.district ?? "").toLowerCase().includes(filters.district.toLowerCase())) return false;
@@ -132,7 +143,9 @@ export default function Reports() {
   const activeFilterCount = useMemo(() => {
     let n = 0;
     if (filters.from || filters.to) n++;
-    if (filters.period !== "all" && filters.periodValue) n++;
+    if (filters.year) n++;
+    if (filters.year && filters.quarter) n++;
+    if (filters.year && filters.quarter && filters.month) n++;
     if (filters.region !== "all") n++;
     if (filters.district) n++;
     if (filters.category !== "all") n++;
@@ -190,19 +203,14 @@ export default function Reports() {
     return runExport("PDF", name, () => incidentsToPDF(filtered));
   };
 
-  const periodOptions = useMemo(() => {
+  const availableYears = useMemo(() => {
     const set = new Set<string>();
     incidents.forEach((i: any) => {
       if (!i.incident_date) return;
-      const d = new Date(i.incident_date);
-      const y = d.getFullYear();
-      const m = d.getMonth() + 1;
-      if (filters.period === "year") set.add(String(y));
-      else if (filters.period === "month") set.add(`${y}-${String(m).padStart(2, "0")}`);
-      else if (filters.period === "quarter") set.add(`${y}-Q${Math.ceil(m / 3)}`);
+      set.add(String(new Date(i.incident_date).getFullYear()));
     });
     return Array.from(set).sort().reverse();
-  }, [incidents, filters.period]);
+  }, [incidents]);
 
   return (
     <div className="space-y-5 max-w-6xl">
@@ -258,28 +266,48 @@ export default function Reports() {
                 <Input type="date" value={filters.to} onChange={(e) => setFilters({ ...filters, to: e.target.value })} />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Period type</Label>
-                <Select value={filters.period} onValueChange={(v) => setFilters({ ...filters, period: v as Filters["period"], periodValue: "" })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Label className="text-xs">Year</Label>
+                <Select
+                  value={filters.year || "any"}
+                  onValueChange={(v) => setFilters({ ...filters, year: v === "any" ? "" : v, quarter: "", month: "" })}
+                >
+                  <SelectTrigger><SelectValue placeholder="All years" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All time</SelectItem>
-                    <SelectItem value="month">Month</SelectItem>
-                    <SelectItem value="quarter">Quarter</SelectItem>
-                    <SelectItem value="year">Year</SelectItem>
+                    <SelectItem value="any">All years</SelectItem>
+                    {availableYears.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Period value</Label>
+                <Label className="text-xs">Quarter</Label>
                 <Select
-                  value={filters.periodValue || "any"}
-                  onValueChange={(v) => setFilters({ ...filters, periodValue: v === "any" ? "" : v })}
-                  disabled={filters.period === "all"}
+                  value={filters.quarter || "any"}
+                  onValueChange={(v) => setFilters({ ...filters, quarter: v === "any" ? "" : v, month: "" })}
+                  disabled={!filters.year}
                 >
-                  <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={filters.year ? "All quarters" : "Select a year first"} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="any">Any</SelectItem>
-                    {periodOptions.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    <SelectItem value="any">All quarters</SelectItem>
+                    <SelectItem value="1">Q1 (Jan – Mar)</SelectItem>
+                    <SelectItem value="2">Q2 (Apr – Jun)</SelectItem>
+                    <SelectItem value="3">Q3 (Jul – Sep)</SelectItem>
+                    <SelectItem value="4">Q4 (Oct – Dec)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Month</Label>
+                <Select
+                  value={filters.month || "any"}
+                  onValueChange={(v) => setFilters({ ...filters, month: v === "any" ? "" : v })}
+                  disabled={!filters.quarter}
+                >
+                  <SelectTrigger><SelectValue placeholder={filters.quarter ? "All months in quarter" : "Select a quarter first"} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">All months in quarter</SelectItem>
+                    {(QUARTER_MONTHS[filters.quarter] || []).map((m) => (
+                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -353,7 +381,7 @@ export default function Reports() {
                 <Eye className="h-4 w-4 mr-1" /> {showPreview ? "Hide preview" : "Preview report"}
               </Button>
               <Button variant="outline" size="sm" onClick={() => window.print()}>
-                <FileText className="h-4 w-4 mr-1" /> Print
+                <Printer className="h-4 w-4 mr-1" /> Print report
               </Button>
             </div>
           </div>
@@ -481,6 +509,83 @@ export default function Reports() {
           </table>
           </div>
         )}
+      </div>
+
+      {/* PRINT-ONLY OFFICIAL REPORT (only visible when printing) */}
+      <div className="print-area print-only">
+        <div style={{ display: "flex", alignItems: "center", gap: 12, borderBottom: "2px solid #1B2F6B", paddingBottom: 10, marginBottom: 12 }}>
+          <img src={npaLogo} alt="NPA" style={{ height: 56, background: "#1B2F6B", padding: 6, borderRadius: 4 }} />
+          <div>
+            <div style={{ fontSize: "16pt", fontWeight: 700, color: "#1B2F6B" }}>National Petroleum Authority</div>
+            <div style={{ fontSize: "12pt", color: "#1B2F6B" }}>Consumer Data Intelligence System</div>
+            <div style={{ fontSize: "13pt", fontWeight: 600, marginTop: 2 }}>Intelligence Summary Report</div>
+          </div>
+        </div>
+
+        <table style={{ width: "100%", fontSize: "9.5pt", marginBottom: 10, border: "none" }}>
+          <tbody>
+            <tr>
+              <td style={{ border: "none", padding: "1px 0" }}><strong>Generated:</strong> {new Date().toLocaleString()}</td>
+              <td style={{ border: "none", padding: "1px 0", textAlign: "right" }}><strong>Reference:</strong> RPT-{Date.now().toString(36).toUpperCase()}</td>
+            </tr>
+            <tr>
+              <td style={{ border: "none", padding: "1px 0" }}><strong>Generated by:</strong> {profile?.full_name || profile?.email || user?.email || "System user"}</td>
+              <td style={{ border: "none", padding: "1px 0", textAlign: "right" }}><strong>Records:</strong> {filtered.length}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style={{ background: "#F5F7FA", border: "1px solid #ccc", padding: 8, marginBottom: 10, fontSize: "9.5pt" }}>
+          <div style={{ fontWeight: 700, marginBottom: 4, color: "#1B2F6B" }}>Applied Filters</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", rowGap: 2, columnGap: 12 }}>
+            <div><strong>Date range:</strong> {filters.from || "—"} to {filters.to || "—"}</div>
+            <div><strong>Year:</strong> {filters.year || "All"}</div>
+            <div><strong>Quarter:</strong> {filters.quarter ? `Q${filters.quarter}` : "All"}</div>
+            <div><strong>Month:</strong> {filters.month ? MONTH_NAMES[Number(filters.month)] : "All"}</div>
+            <div><strong>Region:</strong> {filters.region === "all" ? "All" : filters.region}</div>
+            <div><strong>District:</strong> {filters.district || "All"}</div>
+            <div><strong>Category:</strong> {filters.category === "all" ? "All" : filters.category}</div>
+            <div><strong>Incident type:</strong> {filters.incidentType === "all" ? "All" : filters.incidentType}</div>
+            <div><strong>Product:</strong> {filters.productType === "all" ? "All" : filters.productType}</div>
+            <div><strong>Status:</strong> {filters.status === "all" ? "All" : filters.status}</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Ref</th>
+              <th>Date</th>
+              <th>Category</th>
+              <th>Type</th>
+              <th>Region</th>
+              <th>District</th>
+              <th>Product</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((i: any) => (
+              <tr key={i.id}>
+                <td style={{ fontFamily: "monospace", fontSize: "8.5pt" }}>{i.reference_code ?? i.id.slice(0, 8)}</td>
+                <td>{i.incident_date ? new Date(i.incident_date).toLocaleDateString() : "—"}</td>
+                <td>{i.category}</td>
+                <td>{i.incident_type ?? "—"}</td>
+                <td>{i.region}</td>
+                <td>{i.district ?? "—"}</td>
+                <td>{i.product_type ?? "—"}</td>
+                <td>{i.status}</td>
+              </tr>
+            ))}
+            {filtered.length === 0 && (
+              <tr><td colSpan={8} style={{ textAlign: "center", padding: 12 }}>No records match the applied filters.</td></tr>
+            )}
+          </tbody>
+        </table>
+
+        <div className="print-footer">
+          Consumer Data Intelligence System · National Petroleum Authority · Printed {new Date().toLocaleDateString()} · Confidential — for authorised recipients only
+        </div>
       </div>
     </div>
   );
