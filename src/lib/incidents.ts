@@ -3,7 +3,6 @@ import type { Database, Json } from "@/integrations/supabase/types";
 
 export type IncidentRow = Database["public"]["Tables"]["incidents"]["Row"];
 export type IncidentStatus = Database["public"]["Enums"]["incident_status"];
-export type IncidentSeverity = Database["public"]["Enums"]["incident_severity"];
 export type AttachmentRow = Database["public"]["Tables"]["incident_attachments"]["Row"];
 export type ResponseActionType = Database["public"]["Enums"]["response_action_type"];
 export type ResponseActionRow = Database["public"]["Tables"]["incident_response_actions"]["Row"];
@@ -33,13 +32,6 @@ export const STATUS_LABELS: Record<string, string> = {
   Closed: "Closed",
 };
 
-export const SEVERITY_LABELS: Record<IncidentSeverity, string> = {
-  low: "Low",
-  medium: "Medium",
-  high: "High",
-  critical: "Critical",
-};
-
 export interface AttachmentMeta {
   path: string;
   name: string;
@@ -48,6 +40,7 @@ export interface AttachmentMeta {
   tags?: string[];
   version?: number;
 }
+
 
 let incidentSchemaMode: "unknown" | "hardened" | "legacy" = "unknown";
 
