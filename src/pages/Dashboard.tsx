@@ -351,6 +351,8 @@ export default function Dashboard() {
           changeType={kpis.delta > 0 ? "negative" : kpis.delta < 0 ? "positive" : "neutral"}
           iconBg="bg-destructive/10"
           iconClass="text-destructive"
+          to="/records?range=30d"
+          ctaLabel="View last 30 days"
         />
         <KPICard
           title="Casualties (all-time)"
@@ -360,6 +362,8 @@ export default function Dashboard() {
           changeType={kpis.casualties > 0 ? "negative" : "positive"}
           iconBg="bg-warning/10"
           iconClass="text-warning"
+          to="/analytics"
+          ctaLabel="Open analytics"
         />
         <KPICard
           title="Resolved Cases"
@@ -369,6 +373,8 @@ export default function Dashboard() {
           changeType="positive"
           iconBg="bg-success/10"
           iconClass="text-success"
+          to="/records?status=Closed"
+          ctaLabel="View resolved"
         />
         <KPICard
           title="Open Cases"
@@ -378,6 +384,8 @@ export default function Dashboard() {
           changeType="neutral"
           iconBg="bg-info/10"
           iconClass="text-info"
+          to="/records?status=Open"
+          ctaLabel="View open cases"
         />
         <KPICard
           title="Total On Record"
@@ -387,6 +395,8 @@ export default function Dashboard() {
           changeType="neutral"
           iconBg="bg-primary/15"
           iconClass="text-primary"
+          to="/records"
+          ctaLabel="Browse all records"
         />
       </div>
 
