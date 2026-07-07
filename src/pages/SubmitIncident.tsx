@@ -198,25 +198,69 @@ export default function SubmitIncident() {
       )
     );
 
-  const captureGps = () => {
+  const [locating, setLocating] = useState(false);
+
+  const reverseGeocode = async (lat: number, lon: number) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&addressdetails=1`,
+        { headers: { "Accept-Language": "en" } }
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      const a = data.address || {};
+      const regionGuess = (a.state || a.region || "").replace(/\s+Region$/i, "").trim();
+      const matchedRegion = REGIONS.find((r) => r.toLowerCase() === regionGuess.toLowerCase());
+      if (matchedRegion) setRegion(matchedRegion);
+      const districtGuess = a.county || a.city_district || a.municipality || a.city || a.town || a.village || "";
+      if (districtGuess && !district) setDistrict(districtGuess);
+      const nameGuess = a.suburb || a.neighbourhood || a.hamlet || a.road || data.display_name?.split(",")[0];
+      if (nameGuess && !locationName) setLocationName(nameGuess);
+    } catch {
+      /* reverse geocode is best-effort */
+    }
+  };
+
+  const captureGps = async () => {
     if (!navigator.geolocation) {
       toast.error("Geolocation is not supported by this browser.");
       return;
     }
-    // Detect iframe / Permissions-Policy block up front (Lovable preview blocks by default).
     const inIframe = typeof window !== "undefined" && window.self !== window.top;
+    setLocating(true);
+    const loadingId = toast.loading("Detecting your current location…");
+    const finish = (lat: number, lon: number, source: string) => {
+      setGps(`${lat.toFixed(5)}, ${lon.toFixed(5)}`);
+      toast.success(`Location captured via ${source}`, { id: loadingId });
+      void reverseGeocode(lat, lon);
+      setLocating(false);
+    };
+    const ipFallback = async (reason: string) => {
+      try {
+        const res = await fetch("https://ipapi.co/json/");
+        if (!res.ok) throw new Error("IP lookup failed");
+        const data = await res.json();
+        if (typeof data.latitude === "number" && typeof data.longitude === "number") {
+          finish(data.latitude, data.longitude, "approximate IP location");
+          return;
+        }
+        throw new Error("IP lookup returned no coordinates");
+      } catch {
+        toast.error(reason, { id: loadingId, duration: 6000 });
+        setLocating(false);
+      }
+    };
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setGps(`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`);
-        toast.success("GPS captured");
-      },
+      (pos) => finish(pos.coords.latitude, pos.coords.longitude, "GPS"),
       (err) => {
-        const msg = /permission|denied|disallowed|policy/i.test(err.message)
+        const permissionBlocked = /permission|denied|disallowed|policy/i.test(err.message);
+        const reason = permissionBlocked
           ? inIframe
-            ? "Geolocation is blocked in the preview iframe. Open the published URL in a new tab, or enter coordinates manually."
-            : "Location permission denied. Enable location access for this site in your browser settings, or enter coordinates manually."
-          : err.message || "Unable to retrieve location. Enter coordinates manually.";
-        toast.error(msg, { duration: 6000 });
+            ? "Geolocation is blocked in this preview. Falling back to approximate location — open the published URL for precise GPS."
+            : "Location permission denied. Falling back to approximate location — enable location for this site in your browser to get precise GPS."
+          : err.message || "Unable to retrieve precise location.";
+        toast.message(reason, { duration: 5000 });
+        void ipFallback("Could not determine your location automatically. Enter coordinates manually.");
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
