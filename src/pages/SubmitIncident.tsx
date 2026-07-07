@@ -32,7 +32,7 @@ import { Upload, Save, SendHorizonal, ShieldAlert, X, Camera, MapPin, RotateCcw,
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   beginIncidentSubmission,
   finalizeIncidentSubmission,
