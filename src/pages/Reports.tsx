@@ -98,6 +98,7 @@ function uniq(values: (string | null | undefined)[]): string[] {
 
 export default function Reports() {
   const { can } = useRole();
+  const { profile, user } = useAuth();
   const allowed = can("export_data");
   const incidentsQuery = useIncidents();
   const { data: incidents = [], isLoading, isError, error, refetch } = incidentsQuery;
