@@ -75,7 +75,7 @@ export default function Login() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-foreground">
-              Incident & Field Data Intelligence System
+              Consumer Data Intelligence System
             </h1>
             <p className="meta-text mt-2">
               Authorized personnel only. Please sign in with your work credentials.

@@ -214,7 +214,7 @@ export default function Records() {
 
   const handleExport = async () => {
     const csv = incidentsToCSV(filtered);
-    const name = timestampedName("npa_incidents", "csv");
+    const name = timestampedName("cdis_incidents", "csv");
     downloadBlob(name, csv, "text/csv;charset=utf-8");
     toast.success(`Exported ${filtered.length} records`);
     if (user) {

@@ -92,22 +92,22 @@ export default function Reports() {
   };
 
   const exportCSV = () => {
-    const name = timestampedName("npa_incidents", "csv");
+    const name = timestampedName("cdis_incidents", "csv");
     return runExport("CSV", name, () => new Blob([incidentsToCSV(incidents)], { type: "text/csv;charset=utf-8" }));
   };
 
   const exportExcel = async () => {
-    const name = timestampedName("npa_incidents", "xlsx");
+    const name = timestampedName("cdis_incidents", "xlsx");
     return runExport("XLSX", name, () => incidentsToXLSX(incidents));
   };
 
   const exportSQL = async () => {
-    const name = timestampedName("npa_incidents", "sql");
+    const name = timestampedName("cdis_incidents", "sql");
     return runExport("SQL", name, () => new Blob([incidentsToSQLDump(incidents)], { type: "application/sql;charset=utf-8" }));
   };
 
   const exportPDF = async () => {
-    const name = timestampedName("npa_report", "pdf");
+    const name = timestampedName("cdis_report", "pdf");
     return runExport("PDF", name, () => incidentsToPDF(incidents));
   };
 

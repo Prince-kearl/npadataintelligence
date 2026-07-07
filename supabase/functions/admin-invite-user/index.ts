@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
     const { error: notificationError } = await admin.from("notifications").insert({
       user_id: userId,
       title: "Account invitation created",
-      message: "You were invited to the NPA Incident platform. Complete sign-in to activate your access.",
+      message: "You were invited to the Consumer Data Intelligence System. Complete sign-in to activate your access.",
       category: "account",
       metadata: { role: body.role, status: body.status },
     });
