@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
-import { LucideIcon } from "lucide-react";
+import { LucideIcon, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface KPICardProps {
   title: string;
@@ -9,11 +10,13 @@ interface KPICardProps {
   changeType?: "positive" | "negative" | "neutral";
   iconBg?: string;
   iconClass?: string;
+  to?: string;
+  ctaLabel?: string;
 }
 
-export function KPICard({ title, value, icon: Icon, change, changeType = "neutral", iconBg, iconClass }: KPICardProps) {
-  return (
-    <div className="dash-card">
+export function KPICard({ title, value, icon: Icon, change, changeType = "neutral", iconBg, iconClass, to, ctaLabel }: KPICardProps) {
+  const inner = (
+    <>
       <div className="flex items-start justify-between">
         <div className="space-y-2">
           <p className="dash-card-title">{title}</p>
@@ -38,6 +41,24 @@ export function KPICard({ title, value, icon: Icon, change, changeType = "neutra
           <Icon className={cn("h-5 w-5", iconClass || "text-accent")} />
         </div>
       </div>
-    </div>
+      {to && (
+        <div className="mt-3 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-medium text-primary group-hover:text-primary/80">
+          <span>{ctaLabel ?? "View details"}</span>
+          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+        </div>
+      )}
+    </>
   );
+
+  if (to) {
+    return (
+      <Link
+        to={to}
+        className="dash-card group block transition-all hover:shadow-md hover:border-primary/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      >
+        {inner}
+      </Link>
+    );
+  }
+  return <div className="dash-card">{inner}</div>;
 }
