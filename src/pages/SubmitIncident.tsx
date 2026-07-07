@@ -436,8 +436,8 @@ export default function SubmitIncident() {
               <Label className="label-text">GPS Coordinates</Label>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Input placeholder="e.g., 5.6037, -0.1870" value={gps} onChange={(e) => setGps(e.target.value)} className="bg-muted/50 border-border rounded-lg min-h-12 flex-1 min-w-0" />
-                <Button type="button" variant="outline" onClick={captureGps} className="min-h-12 w-full sm:w-auto">
-                  <MapPin className="h-4 w-4 mr-1" /> Use My Location
+                <Button type="button" variant="outline" onClick={captureGps} disabled={locating} className="min-h-12 w-full sm:w-auto">
+                  <MapPin className="h-4 w-4 mr-1" /> {locating ? "Locating…" : "Use Current Location"}
                 </Button>
               </div>
             </div>
