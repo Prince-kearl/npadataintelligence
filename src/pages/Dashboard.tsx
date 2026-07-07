@@ -211,18 +211,6 @@ export default function Dashboard() {
       .sort((a, b) => b.value - a.value);
   }, [incidents]);
 
-  const severityDistribution = useMemo(() => {
-    const counts = new Map<string, number>();
-    incidents.forEach((inc) => {
-      const sev = (inc as any).severity || "medium";
-      counts.set(sev, (counts.get(sev) || 0) + 1);
-    });
-    return Array.from(counts.entries()).map(([name, value]) => ({
-      name: name.charAt(0).toUpperCase() + name.slice(1),
-      value,
-      fill: SEVERITY_COLORS[name] || COLORS.navy,
-    }));
-  }, [incidents]);
 
   const topCauses = useMemo(() => {
     const counts = new Map<string, number>();
@@ -245,11 +233,11 @@ export default function Dashboard() {
       return now - t > 30 * day && now - t <= 60 * day;
     });
     const delta = prev30.length ? Math.round(((last30.length - prev30.length) / prev30.length) * 100) : 0;
-    const critical = incidents.filter((i: any) => i.severity === "critical" || i.severity === "high").length;
+    const casualties = incidents.reduce((sum, i) => sum + (i.casualties ?? 0), 0);
     const open = incidents.filter((i) => !["Closed", "archived"].includes(i.status as any)).length;
     const closed = incidents.filter((i) => ["Closed", "archived"].includes(i.status)).length;
     const resolveRate = incidents.length ? Math.round((closed / incidents.length) * 100) : 0;
-    return { total: incidents.length, last30: last30.length, delta, open, closed, critical, resolveRate };
+    return { total: incidents.length, last30: last30.length, delta, open, closed, casualties, resolveRate };
   }, [incidents]);
 
   const drillDown = (category: string) => {
