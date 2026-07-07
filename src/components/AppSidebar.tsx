@@ -30,6 +30,7 @@ type AppSidebarProps = { mobile?: boolean; onNavigate?: () => void };
 const mainNav: NavItem[] = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/submit", icon: FileEdit, label: "Submit Incident", perm: "submit_incident" },
+  { to: "/drafts", icon: FileClock, label: "Drafts", perm: "submit_incident" },
   { to: "/records", icon: Database, label: "Records", perm: "view_own_records" },
   { to: "/analytics", icon: BarChart3, label: "Analytics", perm: "view_analytics" },
   { to: "/reports", icon: FileText, label: "Reports", perm: "view_reports" },
