@@ -58,8 +58,9 @@ async function logExportRow(payload: { file_name: string; format: string; row_co
 type Filters = {
   from: string;
   to: string;
-  period: "all" | "month" | "quarter" | "year";
-  periodValue: string;
+  year: string;      // "" = all years
+  quarter: string;   // "" = all quarters (only when year set)
+  month: string;     // "" = all months (only when quarter set); values 1-12
   region: string;
   district: string;
   category: string;
@@ -71,8 +72,9 @@ type Filters = {
 const emptyFilters: Filters = {
   from: "",
   to: "",
-  period: "all",
-  periodValue: "",
+  year: "",
+  quarter: "",
+  month: "",
   region: "all",
   district: "",
   category: "all",
@@ -80,6 +82,15 @@ const emptyFilters: Filters = {
   productType: "all",
   status: "all",
 };
+
+const QUARTER_MONTHS: Record<string, { value: string; label: string }[]> = {
+  "1": [{ value: "1", label: "January" }, { value: "2", label: "February" }, { value: "3", label: "March" }],
+  "2": [{ value: "4", label: "April" }, { value: "5", label: "May" }, { value: "6", label: "June" }],
+  "3": [{ value: "7", label: "July" }, { value: "8", label: "August" }, { value: "9", label: "September" }],
+  "4": [{ value: "10", label: "October" }, { value: "11", label: "November" }, { value: "12", label: "December" }],
+};
+
+const MONTH_NAMES = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 function uniq(values: (string | null | undefined)[]): string[] {
   return Array.from(new Set(values.filter((v): v is string => !!v && v.trim() !== ""))).sort();
