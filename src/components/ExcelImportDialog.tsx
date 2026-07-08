@@ -234,7 +234,13 @@ export default function ExcelImportDialog({ open, onOpenChange, onApply }: Props
     }
     onApply(out);
     onOpenChange(false);
-    toast.success("Form populated from spreadsheet. Review before submitting.");
+    const filled = Object.keys(out).length;
+    const skipped = SYSTEM_FIELDS.length - filled;
+    toast.success(`Filled ${filled} field${filled === 1 ? "" : "s"} from row ${rowIndex + 1}`, {
+      description: skipped > 0
+        ? `${skipped} unmapped field${skipped === 1 ? "" : "s"} left blank — complete them manually before submitting.`
+        : "Review the form and submit when ready.",
+    });
   };
 
   return (
