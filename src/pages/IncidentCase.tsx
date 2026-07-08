@@ -261,6 +261,53 @@ export default function IncidentCase() {
     onError: (error: Error) => toast.error(error.message || "Delete failed"),
   });
 
+  const escalateMutation = useMutation({
+    mutationFn: async () => {
+      if (!incident) throw new Error("Incident not found");
+      const trimmedEmail = escalation.hodEmail.trim();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmedEmail)) {
+        throw new Error("Enter a valid recipient email address");
+      }
+      const caseRow = await escalateIncident({
+        incidentId: incident.id,
+        hodEmail: trimmedEmail,
+        hodName: escalation.hodName.trim() || undefined,
+        directorate: escalation.directorate.trim() || DEFAULT_DIRECTORATE,
+        notes: escalation.notes.trim() || undefined,
+      });
+      // Compose and open the admin's default mail client so the message is sent
+      // from their signed-in professional email until the branded email domain
+      // is verified for automated delivery.
+      const { subject, body } = buildEscalationEmail({
+        caseId: caseRow.id,
+        incidentReference: incident.reference_code || incident.id,
+        incidentCategory: incident.category,
+        incidentLocation: `${incident.district ? incident.district + ", " : ""}${incident.region}`,
+        incidentDate: incident.incident_date,
+        incidentDescription: incident.description || "(no description on file)",
+        directorate: caseRow.directorate,
+        hodName: caseRow.hod_name || undefined,
+        senderName: user?.user_metadata?.full_name || user?.email || "NPA Administrator",
+        senderEmail: user?.email || "",
+        notes: caseRow.escalation_notes || undefined,
+        incidentUrl: `${window.location.origin}/incidents/${incident.id}`,
+      });
+      const mailto = `mailto:${encodeURIComponent(trimmedEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailto;
+      // Best-effort: mark that the email hand-off happened
+      try { await markCaseEmailSent(caseRow.id, "sent"); } catch { /* non-fatal */ }
+      return caseRow;
+    },
+    onSuccess: () => {
+      toast.success("Case opened and email prepared in your mail client");
+      setEscalateOpen(false);
+      setEscalation({ hodEmail: "", hodName: "", directorate: DEFAULT_DIRECTORATE, notes: "" });
+      void queryClient.invalidateQueries({ queryKey: ["cases"] });
+    },
+    onError: (err: Error) => toast.error(err.message || "Escalation failed"),
+  });
+
+
   const openEvidence = async (attachmentId: string, path: string) => {
     try {
       setOpeningEvidence(attachmentId);
