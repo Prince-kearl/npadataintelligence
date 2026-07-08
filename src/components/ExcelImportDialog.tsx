@@ -124,10 +124,13 @@ function parseNumberSafe(raw: unknown): number {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onApply: (data: ImportedIncident) => void;
+  mode?: "single" | "bulk";
+  onApply?: (data: ImportedIncident) => void;
+  onBulkApply?: (rows: ImportedIncident[]) => void | Promise<void>;
+  busy?: boolean;
 }
 
-export default function ExcelImportDialog({ open, onOpenChange, onApply }: Props) {
+export default function ExcelImportDialog({ open, onOpenChange, mode = "single", onApply, onBulkApply, busy = false }: Props) {
   const [progress, setProgress] = useState(0);
   const [parsing, setParsing] = useState(false);
   const [fileName, setFileName] = useState<string>("");
