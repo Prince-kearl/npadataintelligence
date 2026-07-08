@@ -327,7 +327,12 @@ export default function ExcelImportDialog({ open, onOpenChange, onApply }: Props
             )}
 
             <div className="space-y-3">
-              <Label className="label-text">Map spreadsheet columns to form fields</Label>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <Label className="label-text">Map spreadsheet columns to form fields</Label>
+                <p className="text-xs text-muted-foreground">
+                  Fields left as <em>Not mapped</em> stay blank so you can fill them in manually.
+                </p>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {SYSTEM_FIELDS.map((f) => (
                   <div key={f.key} className="space-y-1">
