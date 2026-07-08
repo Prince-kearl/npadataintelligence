@@ -295,13 +295,13 @@ export default function ExcelImportDialog({ open, onOpenChange, onApply }: Props
             {rows.length > 1 && (
               <div className="space-y-2">
                 <Label className="label-text">Select the row to import</Label>
-                <div className="border rounded-lg overflow-auto max-h-56">
-                  <table className="w-full text-xs">
-                    <thead className="bg-muted/60 sticky top-0">
+                <div className="border rounded-lg overflow-auto max-h-72">
+                  <table className="text-xs w-max min-w-full">
+                    <thead className="bg-muted/60 sticky top-0 z-10">
                       <tr>
-                        <th className="p-2 text-left">#</th>
-                        {headers.slice(0, 5).map((h) => (
-                          <th key={h} className="p-2 text-left whitespace-nowrap">{h}</th>
+                        <th className="p-2 text-left sticky left-0 bg-muted/60 z-10">#</th>
+                        {headers.map((h) => (
+                          <th key={h} className="p-2 text-left whitespace-nowrap font-semibold">{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -310,11 +310,11 @@ export default function ExcelImportDialog({ open, onOpenChange, onApply }: Props
                         <tr
                           key={i}
                           onClick={() => setRowIndex(i)}
-                          className={`cursor-pointer border-t ${i === rowIndex ? "bg-primary/10" : "hover:bg-muted/40"}`}
+                          className={`cursor-pointer border-t align-top ${i === rowIndex ? "bg-primary/10" : "hover:bg-muted/40"}`}
                         >
-                          <td className="p-2 font-medium">{i + 1}</td>
-                          {headers.slice(0, 5).map((h) => (
-                            <td key={h} className="p-2 whitespace-nowrap max-w-[180px] truncate">
+                          <td className={`p-2 font-medium sticky left-0 ${i === rowIndex ? "bg-primary/10" : "bg-background"}`}>{i + 1}</td>
+                          {headers.map((h) => (
+                            <td key={h} className="p-2 align-top whitespace-normal break-words min-w-[140px] max-w-[320px]">
                               {r[h] == null ? "" : String(r[h])}
                             </td>
                           ))}
@@ -323,8 +323,14 @@ export default function ExcelImportDialog({ open, onOpenChange, onApply }: Props
                     </tbody>
                   </table>
                 </div>
+                <p className="text-[11px] text-muted-foreground">Scroll horizontally to see every column. Click any row to select it.</p>
               </div>
             )}
+
+            <p className="text-xs text-muted-foreground">
+              Only mapped columns are copied into the form. Anything left as <span className="font-medium">"— Not mapped —"</span> stays blank for you to fill in manually. Values that don't match a preset dropdown option (e.g. Region, Category) are also left blank so you can pick the correct one.
+            </p>
+
 
             <div className="space-y-3">
               <Label className="label-text">Map spreadsheet columns to form fields</Label>
