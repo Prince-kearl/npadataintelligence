@@ -435,6 +435,16 @@ export default function SubmitIncident() {
     }
   };
 
+  const clearForm = () => {
+    formRef.current?.reset();
+    setSubmissionId(crypto.randomUUID());
+    setIncidentDate(""); setRegion(""); setDistrict(""); setLocationName(""); setGps("");
+    setCategory(""); setIncidentType(""); setProductType(""); setInjuryType("");
+    setCasualties(0); setFatalities(0); setDescription(""); setSource(""); setSourceContact("");
+    setSourceNotes(""); setPreviousChannel("None — first time reported"); setFiles([]);
+    setMatches([]);
+  };
+
   const handleSaveDraft = async () => {
     await saveDraft(draftId, {
       submissionId,
@@ -442,18 +452,16 @@ export default function SubmitIncident() {
       productType, injuryType, casualties, fatalities, description, source, sourceContact,
       sourceNotes, previousChannel,
     });
-    toast.success("Draft saved locally on this device");
+    toast.success("Draft saved locally on this device", {
+      description: "Form cleared — ready for the next entry.",
+    });
+    clearForm();
   };
 
-  const handleDiscardDraft = async () => {
+  const handleClearForm = async () => {
     await deleteDraft(draftId);
-    setSubmissionId(crypto.randomUUID());
-    formRef.current?.reset();
-    setIncidentDate(""); setRegion(""); setDistrict(""); setLocationName(""); setGps("");
-    setCategory(""); setIncidentType(""); setProductType(""); setInjuryType("");
-    setCasualties(0); setFatalities(0); setDescription(""); setSource(""); setSourceContact("");
-    setSourceNotes(""); setPreviousChannel("None — first time reported"); setFiles([]);
-    toast.success("Draft discarded");
+    clearForm();
+    toast.success("Form cleared");
   };
 
   const topScore = matches[0]?.score ?? 0;
