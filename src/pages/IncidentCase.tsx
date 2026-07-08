@@ -64,6 +64,8 @@ import {
   type IncidentStatus,
 } from "@/lib/incidents";
 import { useAuth } from "@/hooks/useAuth";
+import { DEFAULT_DIRECTORATE, buildEscalationEmail, escalateIncident, markCaseEmailSent } from "@/lib/cases";
+import { ShieldAlert, Send } from "lucide-react";
 
 interface PendingFile {
   file: File;
@@ -155,6 +157,13 @@ export default function IncidentCase() {
     gps_coordinates: "",
     description: "",
     source_notes: "",
+  });
+  const [escalateOpen, setEscalateOpen] = useState(false);
+  const [escalation, setEscalation] = useState({
+    hodEmail: "",
+    hodName: "",
+    directorate: DEFAULT_DIRECTORATE,
+    notes: "",
   });
 
   const incidentQuery = useQuery({
@@ -251,6 +260,53 @@ export default function IncidentCase() {
     },
     onError: (error: Error) => toast.error(error.message || "Delete failed"),
   });
+
+  const escalateMutation = useMutation({
+    mutationFn: async () => {
+      if (!incident) throw new Error("Incident not found");
+      const trimmedEmail = escalation.hodEmail.trim();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmedEmail)) {
+        throw new Error("Enter a valid recipient email address");
+      }
+      const caseRow = await escalateIncident({
+        incidentId: incident.id,
+        hodEmail: trimmedEmail,
+        hodName: escalation.hodName.trim() || undefined,
+        directorate: escalation.directorate.trim() || DEFAULT_DIRECTORATE,
+        notes: escalation.notes.trim() || undefined,
+      });
+      // Compose and open the admin's default mail client so the message is sent
+      // from their signed-in professional email until the branded email domain
+      // is verified for automated delivery.
+      const { subject, body } = buildEscalationEmail({
+        caseId: caseRow.id,
+        incidentReference: incident.reference_code || incident.id,
+        incidentCategory: incident.category,
+        incidentLocation: `${incident.district ? incident.district + ", " : ""}${incident.region}`,
+        incidentDate: incident.incident_date,
+        incidentDescription: incident.description || "(no description on file)",
+        directorate: caseRow.directorate,
+        hodName: caseRow.hod_name || undefined,
+        senderName: user?.user_metadata?.full_name || user?.email || "NPA Administrator",
+        senderEmail: user?.email || "",
+        notes: caseRow.escalation_notes || undefined,
+        incidentUrl: `${window.location.origin}/incidents/${incident.id}`,
+      });
+      const mailto = `mailto:${encodeURIComponent(trimmedEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailto;
+      // Best-effort: mark that the email hand-off happened
+      try { await markCaseEmailSent(caseRow.id, "sent"); } catch { /* non-fatal */ }
+      return caseRow;
+    },
+    onSuccess: () => {
+      toast.success("Case opened and email prepared in your mail client");
+      setEscalateOpen(false);
+      setEscalation({ hodEmail: "", hodName: "", directorate: DEFAULT_DIRECTORATE, notes: "" });
+      void queryClient.invalidateQueries({ queryKey: ["cases"] });
+    },
+    onError: (err: Error) => toast.error(err.message || "Escalation failed"),
+  });
+
 
   const openEvidence = async (attachmentId: string, path: string) => {
     try {
@@ -416,14 +472,21 @@ export default function IncidentCase() {
               <span className="inline-flex items-center gap-1.5"><Fingerprint className="h-4 w-4" />{incident.id.slice(0, 8)}</span>
             </div>
           </div>
-          {transitions.length > 0 && (
+          {(transitions.length > 0 || role === "admin") && (
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={openEdit}>Edit details</Button>
+              {transitions.length > 0 && (
+                <Button size="sm" variant="outline" onClick={openEdit}>Edit details</Button>
+              )}
               {transitions.map((status) => (
                 <Button key={status} size="sm" onClick={() => setTargetStatus(status)}>
                   Move to {STATUS_LABELS[status] || status}<ChevronRight className="ml-1 h-4 w-4" />
                 </Button>
               ))}
+              {role === "admin" && (
+                <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => setEscalateOpen(true)}>
+                  <ShieldAlert className="mr-1 h-4 w-4" /> Open as New Case & Escalate
+                </Button>
+              )}
               {role === "admin" && (
                 <Button size="sm" variant="destructive" onClick={() => setDeleteOpen(true)}>Delete incident</Button>
               )}
@@ -773,6 +836,71 @@ export default function IncidentCase() {
         pending={Boolean(deletingAttachmentId)}
         onConfirm={removeAttachment}
       />
+
+      <Dialog open={escalateOpen} onOpenChange={(o) => !escalateMutation.isPending && setEscalateOpen(o)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-accent" /> Open as New Case & Escalate
+            </DialogTitle>
+            <DialogDescription>
+              A new case will open with status <strong>OPEN</strong> and be routed to the target directorate. The email will be prepared in your mail client so it is sent from your signed-in address ({user?.email || "your work email"}).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="esc-directorate">Target directorate</Label>
+              <Input
+                id="esc-directorate"
+                value={escalation.directorate}
+                onChange={(e) => setEscalation((s) => ({ ...s, directorate: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="esc-hod-name">HOD / Line Manager name</Label>
+                <Input
+                  id="esc-hod-name"
+                  placeholder="e.g. Dr. Kwame Asante"
+                  value={escalation.hodName}
+                  onChange={(e) => setEscalation((s) => ({ ...s, hodName: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="esc-hod-email">Recipient work email *</Label>
+                <Input
+                  id="esc-hod-email"
+                  type="email"
+                  required
+                  placeholder="hod.security@npa.gov.gh"
+                  value={escalation.hodEmail}
+                  onChange={(e) => setEscalation((s) => ({ ...s, hodEmail: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="esc-notes">Escalation notes</Label>
+              <Textarea
+                id="esc-notes"
+                rows={4}
+                placeholder="Summarise why this is being escalated and any immediate actions required…"
+                value={escalation.notes}
+                onChange={(e) => setEscalation((s) => ({ ...s, notes: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEscalateOpen(false)} disabled={escalateMutation.isPending}>Cancel</Button>
+            <Button
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+              onClick={() => escalateMutation.mutate()}
+              disabled={escalateMutation.isPending || !escalation.hodEmail.trim()}
+            >
+              {escalateMutation.isPending ? "Opening case…" : (<><Send className="mr-1 h-4 w-4" /> Open Case & Send Email</>)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

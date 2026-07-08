@@ -3,9 +3,11 @@ import { Outlet } from "react-router-dom";
 import { AppSidebar } from "@/components/AppSidebar";
 import { AppHeader } from "@/components/AppHeader";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useCaseAlerts } from "@/hooks/useCaseAlerts";
 
 export function AppLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  useCaseAlerts();
 
   return (
     <div className="flex min-h-screen w-full bg-background">

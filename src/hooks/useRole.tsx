@@ -21,7 +21,9 @@ export type Permission =
   | "view_audit_logs"
   | "view_auth_events"
   | "manage_templates"
-  | "system_settings";
+  | "system_settings"
+  | "escalate_cases"
+  | "manage_cases";
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   collector: ["submit_incident", "view_own_records", "manage_templates"],
@@ -48,6 +50,8 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "view_auth_events",
     "manage_templates",
     "system_settings",
+    "escalate_cases",
+    "manage_cases",
   ],
 };
 
