@@ -271,7 +271,9 @@ export default function ExcelImportDialog({ open, onOpenChange, mode = "single",
             <FileSpreadsheet className="h-5 w-5 text-primary" /> Import Data via Excel
           </DialogTitle>
           <DialogDescription>
-            Upload an .xlsx or .xls file. We'll detect the columns and let you map them to the form fields.
+            {mode === "bulk"
+              ? "Upload an .xlsx or .xls file — every row will be imported as an incident record after you confirm the column mapping."
+              : "Upload an .xlsx or .xls file. We'll detect the columns and let you map them to the form fields."}
           </DialogDescription>
         </DialogHeader>
 
