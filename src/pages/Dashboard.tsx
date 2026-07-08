@@ -58,8 +58,10 @@ import {
 import {
   chartTimeLabel,
   filterByChartTime,
-  trendSeries,
+  filterConsumerReports,
+  enhancedTrendSeries,
 } from "@/lib/chart-time-filter";
+import { ConsumerTrendTooltip } from "@/components/ConsumerTrendTooltip";
 
 
 const statusClass: Record<string, string> = {
