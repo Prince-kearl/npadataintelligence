@@ -165,7 +165,7 @@ export default function Analytics() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 90%)" />
                 <XAxis dataKey="label" tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
-                <Tooltip {...tooltipStyle} />
+                <Tooltip content={<ConsumerTrendTooltip />} />
                 <Area type="monotone" dataKey="incidents" stroke="hsl(224, 52%, 34%)" strokeWidth={2} fill="url(#analyticsGrad)" />
               </AreaChart>
             </ResponsiveContainer>
