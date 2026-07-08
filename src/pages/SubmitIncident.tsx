@@ -513,11 +513,29 @@ export default function SubmitIncident() {
             </div>
             <div className="space-y-2">
               <Label className="label-text">Casualties</Label>
-              <Input type="number" min={0} value={casualties} onChange={(e) => setCasualties(Number(e.target.value))} className="bg-muted/50 border-border rounded-lg min-h-12" />
+              <Input
+                type="number"
+                min={0}
+                inputMode="numeric"
+                placeholder="0"
+                value={casualties === 0 ? "" : casualties}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => setCasualties(e.target.value === "" ? 0 : Math.max(0, Number(e.target.value)))}
+                className="bg-muted/50 border-border rounded-lg min-h-12"
+              />
             </div>
             <div className="space-y-2">
               <Label className="label-text">Fatalities</Label>
-              <Input type="number" min={0} value={fatalities} onChange={(e) => setFatalities(Number(e.target.value))} className="bg-muted/50 border-border rounded-lg min-h-12" />
+              <Input
+                type="number"
+                min={0}
+                inputMode="numeric"
+                placeholder="0"
+                value={fatalities === 0 ? "" : fatalities}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => setFatalities(e.target.value === "" ? 0 : Math.max(0, Number(e.target.value)))}
+                className="bg-muted/50 border-border rounded-lg min-h-12"
+              />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label className="label-text">Incident Description *</Label>
@@ -545,36 +563,90 @@ export default function SubmitIncident() {
 
           {files.length > 0 && (
             <div className="space-y-2">
-              {files.map((pf, i) => (
-                <div key={i} className="bg-muted/40 rounded-lg px-3 py-2 text-xs space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="truncate font-medium">
-                      {pf.file.name}{" "}
-                      <span className="text-muted-foreground font-normal">({(pf.file.size / 1024).toFixed(1)} KB)</span>
+              {files.map((pf, i) => {
+                const stateBadge = {
+                  idle: null,
+                  uploading: (
+                    <span className="flex items-center gap-1 text-[10px] text-info font-medium">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Uploading…
                     </span>
-                    <button type="button" onClick={() => removeFile(i)} className="text-muted-foreground hover:text-destructive shrink-0">
-                      <X className="h-3.5 w-3.5" />
-                    </button>
+                  ),
+                  scanning: (
+                    <span className="flex items-center gap-1 text-[10px] text-warning font-medium">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Scanning…
+                    </span>
+                  ),
+                  done: (
+                    <span className="flex items-center gap-1 text-[10px] text-success font-medium">
+                      <CheckCircle2 className="h-3 w-3" /> Uploaded
+                    </span>
+                  ),
+                  error: (
+                    <span className="flex items-center gap-1 text-[10px] text-destructive font-medium">
+                      <AlertCircle className="h-3 w-3" /> Failed
+                    </span>
+                  ),
+                }[pf.state];
+                const busy = pf.state === "uploading" || pf.state === "scanning";
+                return (
+                  <div key={i} className="bg-muted/40 rounded-lg px-3 py-2 text-xs space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-md bg-card border border-border overflow-hidden shrink-0 flex items-center justify-center">
+                        {pf.previewUrl ? (
+                          <img src={pf.previewUrl} alt={pf.file.name} className="h-full w-full object-cover" />
+                        ) : (
+                          <FileText className="h-5 w-5 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate font-medium">
+                            {pf.file.name}{" "}
+                            <span className="text-muted-foreground font-normal">({(pf.file.size / 1024).toFixed(1)} KB)</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeFile(i)}
+                            disabled={busy}
+                            className="text-muted-foreground hover:text-destructive shrink-0 disabled:opacity-40"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        {stateBadge}
+                        {(busy || pf.state === "done") && (
+                          <div className="h-1 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${pf.state === "done" ? "bg-success" : "bg-primary"}`}
+                              style={{ width: `${pf.progress}%` }}
+                            />
+                          </div>
+                        )}
+                        {pf.errorMessage && (
+                          <p className="text-[10px] text-destructive">{pf.errorMessage}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {EVIDENCE_TAGS.map((t) => {
+                        const on = pf.tags.includes(t);
+                        return (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => toggleTag(i, t)}
+                            className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
+                              on ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:bg-muted"
+                            }`}
+                          >
+                            {t}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-1">
-                    {EVIDENCE_TAGS.map((t) => {
-                      const on = pf.tags.includes(t);
-                      return (
-                        <button
-                          key={t}
-                          type="button"
-                          onClick={() => toggleTag(i, t)}
-                          className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
-                            on ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:bg-muted"
-                          }`}
-                        >
-                          {t}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
