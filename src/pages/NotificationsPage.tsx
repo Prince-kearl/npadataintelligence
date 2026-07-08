@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Bell, Mail, Smartphone, Moon, PlusCircle, Trash2, CheckCircle2, Circle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Bell, Mail, Smartphone, Moon, PlusCircle, Trash2, CheckCircle2, Circle, ExternalLink } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +42,7 @@ const defaults: NotificationSettings = {
 
 export default function NotificationsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { data: notifications = [] } = useNotificationsList();
   const markAllRead = useMarkAllNotificationsRead();
   const markOne = useMarkNotificationRead();
@@ -51,6 +53,17 @@ export default function NotificationsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [composeTitle, setComposeTitle] = useState("");
   const [composeMessage, setComposeMessage] = useState("");
+
+  const openNotification = (item: (typeof notifications)[number]) => {
+    const meta = (item.metadata ?? {}) as Record<string, unknown>;
+    const incidentId = typeof meta.incident_id === "string" ? meta.incident_id : null;
+    if (!item.is_read) markOne.mutate({ id: item.id, isRead: true });
+    if (incidentId) {
+      navigate(`/incidents/${incidentId}`);
+    } else {
+      toast.message("This notification has no linked incident.");
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
