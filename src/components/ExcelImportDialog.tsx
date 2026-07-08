@@ -224,9 +224,7 @@ export default function ExcelImportDialog({ open, onOpenChange, mode = "single",
 
   const previewRows = useMemo(() => rows.slice(0, 25), [rows]);
 
-  const apply = () => {
-    const row = rows[rowIndex];
-    if (!row) return;
+  const extractRow = (row: Record<string, unknown>): ImportedIncident => {
     const out: ImportedIncident = {};
     for (const field of SYSTEM_FIELDS) {
       const col = mapping[field.key];
@@ -242,7 +240,19 @@ export default function ExcelImportDialog({ open, onOpenChange, mode = "single",
         (out as any)[field.key] = String(raw).trim();
       }
     }
-    onApply(out);
+    return out;
+  };
+
+  const apply = async () => {
+    if (mode === "bulk") {
+      const all = rows.map(extractRow);
+      await onBulkApply?.(all);
+      return;
+    }
+    const row = rows[rowIndex];
+    if (!row) return;
+    const out = extractRow(row);
+    onApply?.(out);
     onOpenChange(false);
     const filled = Object.keys(out).length;
     const skipped = SYSTEM_FIELDS.length - filled;
