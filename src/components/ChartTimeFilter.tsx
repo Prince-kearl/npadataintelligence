@@ -21,6 +21,25 @@ export function useChartTimeFilter(initial: Partial<ChartTimeFilterState> = {}) 
   return [state, setState] as const;
 }
 
+/**
+ * Briefly toggles a `loading` flag whenever the filter state changes so the
+ * card can show a shimmer skeleton while the query re-computes. Local to each
+ * card — no global reload.
+ */
+export function useChartFilterLoading(state: ChartTimeFilterState, delay = 320) {
+  const [loading, setLoading] = useState(false);
+  const first = useRef(true);
+  const key = `${state.year}-${state.quarter}-${state.month}`;
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    setLoading(true);
+    const t = setTimeout(() => setLoading(false), delay);
+    return () => clearTimeout(t);
+  }, [key, delay]);
+  return loading;
+}
+
+
 interface Props {
   value: ChartTimeFilterState;
   onChange: (next: ChartTimeFilterState) => void;
