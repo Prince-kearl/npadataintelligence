@@ -19,22 +19,52 @@ interface KPICardProps {
   ctaLabel?: string;
 }
 
-// All gradients derive from the system brand palette:
-//   Sidebar Navy  #2F4B8F  ≈ hsl(222, 50%, 37%)
-//   Header Navy   #1B2F6B  ≈ hsl(224, 59%, 26%)
-//   Action Gold   #E5A623  ≈ hsl(40,  78%, 52%)
-// Each card is a different shade/blend of these two brand colors.
-const GRADIENT_STYLES: Record<KPIGradient, string> = {
-  // Card 1 – Total Incidents: Deep header navy → sidebar navy (darkest, alert emphasis)
-  crimson: "bg-[linear-gradient(135deg,hsl(224,60%,20%)_0%,hsl(222,55%,34%)_100%)]",
-  // Card 2 – Casualties: Burnished gold → deep amber (warm brand accent)
-  amber: "bg-[linear-gradient(135deg,hsl(40,82%,52%)_0%,hsl(32,78%,38%)_100%)]",
-  // Card 3 – Resolved: Muted navy → soft gold (balanced brand blend)
-  teal: "bg-[linear-gradient(135deg,hsl(222,45%,42%)_0%,hsl(40,70%,50%)_100%)]",
-  // Card 4 – Open Cases: Sidebar navy → lighter navy tint
-  navy: "bg-[linear-gradient(135deg,hsl(222,50%,37%)_0%,hsl(220,62%,52%)_100%)]",
-  // Card 5 – All-Time: Gold → warm navy (accent-forward brand blend)
-  gold: "bg-[linear-gradient(135deg,hsl(40,80%,48%)_0%,hsl(224,55%,30%)_100%)]",
+// Glassmorphism variants: frosted white gradient cards with situational icon accents.
+// Each variant maps to a semantic status color used only for the icon + subtle glass tint.
+const VARIANT_STYLES: Record<
+  KPIGradient,
+  { iconBg: string; iconRing: string; iconColor: string; accent: string; glow: string }
+> = {
+  // Total Incidents → alert (destructive red)
+  crimson: {
+    iconBg: "bg-destructive/15",
+    iconRing: "ring-destructive/25",
+    iconColor: "text-destructive",
+    accent: "text-destructive",
+    glow: "bg-[radial-gradient(120%_80%_at_100%_0%,hsl(0_72%_51%/0.14),transparent_60%)]",
+  },
+  // Casualties → warning (amber)
+  amber: {
+    iconBg: "bg-warning/15",
+    iconRing: "ring-warning/30",
+    iconColor: "text-warning",
+    accent: "text-warning",
+    glow: "bg-[radial-gradient(120%_80%_at_100%_0%,hsl(40_82%_52%/0.16),transparent_60%)]",
+  },
+  // Resolved → success (green)
+  teal: {
+    iconBg: "bg-success/15",
+    iconRing: "ring-success/30",
+    iconColor: "text-success",
+    accent: "text-success",
+    glow: "bg-[radial-gradient(120%_80%_at_100%_0%,hsl(152_60%_38%/0.16),transparent_60%)]",
+  },
+  // Open Cases → info (blue)
+  navy: {
+    iconBg: "bg-info/15",
+    iconRing: "ring-info/30",
+    iconColor: "text-info",
+    accent: "text-info",
+    glow: "bg-[radial-gradient(120%_80%_at_100%_0%,hsl(210_90%_52%/0.14),transparent_60%)]",
+  },
+  // All-Time → primary brand navy
+  gold: {
+    iconBg: "bg-primary/15",
+    iconRing: "ring-primary/25",
+    iconColor: "text-primary",
+    accent: "text-primary",
+    glow: "bg-[radial-gradient(120%_80%_at_100%_0%,hsl(228_62%_26%/0.12),transparent_60%)]",
+  },
 };
 
 export function KPICard({
@@ -49,37 +79,49 @@ export function KPICard({
   to,
   ctaLabel,
 }: KPICardProps) {
-  // ---- Gradient variant (new design) ----
+  // ---- Glassmorphism variant ----
   if (gradient) {
+    const v = VARIANT_STYLES[gradient];
     const changeTint =
       changeType === "positive"
-        ? "text-white"
+        ? "text-success"
         : changeType === "negative"
-          ? "text-white"
-          : "text-white/85";
+          ? "text-destructive"
+          : "text-muted-foreground";
 
     const content = (
       <div
         className={cn(
-          "relative flex h-full flex-col justify-between overflow-hidden rounded-3xl p-5 text-white shadow-[0_10px_30px_-12px_rgba(15,23,42,0.35)] transition-all",
-          GRADIENT_STYLES[gradient],
-          to && "group-hover:shadow-[0_16px_40px_-14px_rgba(15,23,42,0.5)] group-hover:-translate-y-0.5",
+          "relative flex h-full flex-col justify-between overflow-hidden rounded-3xl p-5 transition-all",
+          // Frosted white glass base
+          "bg-[linear-gradient(135deg,rgba(255,255,255,0.85)_0%,rgba(255,255,255,0.55)_100%)]",
+          "backdrop-blur-xl ring-1 ring-white/60 border border-white/40",
+          "shadow-[0_10px_30px_-12px_rgba(15,23,42,0.18)]",
+          to && "group-hover:shadow-[0_16px_40px_-14px_rgba(15,23,42,0.28)] group-hover:-translate-y-0.5",
         )}
       >
-        {/* Decorative gloss */}
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_100%_0%,rgba(255,255,255,0.28),transparent_55%)]" />
+        {/* Situational color glow */}
+        <div className={cn("pointer-events-none absolute inset-0", v.glow)} />
+        {/* Extra top-left white gloss */}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(80%_60%_at_0%_0%,rgba(255,255,255,0.7),transparent_55%)]" />
 
         {/* Header: icon + label inline */}
         <div className="relative flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm ring-1 ring-white/30">
-            <Icon className="h-5 w-5 text-white" />
+          <div
+            className={cn(
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full backdrop-blur-sm ring-1",
+              v.iconBg,
+              v.iconRing,
+            )}
+          >
+            <Icon className={cn("h-5 w-5", v.iconColor)} />
           </div>
-          <p className="text-sm font-medium text-white/90 leading-tight">{title}</p>
+          <p className="text-sm font-semibold text-foreground/85 leading-tight">{title}</p>
         </div>
 
         {/* Footer: big value left, change right */}
         <div className="relative mt-6 flex items-end justify-between gap-3">
-          <p className="text-4xl font-bold tracking-tight text-white leading-none">
+          <p className="text-4xl font-bold tracking-tight text-foreground leading-none">
             {typeof value === "number" ? value.toLocaleString() : value}
           </p>
           {change && (
@@ -89,9 +131,14 @@ export function KPICard({
           )}
         </div>
 
-        {/* Action link overlay */}
+        {/* Action link */}
         {to && (
-          <div className="relative mt-4 flex items-center justify-between border-t border-white/20 pt-3 text-xs font-semibold text-white/95">
+          <div
+            className={cn(
+              "relative mt-4 flex items-center justify-between border-t border-foreground/10 pt-3 text-xs font-semibold",
+              v.accent,
+            )}
+          >
             <span>{ctaLabel ?? "View details"}</span>
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
           </div>
@@ -103,7 +150,7 @@ export function KPICard({
       return (
         <Link
           to={to}
-          className="group block rounded-3xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="group block rounded-3xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           {content}
         </Link>
@@ -111,6 +158,7 @@ export function KPICard({
     }
     return <div className="group">{content}</div>;
   }
+
 
   // ---- Legacy variant (unchanged, for other pages still using it) ----
   const inner = (
