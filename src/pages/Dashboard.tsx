@@ -218,7 +218,7 @@ export default function Dashboard() {
 
   const statusDistribution = useMemo(() => {
     const counts = new Map<string, number>();
-    incidents.forEach((inc) => {
+    chartIncidents.forEach((inc) => {
       counts.set(inc.status, (counts.get(inc.status) || 0) + 1);
     });
     const palette: Record<string, string> = {
@@ -237,12 +237,12 @@ export default function Dashboard() {
       value,
       fill: palette[name] || COLORS.navy,
     }));
-  }, [incidents]);
+  }, [chartIncidents]);
 
 
   const topCauses = useMemo(() => {
     const counts = new Map<string, number>();
-    incidents.forEach((i) => {
+    chartIncidents.forEach((i) => {
       const key = `${i.category} · ${i.product_type || "—"}`;
       counts.set(key, (counts.get(key) || 0) + 1);
     });
@@ -250,7 +250,7 @@ export default function Dashboard() {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
-  }, [incidents]);
+  }, [chartIncidents]);
 
   const kpis = useMemo(() => {
     const now = Date.now();
