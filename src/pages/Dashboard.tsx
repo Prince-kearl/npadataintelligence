@@ -323,23 +323,13 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
-      {/* Executive Overview header */}
-      <div className="flex items-start sm:items-end justify-between flex-wrap gap-2">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-primary">{dashboardCopy.eyebrow}</p>
-          <h1 className="mt-1 text-xl font-bold text-foreground">{dashboardCopy.title}</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {dashboardCopy.subtitle}{profile?.full_name ? ` · ${profile.full_name}` : ""}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-success/10 text-success font-medium">
-            <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-            {isFetching ? "Refreshing" : "Live"}
-          </span>
-          <span className="text-muted-foreground hidden sm:inline">Auto-refresh 30s · each card has its own time filter</span>
-        </div>
-
+      {/* Live status pill (header text removed per request) */}
+      <div className="flex items-center justify-end gap-2 text-xs">
+        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-success/10 text-success font-medium">
+          <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
+          {isFetching ? "Refreshing" : "Live"}
+        </span>
+        <span className="text-muted-foreground hidden sm:inline">Auto-refresh 30s · each card has its own time filter</span>
       </div>
 
       {role === "collector" && (
