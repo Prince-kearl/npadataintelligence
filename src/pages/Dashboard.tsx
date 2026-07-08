@@ -49,6 +49,8 @@ import { useRole } from "@/hooks/useRole";
 import { toast } from "sonner";
 import { ErrorState, PageSkeleton } from "@/components/ReliabilityState";
 import { useAuth } from "@/hooks/useAuth";
+import { DateRangeFilter } from "@/components/DateRangeFilter";
+import { filterIncidentsByRange, rangePeriodLabel, type DateRangeMode } from "@/lib/date-filter";
 
 const statusClass: Record<string, string> = {
   New: "status-new",
@@ -181,9 +183,12 @@ export default function Dashboard() {
       setIsIssuingCommand(false);
     }
   };
-  const trendData = useMemo(() => monthlyTrend(incidents), [incidents]);
-  const regionData = useMemo(() => incidentsByRegion(incidents).slice(0, 8), [incidents]);
-  const productData = useMemo(() => incidentsByProduct(incidents), [incidents]);
+  const [chartRange, setChartRange] = useState<DateRangeMode>("all");
+  const chartIncidents = useMemo(() => filterIncidentsByRange(incidents, chartRange), [incidents, chartRange]);
+  const chartPeriod = rangePeriodLabel(chartRange);
+  const trendData = useMemo(() => monthlyTrend(chartIncidents), [chartIncidents]);
+  const regionData = useMemo(() => incidentsByRegion(chartIncidents).slice(0, 8), [chartIncidents]);
+  const productData = useMemo(() => incidentsByProduct(chartIncidents), [chartIncidents]);
   const liveFeed = useMemo(() => [...incidents]
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .slice(0, 4)
@@ -197,10 +202,10 @@ export default function Dashboard() {
 
   const threatDistribution = useMemo(() => {
     const counts = new Map<string, number>();
-    incidents.forEach((inc) => {
+    chartIncidents.forEach((inc) => {
       counts.set(inc.category, (counts.get(inc.category) || 0) + 1);
     });
-    const total = incidents.length || 1;
+    const total = chartIncidents.length || 1;
     return Array.from(counts.entries())
       .map(([name, value]) => ({
         name,
@@ -209,7 +214,7 @@ export default function Dashboard() {
         fill: CATEGORY_COLORS[name] || COLORS.navy,
       }))
       .sort((a, b) => b.value - a.value);
-  }, [incidents]);
+  }, [chartIncidents]);
 
   const statusDistribution = useMemo(() => {
     const counts = new Map<string, number>();
