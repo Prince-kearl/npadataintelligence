@@ -64,6 +64,8 @@ import {
   type IncidentStatus,
 } from "@/lib/incidents";
 import { useAuth } from "@/hooks/useAuth";
+import { DEFAULT_DIRECTORATE, buildEscalationEmail, escalateIncident, markCaseEmailSent } from "@/lib/cases";
+import { ShieldAlert, Send } from "lucide-react";
 
 interface PendingFile {
   file: File;
