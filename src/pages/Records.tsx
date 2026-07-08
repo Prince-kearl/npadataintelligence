@@ -12,6 +12,7 @@ import {
 import { Search, Download, X, Loader2, BookmarkPlus, Bookmark, Trash2, MapPin, CalendarDays, ChevronRight, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ExcelImportDialog, { type ImportedIncident } from "@/components/ExcelImportDialog";
+import BulkImportReviewDialog from "@/components/BulkImportReviewDialog";
 import { REGIONS, INCIDENT_CATEGORIES, INCIDENT_TYPES, PRODUCT_TYPES, INJURY_TYPES, REPORT_SOURCES } from "@/lib/incident-options";
 import { useIncidents } from "@/hooks/useIncidents";
 import { useRole } from "@/hooks/useRole";
@@ -99,6 +100,8 @@ export default function Records() {
   const [restoreReason, setRestoreReason] = useState("");
   const [isRestoring, setIsRestoring] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewRows, setReviewRows] = useState<ImportedIncident[]>([]);
   const [isImporting, setIsImporting] = useState(false);
 
   const matchOption = <T extends string>(value: string | undefined, options: readonly T[]): T | undefined => {
@@ -110,49 +113,55 @@ export default function Records() {
     );
   };
 
-  const handleBulkImport = async (rows: ImportedIncident[]) => {
+  // Step 1: after the user maps columns, normalize enum values and open the review dialog
+  // so they can preview and complete each incident before we hit the database.
+  const handleMappedRows = (rows: ImportedIncident[]) => {
+    if (!rows.length) {
+      toast.error("No rows detected in the spreadsheet.");
+      return;
+    }
+    const normalized: ImportedIncident[] = rows.map((r) => ({
+      ...r,
+      region: matchOption(r.region, REGIONS) ?? r.region,
+      category: matchOption(r.category, INCIDENT_CATEGORIES) ?? r.category,
+      incidentType: matchOption(r.incidentType, INCIDENT_TYPES) ?? r.incidentType,
+      productType: matchOption(r.productType, PRODUCT_TYPES) ?? r.productType,
+      injuryType: matchOption(r.injuryType, INJURY_TYPES) ?? r.injuryType,
+      source: matchOption(r.source, REPORT_SOURCES) ?? r.source,
+      casualties: r.casualties ?? 0,
+      fatalities: r.fatalities ?? 0,
+    }));
+    setReviewRows(normalized);
+    setImportOpen(false);
+    setReviewOpen(true);
+  };
+
+  // Step 2: user has reviewed and completed the records — save them straight into the DB.
+  const handleReviewSubmit = async (rows: ImportedIncident[]) => {
     if (!user) {
       toast.error("You must be signed in to import records.");
       return;
     }
     setIsImporting(true);
-    const skipped: { row: number; reason: string }[] = [];
-    const payloads: any[] = [];
-    rows.forEach((r, idx) => {
-      const region = matchOption(r.region, REGIONS);
-      const category = matchOption(r.category, INCIDENT_CATEGORIES);
-      if (!r.incidentDate || !region || !r.locationName || !category || !r.description) {
-        skipped.push({ row: idx + 1, reason: "missing required fields (date, region, location, category, description)" });
-        return;
-      }
-      payloads.push({
-        reporter_id: user.id,
-        reporter_name: profile?.full_name || profile?.email || "Bulk import",
-        department: profile?.department || null,
-        incident_date: r.incidentDate,
-        region,
-        district: r.district || null,
-        location_name: r.locationName,
-        gps_coordinates: r.gps || null,
-        category,
-        incident_type: matchOption(r.incidentType, INCIDENT_TYPES) || null,
-        product_type: matchOption(r.productType, PRODUCT_TYPES) || null,
-        injury_type: matchOption(r.injuryType, INJURY_TYPES) || null,
-        casualties: r.casualties ?? 0,
-        fatalities: r.fatalities ?? 0,
-        description: r.description,
-        source: matchOption(r.source, REPORT_SOURCES) || null,
-        status: "New" as const,
-      });
-    });
-
-    if (!payloads.length) {
-      toast.error("No importable rows found.", {
-        description: "Ensure each row has a date, region, location, category, and description.",
-      });
-      setIsImporting(false);
-      return;
-    }
+    const payloads = rows.map((r) => ({
+      reporter_id: user.id,
+      reporter_name: profile?.full_name || profile?.email || "Bulk import",
+      department: profile?.department || null,
+      incident_date: r.incidentDate!,
+      region: r.region!,
+      district: r.district || null,
+      location_name: r.locationName!,
+      gps_coordinates: r.gps || null,
+      category: r.category!,
+      incident_type: r.incidentType || null,
+      product_type: r.productType || null,
+      injury_type: r.injuryType || null,
+      casualties: r.casualties ?? 0,
+      fatalities: r.fatalities ?? 0,
+      description: r.description!,
+      source: r.source || null,
+      status: "New" as const,
+    }));
 
     const BATCH_SIZE = 500;
     let inserted = 0;
@@ -168,17 +177,15 @@ export default function Records() {
       }
     }
     setIsImporting(false);
-    setImportOpen(false);
     qc.invalidateQueries({ queryKey: ["incidents"] });
-    const parts: string[] = [];
-    if (skipped.length) parts.push(`${skipped.length} skipped (missing required fields)`);
-    if (failed) parts.push(`${failed} failed`);
     if (inserted) {
-      toast.success(`Imported ${inserted} record${inserted === 1 ? "" : "s"}`, {
-        description: parts.join(" · ") || undefined,
+      setReviewOpen(false);
+      setReviewRows([]);
+      toast.success(`Saved ${inserted} incident${inserted === 1 ? "" : "s"} to records`, {
+        description: failed ? `${failed} failed to save — check console for details.` : undefined,
       });
     } else {
-      toast.error("Import failed", { description: parts.join(" · ") || "No records were saved." });
+      toast.error("Import failed", { description: "No records were saved." });
     }
   };
 
@@ -424,7 +431,15 @@ export default function Records() {
         onOpenChange={setImportOpen}
         mode="bulk"
         busy={isImporting}
-        onBulkApply={handleBulkImport}
+        onBulkApply={handleMappedRows}
+      />
+
+      <BulkImportReviewDialog
+        open={reviewOpen}
+        onOpenChange={setReviewOpen}
+        rows={reviewRows}
+        busy={isImporting}
+        onSubmit={handleReviewSubmit}
       />
 
       {templates.length > 0 && (
