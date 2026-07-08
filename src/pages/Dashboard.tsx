@@ -58,8 +58,10 @@ import {
 import {
   chartTimeLabel,
   filterByChartTime,
-  trendSeries,
+  filterConsumerReports,
+  enhancedTrendSeries,
 } from "@/lib/chart-time-filter";
+import { ConsumerTrendTooltip } from "@/components/ConsumerTrendTooltip";
 
 
 const statusClass: Record<string, string> = {
@@ -210,7 +212,10 @@ export default function Dashboard() {
   const regionLoading = useChartFilterLoading(regionFilter);
   const productLoading = useChartFilterLoading(productFilter);
 
-  const trendRows = useMemo(() => filterByChartTime(incidents, trendFilter), [incidents, trendFilter]);
+  const trendRows = useMemo(
+    () => filterConsumerReports(filterByChartTime(incidents, trendFilter)),
+    [incidents, trendFilter],
+  );
   const threatRows = useMemo(() => filterByChartTime(incidents, threatFilter), [incidents, threatFilter]);
   const hotspotRows = useMemo(() => filterByChartTime(incidents, hotspotFilter), [incidents, hotspotFilter]);
   const statusRows = useMemo(() => filterByChartTime(incidents, statusFilter), [incidents, statusFilter]);
@@ -218,7 +223,7 @@ export default function Dashboard() {
   const regionRows = useMemo(() => filterByChartTime(incidents, regionFilter), [incidents, regionFilter]);
   const productRows = useMemo(() => filterByChartTime(incidents, productFilter), [incidents, productFilter]);
 
-  const trendData = useMemo(() => trendSeries(trendRows, trendFilter), [trendRows, trendFilter]);
+  const trendData = useMemo(() => enhancedTrendSeries(trendRows, trendFilter), [trendRows, trendFilter]);
   const regionData = useMemo(() => incidentsByRegion(regionRows).slice(0, 8), [regionRows]);
   const productData = useMemo(() => incidentsByProduct(productRows), [productRows]);
   const liveFeed = useMemo(() => [...incidents]
@@ -502,8 +507,10 @@ export default function Dashboard() {
         <div className="dash-card lg:col-span-2">
           <div className="dash-card-header flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <span className="section-title">Incident Trends</span>
-              <span className="dash-card-period">{chartTimeLabel(trendFilter, "last 6 months")}</span>
+              <span className="section-title">Consumer Incident Trend</span>
+              <span className="dash-card-period">
+                {chartTimeLabel(trendFilter, "last 6 months")} · {trendRows.length} consumer reports
+              </span>
             </div>
             <ChartTimeFilter value={trendFilter} onChange={setTrendFilter} compact />
           </div>
@@ -519,7 +526,7 @@ export default function Dashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 90%)" />
                 <XAxis dataKey="label" tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
-                <Tooltip {...tooltipStyle} />
+                <Tooltip content={<ConsumerTrendTooltip />} />
                 <Area type="monotone" dataKey="incidents" stroke={COLORS.blue} strokeWidth={2} fill="url(#gradientBlue)" />
               </AreaChart>
             </ResponsiveContainer>

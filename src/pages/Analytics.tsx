@@ -10,9 +10,11 @@ import {
 import {
   chartTimeLabel,
   filterByChartTime,
-  trendSeries,
+  filterConsumerReports,
+  enhancedTrendSeries,
   type ChartTimeFilterState,
 } from "@/lib/chart-time-filter";
+import { ConsumerTrendTooltip } from "@/components/ConsumerTrendTooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   BarChart,
@@ -91,12 +93,15 @@ export default function Analytics() {
 
   const regionRows = useMemo<IncidentRow[]>(() => filterByChartTime(incidents, regionFilter), [incidents, regionFilter]);
   const typeRows = useMemo<IncidentRow[]>(() => filterByChartTime(incidents, typeFilter), [incidents, typeFilter]);
-  const trendRows = useMemo<IncidentRow[]>(() => filterByChartTime(incidents, trendFilter), [incidents, trendFilter]);
+  const trendRows = useMemo<IncidentRow[]>(
+    () => filterConsumerReports(filterByChartTime(incidents, trendFilter)),
+    [incidents, trendFilter],
+  );
   const productRows = useMemo<IncidentRow[]>(() => filterByChartTime(incidents, productFilter), [incidents, productFilter]);
 
   const regionData = useMemo(() => incidentsByRegion(regionRows), [regionRows]);
   const categoryData = useMemo(() => incidentsByCategory(typeRows), [typeRows]);
-  const trendData = useMemo(() => trendSeries(trendRows, trendFilter), [trendRows, trendFilter]);
+  const trendData = useMemo(() => enhancedTrendSeries(trendRows, trendFilter), [trendRows, trendFilter]);
   const productData = useMemo(() => incidentsByProduct(productRows), [productRows]);
 
   if (isLoading) return <ChartPageSkeleton className="min-h-[55vh]" />;
@@ -146,7 +151,8 @@ export default function Analytics() {
         </div>
 
         <div className="dash-card">
-          <CardHeader title="Incident Trend" state={trendFilter} onChange={setTrendFilter} fallbackLabel="rolling 6 months" />
+          <CardHeader title="Consumer Incident Trend" state={trendFilter} onChange={setTrendFilter} fallbackLabel="rolling 6 months" />
+          <div className="meta-text -mt-2 mb-2">{trendRows.length} consumer reports</div>
           {trendLoading ? <ChartLoadingSkeleton height={chartH} /> : (
             <ResponsiveContainer width="100%" height={chartH}>
               <AreaChart data={trendData}>
@@ -159,7 +165,7 @@ export default function Analytics() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 90%)" />
                 <XAxis dataKey="label" tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
-                <Tooltip {...tooltipStyle} />
+                <Tooltip content={<ConsumerTrendTooltip />} />
                 <Area type="monotone" dataKey="incidents" stroke="hsl(224, 52%, 34%)" strokeWidth={2} fill="url(#analyticsGrad)" />
               </AreaChart>
             </ResponsiveContainer>
