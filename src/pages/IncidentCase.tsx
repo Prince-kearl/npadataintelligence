@@ -158,6 +158,13 @@ export default function IncidentCase() {
     description: "",
     source_notes: "",
   });
+  const [escalateOpen, setEscalateOpen] = useState(false);
+  const [escalation, setEscalation] = useState({
+    hodEmail: "",
+    hodName: "",
+    directorate: DEFAULT_DIRECTORATE,
+    notes: "",
+  });
 
   const incidentQuery = useQuery({
     queryKey: ["incident", id],
