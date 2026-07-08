@@ -294,12 +294,13 @@ export default function Dashboard() {
             {dashboardCopy.subtitle}{profile?.full_name ? ` · ${profile.full_name}` : ""}
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <DateRangeFilter value={chartRange} onChange={setChartRange} />
           <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-success/10 text-success font-medium">
             <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
             {isFetching ? "Refreshing" : "Live"}
           </span>
-          <span className="text-muted-foreground">Auto-refresh 30s</span>
+          <span className="text-muted-foreground hidden sm:inline">Auto-refresh 30s</span>
         </div>
       </div>
 
