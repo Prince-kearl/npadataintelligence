@@ -463,7 +463,7 @@ export default function Dashboard() {
         <div className="dash-card lg:col-span-2">
           <div className="dash-card-header">
             <span className="section-title">Incident Trends</span>
-            <span className="dash-card-period">last 6 months</span>
+            <span className="dash-card-period">{chartRange === "all" ? "last 6 months" : chartPeriod}</span>
           </div>
           <ResponsiveContainer width="100%" height={240}>
             <AreaChart data={trendData}>
@@ -485,7 +485,7 @@ export default function Dashboard() {
         <div className="dash-card">
           <div className="dash-card-header">
             <span className="section-title">Threat Distribution</span>
-            <span className="dash-card-period">live · {incidents.length} incidents</span>
+            <span className="dash-card-period">{chartPeriod} · {chartIncidents.length} incidents</span>
           </div>
           <div className="flex flex-col xl:flex-row items-center gap-3">
             <div className="w-full xl:w-[52%] xl:min-w-[190px] xl:shrink-0 h-[220px]">
@@ -534,7 +534,7 @@ export default function Dashboard() {
         <div className="dash-card">
           <div className="dash-card-header">
             <span className="section-title">Case Status Distribution</span>
-            <span className="dash-card-period">live</span>
+            <span className="dash-card-period">{chartPeriod}</span>
           </div>
           {statusDistribution.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-12">No incident data yet</p>
@@ -594,7 +594,7 @@ export default function Dashboard() {
         <div className="dash-card lg:col-span-2">
           <div className="dash-card-header">
             <span className="section-title">By Region</span>
-            <span className="dash-card-period">all time</span>
+            <span className="dash-card-period">{chartPeriod}</span>
           </div>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={regionData} layout="vertical" margin={{ left: 4 }}>
@@ -657,7 +657,7 @@ export default function Dashboard() {
       <div className="dash-card">
         <div className="dash-card-header">
           <span className="section-title">Product Risk Exposure</span>
-          <span className="dash-card-period">all time</span>
+          <span className="dash-card-period">{chartPeriod}</span>
         </div>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={productData}>
