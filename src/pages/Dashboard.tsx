@@ -469,7 +469,7 @@ export default function Dashboard() {
         </div>
 
         <div className="dash-card">
-          <div className="dash-card-header flex-wrap gap-2">
+          <div className="dash-card-header">
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-primary" />
               <span className="section-title">Incident Hotspot Heatmap</span>
@@ -500,7 +500,7 @@ export default function Dashboard() {
       {/* Row: Trends + Threat distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="dash-card lg:col-span-2">
-          <div className="dash-card-header flex-wrap gap-2">
+          <div className="dash-card-header">
             <div className="flex items-center gap-2">
               <span className="section-title">Consumer Incident Trend</span>
               <span className="dash-card-period">
@@ -529,7 +529,7 @@ export default function Dashboard() {
         </div>
 
         <div className="dash-card">
-          <div className="dash-card-header flex-wrap gap-2">
+          <div className="dash-card-header">
             <div className="flex items-center gap-2">
               <span className="section-title">Threat Distribution</span>
               <span className="dash-card-period">{chartTimeLabel(threatFilter)} · {threatRows.length} incidents</span>
@@ -584,7 +584,7 @@ export default function Dashboard() {
       {/* Row: Status distribution + Top recurring causes */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="dash-card">
-          <div className="dash-card-header flex-wrap gap-2">
+          <div className="dash-card-header">
             <div className="flex items-center gap-2">
               <span className="section-title">Case Status Distribution</span>
               <span className="dash-card-period">{chartTimeLabel(statusFilter)}</span>
@@ -613,7 +613,7 @@ export default function Dashboard() {
         </div>
 
         <div className="dash-card lg:col-span-2">
-          <div className="dash-card-header flex-wrap gap-2">
+          <div className="dash-card-header">
             <div className="flex items-center gap-2">
               <span className="section-title">Top Recurring Causes</span>
               <span className="dash-card-period">{chartTimeLabel(causesFilter, "category · product")}</span>
@@ -651,7 +651,7 @@ export default function Dashboard() {
       {/* Row: By Region + Recent table */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         <div className="dash-card lg:col-span-2">
-          <div className="dash-card-header flex-wrap gap-2">
+          <div className="dash-card-header">
             <div className="flex items-center gap-2">
               <span className="section-title">By Region</span>
               <span className="dash-card-period">{chartTimeLabel(regionFilter)}</span>
@@ -720,7 +720,7 @@ export default function Dashboard() {
 
       {/* Row: Product risk */}
       <div className="dash-card">
-        <div className="dash-card-header flex-wrap gap-2">
+        <div className="dash-card-header">
           <div className="flex items-center gap-2">
             <span className="section-title">Product Risk Exposure</span>
             <span className="dash-card-period">{chartTimeLabel(productFilter)}</span>
