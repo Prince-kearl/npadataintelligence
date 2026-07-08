@@ -396,6 +396,11 @@ export default function Records() {
           <p className="meta-text mt-1">{isLoading ? "Loading..." : `${filtered.length} of ${incidents.length} records`}</p>
         </div>
         <div className="grid grid-cols-1 sm:flex gap-2 w-full sm:w-auto">
+          {can("submit_incident") && (
+            <Button variant="outline" onClick={() => setImportOpen(true)} disabled={!user} className="w-full sm:w-auto">
+              <Upload className="h-4 w-4 mr-1" /> Import Excel
+            </Button>
+          )}
           {can("manage_users") && (
             <Button variant="outline" onClick={() => setShowTrash((v) => !v)} className="w-full sm:w-auto">
               <Trash2 className="h-4 w-4 mr-1" /> {showTrash ? "Hide Trash" : "Show Trash"}
@@ -413,6 +418,14 @@ export default function Records() {
           )}
         </div>
       </div>
+
+      <ExcelImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        mode="bulk"
+        busy={isImporting}
+        onBulkApply={handleBulkImport}
+      />
 
       {templates.length > 0 && (
         <div className="dash-card py-3">
