@@ -379,8 +379,7 @@ export default function Dashboard() {
           icon={AlertTriangle}
           change={kpis.delta === 0 ? "No prior period" : `${kpis.delta > 0 ? "↑" : "↓"} ${Math.abs(kpis.delta)}% vs prev 30d`}
           changeType={kpis.delta > 0 ? "negative" : kpis.delta < 0 ? "positive" : "neutral"}
-          iconBg="bg-destructive/10"
-          iconClass="text-destructive"
+          gradient="crimson"
           to="/records?range=30d"
           ctaLabel="View last 30 days"
         />
@@ -390,8 +389,7 @@ export default function Dashboard() {
           icon={ShieldAlert}
           change={kpis.total ? `${(kpis.casualties / kpis.total).toFixed(1)} avg / incident` : "—"}
           changeType={kpis.casualties > 0 ? "negative" : "positive"}
-          iconBg="bg-warning/10"
-          iconClass="text-warning"
+          gradient="amber"
           to="/analytics"
           ctaLabel="Open analytics"
         />
@@ -401,8 +399,7 @@ export default function Dashboard() {
           icon={CheckCircle}
           change={`${kpis.resolveRate}% resolve rate`}
           changeType="positive"
-          iconBg="bg-success/10"
-          iconClass="text-success"
+          gradient="teal"
           to="/records?status=Closed"
           ctaLabel="View resolved"
         />
@@ -412,8 +409,7 @@ export default function Dashboard() {
           icon={Activity}
           change="Across all stages"
           changeType="neutral"
-          iconBg="bg-info/10"
-          iconClass="text-info"
+          gradient="navy"
           to="/records?status=Open"
           ctaLabel="View open cases"
         />
@@ -423,8 +419,7 @@ export default function Dashboard() {
           icon={Flame}
           change="All-time"
           changeType="neutral"
-          iconBg="bg-primary/15"
-          iconClass="text-primary"
+          gradient="gold"
           to="/records"
           ctaLabel="Browse all-time records"
         />
