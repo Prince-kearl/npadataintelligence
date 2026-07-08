@@ -763,8 +763,8 @@ export default function SubmitIncident() {
         </div>
 
         <div className="grid grid-cols-1 sm:flex sm:items-center gap-2 sm:gap-3 sm:justify-end">
-          <Button variant="ghost" type="button" onClick={handleDiscardDraft} className="min-h-12 w-full sm:w-auto">
-            <RotateCcw className="h-4 w-4 mr-1" /> Discard
+          <Button variant="ghost" type="button" onClick={handleClearForm} className="min-h-12 w-full sm:w-auto">
+            <RotateCcw className="h-4 w-4 mr-1" /> Clear
           </Button>
           <Button variant="outline" type="button" onClick={handleSaveDraft} className="min-h-12 w-full sm:w-auto">
             <Save className="h-4 w-4 mr-1" /> Save Draft
