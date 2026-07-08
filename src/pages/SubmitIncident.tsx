@@ -44,6 +44,8 @@ import {
   type AttachmentMeta,
 } from "@/lib/incidents";
 import { saveDraft, loadDraft, deleteDraft } from "@/lib/draft-store";
+import ExcelImportDialog, { type ImportedIncident } from "@/components/ExcelImportDialog";
+import { FileSpreadsheet } from "lucide-react";
 
 const PREV_CHANNELS = [
   "None — first time reported",
