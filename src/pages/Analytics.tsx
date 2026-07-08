@@ -151,7 +151,8 @@ export default function Analytics() {
         </div>
 
         <div className="dash-card">
-          <CardHeader title="Incident Trend" state={trendFilter} onChange={setTrendFilter} fallbackLabel="rolling 6 months" />
+          <CardHeader title="Consumer Incident Trend" state={trendFilter} onChange={setTrendFilter} fallbackLabel="rolling 6 months" />
+          <div className="meta-text -mt-2 mb-2">{trendRows.length} consumer reports</div>
           {trendLoading ? <ChartLoadingSkeleton height={chartH} /> : (
             <ResponsiveContainer width="100%" height={chartH}>
               <AreaChart data={trendData}>
