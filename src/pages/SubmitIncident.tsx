@@ -28,7 +28,7 @@ import {
   REPORT_SOURCES,
 } from "@/lib/incident-options";
 import { findPotentialDuplicates, type DuplicateMatch } from "@/lib/incident-verification";
-import { Upload, Save, SendHorizonal, ShieldAlert, X, Camera, MapPin, RotateCcw, WifiOff } from "lucide-react";
+import { Upload, Save, SendHorizonal, ShieldAlert, X, Camera, MapPin, RotateCcw, WifiOff, Loader2, CheckCircle2, AlertCircle, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -58,9 +58,15 @@ const PREV_CHANNELS = [
 ];
 const EVIDENCE_TAGS = ["Photo", "Document", "Video", "Witness statement", "Lab report", "Map", "Other"];
 
+type UploadState = "idle" | "uploading" | "scanning" | "done" | "error";
+
 interface PendingFile {
   file: File;
   tags: string[];
+  previewUrl?: string;
+  state: UploadState;
+  progress: number;
+  errorMessage?: string;
 }
 
 export default function SubmitIncident() {
