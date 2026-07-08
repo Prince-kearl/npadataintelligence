@@ -178,14 +178,16 @@ export default function ExcelImportDialog({ open, onOpenChange, onApply }: Props
       const ws = wb.Sheets[sheetName];
       const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: null, raw: true });
       setProgress(90);
-      // Filter to rows that contain at least one non-empty value in a real column
-      const cleaned = json.filter((r) =>
-        Object.entries(r).some(([k, v]) => v != null && String(v).trim() !== "" && !k.startsWith("__EMPTY"))
-      );
+      // Keep rows that have real data in at least 2 named columns — this drops
+      // section-header rows like "FIRST QUARTER" that only fill a single cell.
+      const isNamed = (k: string) => !k.startsWith("__EMPTY");
+      const namedValueCount = (r: Record<string, unknown>) =>
+        Object.entries(r).filter(([k, v]) => isNamed(k) && v != null && String(v).trim() !== "").length;
+      const cleaned = json.filter((r) => namedValueCount(r) >= 2);
       if (!cleaned.length) throw new Error("empty");
       const detectedHeaders = Array.from(
         new Set(cleaned.flatMap((r) => Object.keys(r)))
-      ).filter((h) => !h.startsWith("__EMPTY"));
+      ).filter(isNamed);
       if (!detectedHeaders.length) throw new Error("empty");
 
       // Fuzzy pre-mapping
@@ -199,9 +201,14 @@ export default function ExcelImportDialog({ open, onOpenChange, onApply }: Props
         }
         initial[field.key] = bestScore >= 40 ? bestHeader : NONE;
       }
+      // Pick the first row that actually has values in the auto-mapped columns.
+      const mappedCols = Object.values(initial).filter((c) => c && c !== NONE);
+      const firstUsableIdx = cleaned.findIndex((r) =>
+        mappedCols.some((c) => r[c] != null && String(r[c]).trim() !== "")
+      );
       setHeaders(detectedHeaders);
       setRows(cleaned);
-      setRowIndex(0);
+      setRowIndex(firstUsableIdx >= 0 ? firstUsableIdx : 0);
       setMapping(initial);
       setProgress(100);
     } catch {
