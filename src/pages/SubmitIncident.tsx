@@ -44,6 +44,8 @@ import {
   type AttachmentMeta,
 } from "@/lib/incidents";
 import { saveDraft, loadDraft, deleteDraft } from "@/lib/draft-store";
+import ExcelImportDialog, { type ImportedIncident } from "@/components/ExcelImportDialog";
+import { FileSpreadsheet } from "lucide-react";
 
 const PREV_CHANNELS = [
   "None — first time reported",
@@ -100,6 +102,38 @@ export default function SubmitIncident() {
   const [previousChannel, setPreviousChannel] = useState("None — first time reported");
   const [files, setFiles] = useState<PendingFile[]>([]);
   const [submissionId, setSubmissionId] = useState(() => crypto.randomUUID());
+  const [excelOpen, setExcelOpen] = useState(false);
+
+  const matchOption = <T extends string>(value: string | undefined, options: readonly T[]): T | undefined => {
+    if (!value) return undefined;
+    const v = value.toLowerCase().trim();
+    return (
+      options.find((o) => o.toLowerCase() === v) ||
+      options.find((o) => o.toLowerCase().includes(v) || v.includes(o.toLowerCase()))
+    );
+  };
+
+  const applyImported = (data: ImportedIncident) => {
+    if (data.incidentDate) setIncidentDate(data.incidentDate);
+    const r = matchOption(data.region, REGIONS);
+    if (r) setRegion(r);
+    if (data.district) setDistrict(data.district);
+    if (data.locationName) setLocationName(data.locationName);
+    if (data.gps) setGps(data.gps);
+    const c = matchOption(data.category, INCIDENT_CATEGORIES);
+    if (c) setCategory(c);
+    const it = matchOption(data.incidentType, INCIDENT_TYPES);
+    if (it) setIncidentType(it);
+    const pt = matchOption(data.productType, PRODUCT_TYPES);
+    if (pt) setProductType(pt);
+    const inj = matchOption(data.injuryType, INJURY_TYPES);
+    if (inj) setInjuryType(inj);
+    if (typeof data.casualties === "number") setCasualties(data.casualties);
+    if (typeof data.fatalities === "number") setFatalities(data.fatalities);
+    if (data.description) setDescription(data.description);
+    const s = matchOption(data.source, REPORT_SOURCES);
+    if (s) setSource(s);
+  };
 
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -443,6 +477,25 @@ export default function SubmitIncident() {
       </div>
 
       <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
+        <div className="dash-card flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <FileSpreadsheet className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="section-title">Import Data via Excel</h3>
+              <p className="meta-text mt-0.5">
+                Upload an .xlsx or .xls spreadsheet — we'll detect its columns and let you map them to this form.
+              </p>
+            </div>
+          </div>
+          <Button type="button" variant="outline" onClick={() => setExcelOpen(true)} className="min-h-11 shrink-0">
+            <Upload className="h-4 w-4 mr-2" /> Upload Excel
+          </Button>
+        </div>
+
+        <ExcelImportDialog open={excelOpen} onOpenChange={setExcelOpen} onApply={applyImported} />
+
         <div className="dash-card space-y-4">
           <h3 className="section-title">Location & Date</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
