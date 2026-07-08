@@ -836,6 +836,71 @@ export default function IncidentCase() {
         pending={Boolean(deletingAttachmentId)}
         onConfirm={removeAttachment}
       />
+
+      <Dialog open={escalateOpen} onOpenChange={(o) => !escalateMutation.isPending && setEscalateOpen(o)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-accent" /> Open as New Case & Escalate
+            </DialogTitle>
+            <DialogDescription>
+              A new case will open with status <strong>OPEN</strong> and be routed to the target directorate. The email will be prepared in your mail client so it is sent from your signed-in address ({user?.email || "your work email"}).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="esc-directorate">Target directorate</Label>
+              <Input
+                id="esc-directorate"
+                value={escalation.directorate}
+                onChange={(e) => setEscalation((s) => ({ ...s, directorate: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="esc-hod-name">HOD / Line Manager name</Label>
+                <Input
+                  id="esc-hod-name"
+                  placeholder="e.g. Dr. Kwame Asante"
+                  value={escalation.hodName}
+                  onChange={(e) => setEscalation((s) => ({ ...s, hodName: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="esc-hod-email">Recipient work email *</Label>
+                <Input
+                  id="esc-hod-email"
+                  type="email"
+                  required
+                  placeholder="hod.security@npa.gov.gh"
+                  value={escalation.hodEmail}
+                  onChange={(e) => setEscalation((s) => ({ ...s, hodEmail: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="esc-notes">Escalation notes</Label>
+              <Textarea
+                id="esc-notes"
+                rows={4}
+                placeholder="Summarise why this is being escalated and any immediate actions required…"
+                value={escalation.notes}
+                onChange={(e) => setEscalation((s) => ({ ...s, notes: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEscalateOpen(false)} disabled={escalateMutation.isPending}>Cancel</Button>
+            <Button
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+              onClick={() => escalateMutation.mutate()}
+              disabled={escalateMutation.isPending || !escalation.hodEmail.trim()}
+            >
+              {escalateMutation.isPending ? "Opening case…" : (<><Send className="mr-1 h-4 w-4" /> Open Case & Send Email</>)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
