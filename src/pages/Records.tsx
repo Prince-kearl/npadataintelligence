@@ -55,7 +55,7 @@ export default function Records() {
   const incidentsQuery = useIncidents();
   const { data: incidents = [], isLoading, isError, error, refetch } = incidentsQuery;
   const { can, allowedTransitions } = useRole();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const qc = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
