@@ -12,6 +12,7 @@ import {
 import { Search, Download, X, Loader2, BookmarkPlus, Bookmark, Trash2, MapPin, CalendarDays, ChevronRight, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ExcelImportDialog, { type ImportedIncident } from "@/components/ExcelImportDialog";
+import BulkImportReviewDialog from "@/components/BulkImportReviewDialog";
 import { REGIONS, INCIDENT_CATEGORIES, INCIDENT_TYPES, PRODUCT_TYPES, INJURY_TYPES, REPORT_SOURCES } from "@/lib/incident-options";
 import { useIncidents } from "@/hooks/useIncidents";
 import { useRole } from "@/hooks/useRole";
