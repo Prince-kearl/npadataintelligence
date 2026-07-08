@@ -10,9 +10,11 @@ import {
 import {
   chartTimeLabel,
   filterByChartTime,
-  trendSeries,
+  filterConsumerReports,
+  enhancedTrendSeries,
   type ChartTimeFilterState,
 } from "@/lib/chart-time-filter";
+import { ConsumerTrendTooltip } from "@/components/ConsumerTrendTooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   BarChart,
