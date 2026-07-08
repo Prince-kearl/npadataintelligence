@@ -177,7 +177,11 @@ export default function Records() {
       }
     }
     setIsImporting(false);
-    qc.invalidateQueries({ queryKey: ["incidents"] });
+    // Force every analytics/dashboard consumer to re-fetch against live records.
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["incidents"] }),
+      qc.refetchQueries({ queryKey: ["incidents"] }),
+    ]);
     if (inserted) {
       setReviewOpen(false);
       setReviewRows([]);

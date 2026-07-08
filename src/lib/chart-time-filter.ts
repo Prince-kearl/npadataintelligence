@@ -16,7 +16,8 @@ export const DEFAULT_CHART_TIME_FILTER: ChartTimeFilterState = {
   month: null,
 };
 
-export const CHART_YEARS = [2023, 2024, 2025, 2026] as const;
+// Expanded range so historical archives and forward-looking projections both fit.
+export const CHART_YEARS: readonly number[] = Array.from({ length: 2035 - 2015 + 1 }, (_, i) => 2035 - i);
 
 export const QUARTER_MONTHS: Record<1 | 2 | 3 | 4, number[]> = {
   1: [1, 2, 3],
