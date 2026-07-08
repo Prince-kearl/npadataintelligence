@@ -14,6 +14,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Briefcase,
 } from "lucide-react";
 import { SidebarNavLink } from "@/components/SidebarNavLink";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ const mainNav: NavItem[] = [
   { to: "/records", icon: Database, label: "Records", perm: "view_own_records" },
   { to: "/analytics", icon: BarChart3, label: "Analytics", perm: "view_analytics" },
   { to: "/reports", icon: FileText, label: "Reports", perm: "view_reports" },
+  { to: "/cases", icon: Briefcase, label: "Case Management", perm: "manage_cases" },
   { to: "/notifications", icon: Bell, label: "Notifications" },
   { to: "/profile", icon: UserCircle2, label: "Profile" },
 ];
