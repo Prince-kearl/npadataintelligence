@@ -131,6 +131,77 @@ export type Database = {
         }
         Relationships: []
       }
+      cases: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          closed_by_email: string | null
+          created_at: string
+          directorate: string
+          email_error: string | null
+          email_status: string | null
+          escalation_notes: string | null
+          hod_email: string
+          hod_name: string | null
+          id: string
+          incident_id: string
+          opened_at: string
+          opened_by: string | null
+          opened_by_email: string | null
+          resolution_notes: string | null
+          status: Database["public"]["Enums"]["case_status"]
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_by_email?: string | null
+          created_at?: string
+          directorate?: string
+          email_error?: string | null
+          email_status?: string | null
+          escalation_notes?: string | null
+          hod_email: string
+          hod_name?: string | null
+          id?: string
+          incident_id: string
+          opened_at?: string
+          opened_by?: string | null
+          opened_by_email?: string | null
+          resolution_notes?: string | null
+          status?: Database["public"]["Enums"]["case_status"]
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_by_email?: string | null
+          created_at?: string
+          directorate?: string
+          email_error?: string | null
+          email_status?: string | null
+          escalation_notes?: string | null
+          hod_email?: string
+          hod_name?: string | null
+          id?: string
+          incident_id?: string
+          opened_at?: string
+          opened_by?: string | null
+          opened_by_email?: string | null
+          resolution_notes?: string | null
+          status?: Database["public"]["Enums"]["case_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cases_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       export_history: {
         Row: {
           created_at: string
@@ -608,6 +679,35 @@ export type Database = {
         }
         Returns: undefined
       }
+      close_case: {
+        Args: { _case_id: string; _resolution: string }
+        Returns: {
+          closed_at: string | null
+          closed_by: string | null
+          closed_by_email: string | null
+          created_at: string
+          directorate: string
+          email_error: string | null
+          email_status: string | null
+          escalation_notes: string | null
+          hod_email: string
+          hod_name: string | null
+          id: string
+          incident_id: string
+          opened_at: string
+          opened_by: string | null
+          opened_by_email: string | null
+          resolution_notes: string | null
+          status: Database["public"]["Enums"]["case_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cases"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_incident_response_action: {
         Args: {
           _action: Database["public"]["Enums"]["response_action_type"]
@@ -701,6 +801,41 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      escalate_incident: {
+        Args: {
+          _directorate?: string
+          _hod_email: string
+          _hod_name?: string
+          _incident_id: string
+          _notes?: string
+        }
+        Returns: {
+          closed_at: string | null
+          closed_by: string | null
+          closed_by_email: string | null
+          created_at: string
+          directorate: string
+          email_error: string | null
+          email_status: string | null
+          escalation_notes: string | null
+          hod_email: string
+          hod_name: string | null
+          id: string
+          incident_id: string
+          opened_at: string
+          opened_by: string | null
+          opened_by_email: string | null
+          resolution_notes: string | null
+          status: Database["public"]["Enums"]["case_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cases"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_unread_notifications_count: { Args: never; Returns: number }
       has_role: {
         Args: {
@@ -750,6 +885,35 @@ export type Database = {
         }
       }
       mark_all_notifications_read: { Args: never; Returns: number }
+      mark_case_email_sent: {
+        Args: { _case_id: string; _error?: string; _status: string }
+        Returns: {
+          closed_at: string | null
+          closed_by: string | null
+          closed_by_email: string | null
+          created_at: string
+          directorate: string
+          email_error: string | null
+          email_status: string | null
+          escalation_notes: string | null
+          hod_email: string
+          hod_name: string | null
+          id: string
+          incident_id: string
+          opened_at: string
+          opened_by: string | null
+          opened_by_email: string | null
+          resolution_notes: string | null
+          status: Database["public"]["Enums"]["case_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cases"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       mark_notification_read: {
         Args: { _id: string; _is_read: boolean }
         Returns: {
@@ -889,6 +1053,7 @@ export type Database = {
       account_status: "pending" | "active" | "suspended"
       app_role: "collector" | "analyst" | "admin"
       attachment_scan_status: "pending" | "clean" | "infected" | "skipped"
+      case_status: "open" | "closed"
       incident_status:
         | "New"
         | "Reviewed"
@@ -1039,6 +1204,7 @@ export const Constants = {
       account_status: ["pending", "active", "suspended"],
       app_role: ["collector", "analyst", "admin"],
       attachment_scan_status: ["pending", "clean", "infected", "skipped"],
+      case_status: ["open", "closed"],
       incident_status: [
         "New",
         "Reviewed",
