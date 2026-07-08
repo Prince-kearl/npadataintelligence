@@ -244,40 +244,53 @@ export default function SubmitIncident() {
       return;
     }
     const inIframe = typeof window !== "undefined" && window.self !== window.top;
+    const isSecure = typeof window !== "undefined" && (window.isSecureContext || window.location.protocol === "https:");
+    if (!isSecure) {
+      toast.error("Precise location requires a secure (HTTPS) connection.");
+      return;
+    }
     setLocating(true);
     const loadingId = toast.loading("Detecting your current location…");
-    const finish = (lat: number, lon: number, source: string) => {
+    const finish = (lat: number, lon: number, source: "GPS" | "approximate") => {
       setGps(`${lat.toFixed(5)}, ${lon.toFixed(5)}`);
-      toast.success(`Location captured via ${source}`, { id: loadingId });
+      const msg = source === "GPS"
+        ? "Precise location captured."
+        : "Approximate location captured — you can refine the coordinates manually if needed.";
+      toast.success(msg, { id: loadingId });
       void reverseGeocode(lat, lon);
       setLocating(false);
     };
-    const ipFallback = async (reason: string) => {
+    const ipFallback = async (fallbackNotice?: string) => {
       try {
         const res = await fetch("https://ipapi.co/json/");
         if (!res.ok) throw new Error("IP lookup failed");
         const data = await res.json();
         if (typeof data.latitude === "number" && typeof data.longitude === "number") {
-          finish(data.latitude, data.longitude, "approximate IP location");
+          if (fallbackNotice) toast.message(fallbackNotice, { duration: 4500 });
+          finish(data.latitude, data.longitude, "approximate");
           return;
         }
         throw new Error("IP lookup returned no coordinates");
       } catch {
-        toast.error(reason, { id: loadingId, duration: 6000 });
+        toast.error("Could not determine your location automatically. Enter coordinates manually.", {
+          id: loadingId,
+          duration: 6000,
+        });
         setLocating(false);
       }
     };
     navigator.geolocation.getCurrentPosition(
       (pos) => finish(pos.coords.latitude, pos.coords.longitude, "GPS"),
       (err) => {
-        const permissionBlocked = /permission|denied|disallowed|policy/i.test(err.message);
-        const reason = permissionBlocked
+        const permissionBlocked = /permission|denied|disallowed|policy/i.test(err.message) || err.code === 1;
+        // In production, keep the message clean and user-focused. Only mention
+        // "preview" if the app is genuinely running inside an iframe (dev/preview host).
+        const notice = permissionBlocked
           ? inIframe
-            ? "Geolocation is blocked in this preview. Falling back to approximate location — open the published URL for precise GPS."
-            : "Location permission denied. Falling back to approximate location — enable location for this site in your browser to get precise GPS."
-          : err.message || "Unable to retrieve precise location.";
-        toast.message(reason, { duration: 5000 });
-        void ipFallback("Could not determine your location automatically. Enter coordinates manually.");
+            ? "Location access is blocked in this embedded preview. Using an approximate location — open the app in its own tab for precise GPS."
+            : "Location permission is turned off for this site. Using an approximate location — enable location access in your browser for precise GPS."
+          : "Precise location unavailable right now. Using an approximate location instead.";
+        void ipFallback(notice);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
@@ -322,11 +335,16 @@ export default function SubmitIncident() {
         setFiles((prev) => prev.map((f, i) => (i === index ? { ...f, ...patch } : f)));
       for (const [index, pf] of files.entries()) {
         try {
-          updateFile(index, { state: "uploading", progress: 20, errorMessage: undefined });
-          const meta: AttachmentMeta = await uploadAttachment(user.id, submissionId, index, pf.file);
-          updateFile(index, { progress: 60 });
+          updateFile(index, { state: "uploading", progress: 0, errorMessage: undefined });
+          const meta: AttachmentMeta = await uploadAttachment(
+            user.id,
+            submissionId,
+            index,
+            pf.file,
+            (percent) => updateFile(index, { progress: percent }),
+          );
           const attachment = await attachToIncident(inc.id, user.id, pf.file, meta, pf.tags);
-          updateFile(index, { state: "scanning", progress: 80 });
+          updateFile(index, { state: "scanning", progress: 99 });
           await scanAttachment(attachment.id);
           updateFile(index, { state: "done", progress: 100 });
         } catch (fileErr: any) {
@@ -568,17 +586,17 @@ export default function SubmitIncident() {
                   idle: null,
                   uploading: (
                     <span className="flex items-center gap-1 text-[10px] text-info font-medium">
-                      <Loader2 className="h-3 w-3 animate-spin" /> Uploading…
+                      <Loader2 className="h-3 w-3 animate-spin" /> Uploading… {pf.progress}%
                     </span>
                   ),
                   scanning: (
                     <span className="flex items-center gap-1 text-[10px] text-warning font-medium">
-                      <Loader2 className="h-3 w-3 animate-spin" /> Scanning…
+                      <Loader2 className="h-3 w-3 animate-spin" /> Scanning for threats…
                     </span>
                   ),
                   done: (
                     <span className="flex items-center gap-1 text-[10px] text-success font-medium">
-                      <CheckCircle2 className="h-3 w-3" /> Uploaded
+                      <CheckCircle2 className="h-3 w-3" /> Uploaded · 100%
                     </span>
                   ),
                   error: (

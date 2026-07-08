@@ -224,14 +224,55 @@ export function validateAttachment(file: File): void {
   if (!SAFE_MIME.test(file.type)) throw new Error(`${file.name} has unsupported MIME type ${file.type || "unknown"}`);
 }
 
-export async function uploadAttachment(userId: string, submissionId: string, index: number, file: File): Promise<AttachmentMeta> {
+export async function uploadAttachment(
+  userId: string,
+  submissionId: string,
+  index: number,
+  file: File,
+  onProgress?: (percent: number) => void,
+): Promise<AttachmentMeta> {
   validateAttachment(file);
   const path = `${userId}/${submissionId}/${index}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-  const { error } = await supabase.storage.from("incident-attachments").upload(path, file, {
-    cacheControl: "3600",
-    upsert: true,
-  });
-  if (error) throw error;
+
+  // Try XHR upload against the Storage REST endpoint so we can report real
+  // byte-level progress. Fall back to the SDK if the environment (e.g. tests)
+  // doesn't expose XHR or the base URL.
+  const baseUrl = (import.meta as any).env?.VITE_SUPABASE_URL as string | undefined;
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+  const anon = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+
+  if (baseUrl && token && typeof XMLHttpRequest !== "undefined") {
+    await new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const url = `${baseUrl}/storage/v1/object/incident-attachments/${path}`;
+      xhr.open("POST", url, true);
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      if (anon) xhr.setRequestHeader("apikey", anon);
+      xhr.setRequestHeader("x-upsert", "true");
+      xhr.setRequestHeader("cache-control", "3600");
+      if (file.type) xhr.setRequestHeader("content-type", file.type);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) {
+          onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100)));
+        }
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) resolve();
+        else reject(new Error(`Upload failed (${xhr.status}): ${xhr.responseText || xhr.statusText}`));
+      };
+      xhr.onerror = () => reject(new Error("Network error during upload"));
+      xhr.onabort = () => reject(new Error("Upload aborted"));
+      xhr.send(file);
+    });
+  } else {
+    const { error } = await supabase.storage.from("incident-attachments").upload(path, file, {
+      cacheControl: "3600",
+      upsert: true,
+    });
+    if (error) throw error;
+    onProgress?.(99);
+  }
   return { path, name: file.name, size: file.size, type: file.type };
 }
 
