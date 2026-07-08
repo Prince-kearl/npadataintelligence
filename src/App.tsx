@@ -17,6 +17,7 @@ const Drafts = lazy(() => import("@/pages/Drafts"));
 const IncidentCase = lazy(() => import("@/pages/IncidentCase"));
 const Analytics = lazy(() => import("@/pages/Analytics"));
 const Reports = lazy(() => import("@/pages/Reports"));
+const Cases = lazy(() => import("@/pages/Cases"));
 const AdminPanel = lazy(() => import("@/pages/AdminPanel"));
 const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
@@ -83,6 +84,14 @@ const App = () => (
                   }
                 />
                 <Route path="/notifications" element={<NotificationsPage />} />
+                <Route
+                  path="/cases"
+                  element={
+                    <RequireRole permission="manage_cases">
+                      <Cases />
+                    </RequireRole>
+                  }
+                />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/profiles" element={<ProfilePage />} />
                 <Route
