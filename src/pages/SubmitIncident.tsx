@@ -477,6 +477,25 @@ export default function SubmitIncident() {
       </div>
 
       <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
+        <div className="dash-card flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <FileSpreadsheet className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="section-title">Import Data via Excel</h3>
+              <p className="meta-text mt-0.5">
+                Upload an .xlsx or .xls spreadsheet — we'll detect its columns and let you map them to this form.
+              </p>
+            </div>
+          </div>
+          <Button type="button" variant="outline" onClick={() => setExcelOpen(true)} className="min-h-11 shrink-0">
+            <Upload className="h-4 w-4 mr-2" /> Upload Excel
+          </Button>
+        </div>
+
+        <ExcelImportDialog open={excelOpen} onOpenChange={setExcelOpen} onApply={applyImported} />
+
         <div className="dash-card space-y-4">
           <h3 className="section-title">Location & Date</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
