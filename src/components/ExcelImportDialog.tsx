@@ -320,7 +320,7 @@ export default function ExcelImportDialog({ open, onOpenChange, mode = "single",
               </Button>
             </div>
 
-            {rows.length > 1 && (
+            {mode === "single" && rows.length > 1 && (
               <div className="space-y-2">
                 <Label className="label-text">Select the row to import</Label>
                 <div className="border rounded-lg overflow-auto max-h-56">
@@ -358,7 +358,9 @@ export default function ExcelImportDialog({ open, onOpenChange, mode = "single",
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <Label className="label-text">Map spreadsheet columns to form fields</Label>
                 <p className="text-xs text-muted-foreground">
-                  Fields left as <em>Not mapped</em> stay blank so you can fill them in manually.
+                  {mode === "bulk"
+                    ? `All ${rows.length} row${rows.length === 1 ? "" : "s"} will be imported. Unmapped fields are saved blank.`
+                    : "Fields left as Not mapped stay blank so you can fill them in manually."}
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
