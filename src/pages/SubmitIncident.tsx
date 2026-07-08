@@ -186,7 +186,13 @@ export default function SubmitIncident() {
     for (const file of Array.from(list)) {
       try {
         validateAttachment(file);
-        next.push({ file, tags: [file.type.startsWith("image/") ? "Photo" : "Document"] });
+        next.push({
+          file,
+          tags: [file.type.startsWith("image/") ? "Photo" : "Document"],
+          previewUrl: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined,
+          state: "idle",
+          progress: 0,
+        });
       } catch (error) {
         toast.error(error instanceof Error ? error.message : `Cannot attach ${file.name}`);
       }
@@ -194,7 +200,12 @@ export default function SubmitIncident() {
     setFiles((prev) => [...prev, ...next]);
   };
 
-  const removeFile = (idx: number) => setFiles((p) => p.filter((_, i) => i !== idx));
+  const removeFile = (idx: number) =>
+    setFiles((p) => {
+      const target = p[idx];
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+      return p.filter((_, i) => i !== idx);
+    });
   const toggleTag = (idx: number, tag: string) =>
     setFiles((p) =>
       p.map((f, i) =>
