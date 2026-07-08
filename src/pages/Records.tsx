@@ -405,8 +405,8 @@ export default function Records() {
         </div>
         <div className="grid grid-cols-1 sm:flex gap-2 w-full sm:w-auto">
           {can("submit_incident") && (
-            <Button variant="outline" onClick={() => setImportOpen(true)} disabled={!user} className="w-full sm:w-auto">
-              <Upload className="h-4 w-4 mr-1" /> Import Excel
+            <Button variant="default" onClick={() => setImportOpen(true)} disabled={!user} className="w-full sm:w-auto">
+              <Upload className="h-4 w-4 mr-1" /> Bulk Upload (Excel)
             </Button>
           )}
           {can("manage_users") && (
