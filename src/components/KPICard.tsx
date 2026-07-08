@@ -19,17 +19,22 @@ interface KPICardProps {
   ctaLabel?: string;
 }
 
+// All gradients derive from the system brand palette:
+//   Sidebar Navy  #2F4B8F  ≈ hsl(222, 50%, 37%)
+//   Header Navy   #1B2F6B  ≈ hsl(224, 59%, 26%)
+//   Action Gold   #E5A623  ≈ hsl(40,  78%, 52%)
+// Each card is a different shade/blend of these two brand colors.
 const GRADIENT_STYLES: Record<KPIGradient, string> = {
-  // Card 1 – Total Incidents: Crimson → Dark Red
-  crimson: "bg-[linear-gradient(135deg,hsl(0,78%,55%)_0%,hsl(0,72%,38%)_100%)]",
-  // Card 2 – Casualties: Amber Gold → Deep Orange
-  amber: "bg-[linear-gradient(135deg,hsl(40,90%,55%)_0%,hsl(20,90%,45%)_100%)]",
-  // Card 3 – Resolved: Vibrant Teal → Emerald
-  teal: "bg-[linear-gradient(135deg,hsl(180,65%,42%)_0%,hsl(152,68%,36%)_100%)]",
-  // Card 4 – Open Cases: Deep Navy → Electric Blue
-  navy: "bg-[linear-gradient(135deg,hsl(228,62%,26%)_0%,hsl(210,90%,52%)_100%)]",
-  // Card 5 – All-Time: Gold → Bronze (brand accent)
-  gold: "bg-[linear-gradient(135deg,hsl(40,82%,52%)_0%,hsl(28,70%,38%)_100%)]",
+  // Card 1 – Total Incidents: Deep header navy → sidebar navy (darkest, alert emphasis)
+  crimson: "bg-[linear-gradient(135deg,hsl(224,60%,20%)_0%,hsl(222,55%,34%)_100%)]",
+  // Card 2 – Casualties: Burnished gold → deep amber (warm brand accent)
+  amber: "bg-[linear-gradient(135deg,hsl(40,82%,52%)_0%,hsl(32,78%,38%)_100%)]",
+  // Card 3 – Resolved: Muted navy → soft gold (balanced brand blend)
+  teal: "bg-[linear-gradient(135deg,hsl(222,45%,42%)_0%,hsl(40,70%,50%)_100%)]",
+  // Card 4 – Open Cases: Sidebar navy → lighter navy tint
+  navy: "bg-[linear-gradient(135deg,hsl(222,50%,37%)_0%,hsl(220,62%,52%)_100%)]",
+  // Card 5 – All-Time: Gold → warm navy (accent-forward brand blend)
+  gold: "bg-[linear-gradient(135deg,hsl(40,80%,48%)_0%,hsl(224,55%,30%)_100%)]",
 };
 
 export function KPICard({
