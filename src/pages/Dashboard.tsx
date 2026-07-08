@@ -293,11 +293,18 @@ export default function Dashboard() {
   const kpis = useMemo(() => {
     const now = Date.now();
     const day = 24 * 60 * 60 * 1000;
-    const last30 = incidents.filter((i) => now - new Date(i.incident_date).getTime() <= 30 * day);
-    const prev30 = incidents.filter((i) => {
-      const t = new Date(i.incident_date).getTime();
-      return now - t > 30 * day && now - t <= 60 * day;
-    });
+    // Count an incident within the 30d window when either the reported incident
+    // date OR the record's created_at falls inside it. Bulk-imported historic
+    // rows would otherwise be silently excluded even when logged today.
+    const within = (row: (typeof incidents)[number], from: number, to: number) => {
+      const candidates = [row.incident_date, row.created_at]
+        .filter(Boolean)
+        .map((v) => new Date(v as string).getTime())
+        .filter((t) => Number.isFinite(t));
+      return candidates.some((t) => now - t >= from && now - t < to);
+    };
+    const last30 = incidents.filter((i) => within(i, 0, 30 * day));
+    const prev30 = incidents.filter((i) => within(i, 30 * day, 60 * day));
     const delta = prev30.length ? Math.round(((last30.length - prev30.length) / prev30.length) * 100) : 0;
     const casualties = incidents.reduce((sum, i) => sum + (i.casualties ?? 0), 0);
     const open = incidents.filter((i) => !["Closed", "archived"].includes(i.status as any)).length;
