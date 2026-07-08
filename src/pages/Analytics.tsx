@@ -93,12 +93,15 @@ export default function Analytics() {
 
   const regionRows = useMemo<IncidentRow[]>(() => filterByChartTime(incidents, regionFilter), [incidents, regionFilter]);
   const typeRows = useMemo<IncidentRow[]>(() => filterByChartTime(incidents, typeFilter), [incidents, typeFilter]);
-  const trendRows = useMemo<IncidentRow[]>(() => filterByChartTime(incidents, trendFilter), [incidents, trendFilter]);
+  const trendRows = useMemo<IncidentRow[]>(
+    () => filterConsumerReports(filterByChartTime(incidents, trendFilter)),
+    [incidents, trendFilter],
+  );
   const productRows = useMemo<IncidentRow[]>(() => filterByChartTime(incidents, productFilter), [incidents, productFilter]);
 
   const regionData = useMemo(() => incidentsByRegion(regionRows), [regionRows]);
   const categoryData = useMemo(() => incidentsByCategory(typeRows), [typeRows]);
-  const trendData = useMemo(() => trendSeries(trendRows, trendFilter), [trendRows, trendFilter]);
+  const trendData = useMemo(() => enhancedTrendSeries(trendRows, trendFilter), [trendRows, trendFilter]);
   const productData = useMemo(() => incidentsByProduct(productRows), [productRows]);
 
   if (isLoading) return <ChartPageSkeleton className="min-h-[55vh]" />;
