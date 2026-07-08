@@ -66,10 +66,10 @@ interface CardHeaderProps {
 
 function CardHeader({ title, state, onChange, fallbackLabel = "All time" }: CardHeaderProps) {
   return (
-    <div className="dash-card-header flex-wrap gap-2">
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="section-title">{title}</span>
-        <span className="dash-card-period">{chartTimeLabel(state, fallbackLabel)}</span>
+    <div className="dash-card-header">
+      <div className="flex items-baseline gap-2 min-w-0 flex-1">
+        <span className="section-title truncate">{title}</span>
+        <span className="dash-card-period truncate">{chartTimeLabel(state, fallbackLabel)}</span>
       </div>
       <ChartTimeFilter value={state} onChange={onChange} compact />
     </div>
