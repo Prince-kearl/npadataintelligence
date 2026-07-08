@@ -92,7 +92,7 @@ export default function Analytics() {
         <div className="dash-card">
           <div className="dash-card-header">
             <span className="section-title">Type Distribution</span>
-            <span className="dash-card-period">all time</span>
+            <span className="dash-card-period">{periodLabel}</span>
           </div>
           <ResponsiveContainer width="100%" height={isMobile ? 240 : 300}>
             <PieChart>
@@ -111,7 +111,7 @@ export default function Analytics() {
         <div className="dash-card">
           <div className="dash-card-header">
             <span className="section-title">6-Month Trend</span>
-            <span className="dash-card-period">rolling six months</span>
+            <span className="dash-card-period">{range === "all" ? "rolling six months" : periodLabel}</span>
           </div>
           <ResponsiveContainer width="100%" height={isMobile ? 240 : 300}>
             <AreaChart data={trendData}>
@@ -133,7 +133,7 @@ export default function Analytics() {
         <div className="dash-card">
           <div className="dash-card-header">
             <span className="section-title">Product vs Incident Rate</span>
-            <span className="dash-card-period">all time</span>
+            <span className="dash-card-period">{periodLabel}</span>
           </div>
           <ResponsiveContainer width="100%" height={isMobile ? 250 : 300}>
             <ComposedChart data={productData}>
