@@ -133,10 +133,11 @@ export function ChartTimeFilter({ value, onChange, className, compact }: Props) 
 export function ChartLoadingSkeleton({ height = 220 }: { height?: number }) {
   return (
     <div
-      className="w-full rounded-md bg-gradient-to-r from-muted/50 via-muted/80 to-muted/50 bg-[length:200%_100%] animate-[shimmer_1.4s_infinite]"
+      className="w-full rounded-md bg-gradient-to-r from-muted/40 via-muted/80 to-muted/40 bg-[length:200%_100%] animate-shimmer"
       style={{ height }}
       aria-busy="true"
       aria-label="Loading chart"
     />
+
   );
 }
