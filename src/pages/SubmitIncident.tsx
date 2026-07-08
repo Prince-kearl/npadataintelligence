@@ -692,7 +692,7 @@ export default function SubmitIncident() {
           </Button>
           <Button variant="default" type="submit" disabled={isSubmitting || verifying} className="min-h-12 w-full sm:w-auto">
             <SendHorizonal className="h-4 w-4 mr-1" />
-            {verifying ? "Verifying..." : isSubmitting ? "Submitting..." : "Verify & Submit"}
+            {verifying ? "Verifying..." : isSubmitting ? "Submitting..." : "Submit"}
           </Button>
         </div>
       </form>
