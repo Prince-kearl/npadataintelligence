@@ -389,9 +389,13 @@ export default function ExcelImportDialog({ open, onOpenChange, mode = "single",
         )}
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="button" onClick={apply} disabled={!headers.length || !rows.length}>
-            Apply Mapping
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
+          <Button type="button" onClick={apply} disabled={!headers.length || !rows.length || busy}>
+            {busy
+              ? "Importing…"
+              : mode === "bulk"
+                ? `Import ${rows.length} record${rows.length === 1 ? "" : "s"}`
+                : "Apply Mapping"}
           </Button>
         </DialogFooter>
       </DialogContent>
