@@ -212,7 +212,10 @@ export default function Dashboard() {
   const regionLoading = useChartFilterLoading(regionFilter);
   const productLoading = useChartFilterLoading(productFilter);
 
-  const trendRows = useMemo(() => filterByChartTime(incidents, trendFilter), [incidents, trendFilter]);
+  const trendRows = useMemo(
+    () => filterConsumerReports(filterByChartTime(incidents, trendFilter)),
+    [incidents, trendFilter],
+  );
   const threatRows = useMemo(() => filterByChartTime(incidents, threatFilter), [incidents, threatFilter]);
   const hotspotRows = useMemo(() => filterByChartTime(incidents, hotspotFilter), [incidents, hotspotFilter]);
   const statusRows = useMemo(() => filterByChartTime(incidents, statusFilter), [incidents, statusFilter]);
@@ -220,7 +223,7 @@ export default function Dashboard() {
   const regionRows = useMemo(() => filterByChartTime(incidents, regionFilter), [incidents, regionFilter]);
   const productRows = useMemo(() => filterByChartTime(incidents, productFilter), [incidents, productFilter]);
 
-  const trendData = useMemo(() => trendSeries(trendRows, trendFilter), [trendRows, trendFilter]);
+  const trendData = useMemo(() => enhancedTrendSeries(trendRows, trendFilter), [trendRows, trendFilter]);
   const regionData = useMemo(() => incidentsByRegion(regionRows).slice(0, 8), [regionRows]);
   const productData = useMemo(() => incidentsByProduct(productRows), [productRows]);
   const liveFeed = useMemo(() => [...incidents]
