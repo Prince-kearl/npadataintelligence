@@ -28,7 +28,7 @@ import {
   REPORT_SOURCES,
 } from "@/lib/incident-options";
 import { findPotentialDuplicates, type DuplicateMatch } from "@/lib/incident-verification";
-import { Upload, Save, SendHorizonal, ShieldAlert, X, Camera, MapPin, RotateCcw, WifiOff } from "lucide-react";
+import { Upload, Save, SendHorizonal, ShieldAlert, X, Camera, MapPin, RotateCcw, WifiOff, Loader2, CheckCircle2, AlertCircle, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -58,9 +58,15 @@ const PREV_CHANNELS = [
 ];
 const EVIDENCE_TAGS = ["Photo", "Document", "Video", "Witness statement", "Lab report", "Map", "Other"];
 
+type UploadState = "idle" | "uploading" | "scanning" | "done" | "error";
+
 interface PendingFile {
   file: File;
   tags: string[];
+  previewUrl?: string;
+  state: UploadState;
+  progress: number;
+  errorMessage?: string;
 }
 
 export default function SubmitIncident() {
@@ -180,7 +186,13 @@ export default function SubmitIncident() {
     for (const file of Array.from(list)) {
       try {
         validateAttachment(file);
-        next.push({ file, tags: [file.type.startsWith("image/") ? "Photo" : "Document"] });
+        next.push({
+          file,
+          tags: [file.type.startsWith("image/") ? "Photo" : "Document"],
+          previewUrl: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined,
+          state: "idle",
+          progress: 0,
+        });
       } catch (error) {
         toast.error(error instanceof Error ? error.message : `Cannot attach ${file.name}`);
       }
@@ -188,7 +200,12 @@ export default function SubmitIncident() {
     setFiles((prev) => [...prev, ...next]);
   };
 
-  const removeFile = (idx: number) => setFiles((p) => p.filter((_, i) => i !== idx));
+  const removeFile = (idx: number) =>
+    setFiles((p) => {
+      const target = p[idx];
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+      return p.filter((_, i) => i !== idx);
+    });
   const toggleTag = (idx: number, tag: string) =>
     setFiles((p) =>
       p.map((f, i) =>
@@ -301,10 +318,21 @@ export default function SubmitIncident() {
       }, files.length);
 
       // Deterministic paths and unique metadata make this loop safe to retry.
+      const updateFile = (index: number, patch: Partial<PendingFile>) =>
+        setFiles((prev) => prev.map((f, i) => (i === index ? { ...f, ...patch } : f)));
       for (const [index, pf] of files.entries()) {
-        const meta: AttachmentMeta = await uploadAttachment(user.id, submissionId, index, pf.file);
-        const attachment = await attachToIncident(inc.id, user.id, pf.file, meta, pf.tags);
-        await scanAttachment(attachment.id);
+        try {
+          updateFile(index, { state: "uploading", progress: 20, errorMessage: undefined });
+          const meta: AttachmentMeta = await uploadAttachment(user.id, submissionId, index, pf.file);
+          updateFile(index, { progress: 60 });
+          const attachment = await attachToIncident(inc.id, user.id, pf.file, meta, pf.tags);
+          updateFile(index, { state: "scanning", progress: 80 });
+          await scanAttachment(attachment.id);
+          updateFile(index, { state: "done", progress: 100 });
+        } catch (fileErr: any) {
+          updateFile(index, { state: "error", errorMessage: fileErr?.message || "Upload failed" });
+          throw fileErr;
+        }
       }
 
       const submitted = await finalizeIncidentSubmission(inc.id);
@@ -485,11 +513,29 @@ export default function SubmitIncident() {
             </div>
             <div className="space-y-2">
               <Label className="label-text">Casualties</Label>
-              <Input type="number" min={0} value={casualties} onChange={(e) => setCasualties(Number(e.target.value))} className="bg-muted/50 border-border rounded-lg min-h-12" />
+              <Input
+                type="number"
+                min={0}
+                inputMode="numeric"
+                placeholder="0"
+                value={casualties === 0 ? "" : casualties}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => setCasualties(e.target.value === "" ? 0 : Math.max(0, Number(e.target.value)))}
+                className="bg-muted/50 border-border rounded-lg min-h-12"
+              />
             </div>
             <div className="space-y-2">
               <Label className="label-text">Fatalities</Label>
-              <Input type="number" min={0} value={fatalities} onChange={(e) => setFatalities(Number(e.target.value))} className="bg-muted/50 border-border rounded-lg min-h-12" />
+              <Input
+                type="number"
+                min={0}
+                inputMode="numeric"
+                placeholder="0"
+                value={fatalities === 0 ? "" : fatalities}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => setFatalities(e.target.value === "" ? 0 : Math.max(0, Number(e.target.value)))}
+                className="bg-muted/50 border-border rounded-lg min-h-12"
+              />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label className="label-text">Incident Description *</Label>
@@ -517,36 +563,90 @@ export default function SubmitIncident() {
 
           {files.length > 0 && (
             <div className="space-y-2">
-              {files.map((pf, i) => (
-                <div key={i} className="bg-muted/40 rounded-lg px-3 py-2 text-xs space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="truncate font-medium">
-                      {pf.file.name}{" "}
-                      <span className="text-muted-foreground font-normal">({(pf.file.size / 1024).toFixed(1)} KB)</span>
+              {files.map((pf, i) => {
+                const stateBadge = {
+                  idle: null,
+                  uploading: (
+                    <span className="flex items-center gap-1 text-[10px] text-info font-medium">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Uploading…
                     </span>
-                    <button type="button" onClick={() => removeFile(i)} className="text-muted-foreground hover:text-destructive shrink-0">
-                      <X className="h-3.5 w-3.5" />
-                    </button>
+                  ),
+                  scanning: (
+                    <span className="flex items-center gap-1 text-[10px] text-warning font-medium">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Scanning…
+                    </span>
+                  ),
+                  done: (
+                    <span className="flex items-center gap-1 text-[10px] text-success font-medium">
+                      <CheckCircle2 className="h-3 w-3" /> Uploaded
+                    </span>
+                  ),
+                  error: (
+                    <span className="flex items-center gap-1 text-[10px] text-destructive font-medium">
+                      <AlertCircle className="h-3 w-3" /> Failed
+                    </span>
+                  ),
+                }[pf.state];
+                const busy = pf.state === "uploading" || pf.state === "scanning";
+                return (
+                  <div key={i} className="bg-muted/40 rounded-lg px-3 py-2 text-xs space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-md bg-card border border-border overflow-hidden shrink-0 flex items-center justify-center">
+                        {pf.previewUrl ? (
+                          <img src={pf.previewUrl} alt={pf.file.name} className="h-full w-full object-cover" />
+                        ) : (
+                          <FileText className="h-5 w-5 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate font-medium">
+                            {pf.file.name}{" "}
+                            <span className="text-muted-foreground font-normal">({(pf.file.size / 1024).toFixed(1)} KB)</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeFile(i)}
+                            disabled={busy}
+                            className="text-muted-foreground hover:text-destructive shrink-0 disabled:opacity-40"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        {stateBadge}
+                        {(busy || pf.state === "done") && (
+                          <div className="h-1 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${pf.state === "done" ? "bg-success" : "bg-primary"}`}
+                              style={{ width: `${pf.progress}%` }}
+                            />
+                          </div>
+                        )}
+                        {pf.errorMessage && (
+                          <p className="text-[10px] text-destructive">{pf.errorMessage}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {EVIDENCE_TAGS.map((t) => {
+                        const on = pf.tags.includes(t);
+                        return (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => toggleTag(i, t)}
+                            className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
+                              on ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:bg-muted"
+                            }`}
+                          >
+                            {t}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-1">
-                    {EVIDENCE_TAGS.map((t) => {
-                      const on = pf.tags.includes(t);
-                      return (
-                        <button
-                          key={t}
-                          type="button"
-                          onClick={() => toggleTag(i, t)}
-                          className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
-                            on ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:bg-muted"
-                          }`}
-                        >
-                          {t}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -592,7 +692,7 @@ export default function SubmitIncident() {
           </Button>
           <Button variant="default" type="submit" disabled={isSubmitting || verifying} className="min-h-12 w-full sm:w-auto">
             <SendHorizonal className="h-4 w-4 mr-1" />
-            {verifying ? "Verifying..." : isSubmitting ? "Submitting..." : "Verify & Submit"}
+            {verifying ? "Verifying..." : isSubmitting ? "Submitting..." : "Submit"}
           </Button>
         </div>
       </form>

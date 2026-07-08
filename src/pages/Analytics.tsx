@@ -1,6 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useIncidents } from "@/hooks/useIncidents";
 import { incidentsByCategory, incidentsByProduct, incidentsByRegion, monthlyTrend } from "@/lib/analytics";
+import { DateRangeFilter } from "@/components/DateRangeFilter";
+import { filterIncidentsByRange, rangePeriodLabel, type DateRangeMode } from "@/lib/date-filter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   BarChart,
@@ -45,26 +47,32 @@ const tooltipStyle = {
 export default function Analytics() {
   const { data: incidents = [], isLoading, isError, error, refetch } = useIncidents();
   const isMobile = useIsMobile();
-  const regionData = useMemo(() => incidentsByRegion(incidents), [incidents]);
-  const categoryData = useMemo(() => incidentsByCategory(incidents), [incidents]);
-  const trendData = useMemo(() => monthlyTrend(incidents), [incidents]);
-  const productData = useMemo(() => incidentsByProduct(incidents), [incidents]);
+  const [range, setRange] = useState<DateRangeMode>("all");
+  const filtered = useMemo(() => filterIncidentsByRange(incidents, range), [incidents, range]);
+  const periodLabel = rangePeriodLabel(range);
+  const regionData = useMemo(() => incidentsByRegion(filtered), [filtered]);
+  const categoryData = useMemo(() => incidentsByCategory(filtered), [filtered]);
+  const trendData = useMemo(() => monthlyTrend(filtered), [filtered]);
+  const productData = useMemo(() => incidentsByProduct(filtered), [filtered]);
 
   if (isLoading) return <ChartPageSkeleton className="min-h-[55vh]" />;
   if (isError) return <ErrorState title="Analytics data is unavailable" error={error} onRetry={() => void refetch()} className="min-h-[55vh]" />;
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="page-title">Analytics</h1>
-        <p className="meta-text mt-1">In-depth analysis of incident data and trends.</p>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div>
+          <h1 className="page-title">Analytics</h1>
+          <p className="meta-text mt-1">In-depth analysis of incident data and trends.</p>
+        </div>
+        <DateRangeFilter value={range} onChange={setRange} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="dash-card">
           <div className="dash-card-header">
             <span className="section-title">Regional Distribution</span>
-            <span className="dash-card-period">all time</span>
+            <span className="dash-card-period">{periodLabel}</span>
           </div>
           <ResponsiveContainer width="100%" height={isMobile ? 240 : 300}>
             <BarChart data={regionData}>
@@ -84,7 +92,7 @@ export default function Analytics() {
         <div className="dash-card">
           <div className="dash-card-header">
             <span className="section-title">Type Distribution</span>
-            <span className="dash-card-period">all time</span>
+            <span className="dash-card-period">{periodLabel}</span>
           </div>
           <ResponsiveContainer width="100%" height={isMobile ? 240 : 300}>
             <PieChart>
@@ -103,7 +111,7 @@ export default function Analytics() {
         <div className="dash-card">
           <div className="dash-card-header">
             <span className="section-title">6-Month Trend</span>
-            <span className="dash-card-period">rolling six months</span>
+            <span className="dash-card-period">{range === "all" ? "rolling six months" : periodLabel}</span>
           </div>
           <ResponsiveContainer width="100%" height={isMobile ? 240 : 300}>
             <AreaChart data={trendData}>
@@ -125,7 +133,7 @@ export default function Analytics() {
         <div className="dash-card">
           <div className="dash-card-header">
             <span className="section-title">Product vs Incident Rate</span>
-            <span className="dash-card-period">all time</span>
+            <span className="dash-card-period">{periodLabel}</span>
           </div>
           <ResponsiveContainer width="100%" height={isMobile ? 250 : 300}>
             <ComposedChart data={productData}>

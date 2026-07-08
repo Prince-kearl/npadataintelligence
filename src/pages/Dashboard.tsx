@@ -49,6 +49,8 @@ import { useRole } from "@/hooks/useRole";
 import { toast } from "sonner";
 import { ErrorState, PageSkeleton } from "@/components/ReliabilityState";
 import { useAuth } from "@/hooks/useAuth";
+import { DateRangeFilter } from "@/components/DateRangeFilter";
+import { filterIncidentsByRange, rangePeriodLabel, type DateRangeMode } from "@/lib/date-filter";
 
 const statusClass: Record<string, string> = {
   New: "status-new",
@@ -181,9 +183,12 @@ export default function Dashboard() {
       setIsIssuingCommand(false);
     }
   };
-  const trendData = useMemo(() => monthlyTrend(incidents), [incidents]);
-  const regionData = useMemo(() => incidentsByRegion(incidents).slice(0, 8), [incidents]);
-  const productData = useMemo(() => incidentsByProduct(incidents), [incidents]);
+  const [chartRange, setChartRange] = useState<DateRangeMode>("all");
+  const chartIncidents = useMemo(() => filterIncidentsByRange(incidents, chartRange), [incidents, chartRange]);
+  const chartPeriod = rangePeriodLabel(chartRange);
+  const trendData = useMemo(() => monthlyTrend(chartIncidents), [chartIncidents]);
+  const regionData = useMemo(() => incidentsByRegion(chartIncidents).slice(0, 8), [chartIncidents]);
+  const productData = useMemo(() => incidentsByProduct(chartIncidents), [chartIncidents]);
   const liveFeed = useMemo(() => [...incidents]
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .slice(0, 4)
@@ -197,10 +202,10 @@ export default function Dashboard() {
 
   const threatDistribution = useMemo(() => {
     const counts = new Map<string, number>();
-    incidents.forEach((inc) => {
+    chartIncidents.forEach((inc) => {
       counts.set(inc.category, (counts.get(inc.category) || 0) + 1);
     });
-    const total = incidents.length || 1;
+    const total = chartIncidents.length || 1;
     return Array.from(counts.entries())
       .map(([name, value]) => ({
         name,
@@ -209,11 +214,11 @@ export default function Dashboard() {
         fill: CATEGORY_COLORS[name] || COLORS.navy,
       }))
       .sort((a, b) => b.value - a.value);
-  }, [incidents]);
+  }, [chartIncidents]);
 
   const statusDistribution = useMemo(() => {
     const counts = new Map<string, number>();
-    incidents.forEach((inc) => {
+    chartIncidents.forEach((inc) => {
       counts.set(inc.status, (counts.get(inc.status) || 0) + 1);
     });
     const palette: Record<string, string> = {
@@ -232,12 +237,12 @@ export default function Dashboard() {
       value,
       fill: palette[name] || COLORS.navy,
     }));
-  }, [incidents]);
+  }, [chartIncidents]);
 
 
   const topCauses = useMemo(() => {
     const counts = new Map<string, number>();
-    incidents.forEach((i) => {
+    chartIncidents.forEach((i) => {
       const key = `${i.category} · ${i.product_type || "—"}`;
       counts.set(key, (counts.get(key) || 0) + 1);
     });
@@ -245,7 +250,7 @@ export default function Dashboard() {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
-  }, [incidents]);
+  }, [chartIncidents]);
 
   const kpis = useMemo(() => {
     const now = Date.now();
@@ -289,12 +294,13 @@ export default function Dashboard() {
             {dashboardCopy.subtitle}{profile?.full_name ? ` · ${profile.full_name}` : ""}
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <DateRangeFilter value={chartRange} onChange={setChartRange} />
           <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-success/10 text-success font-medium">
             <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
             {isFetching ? "Refreshing" : "Live"}
           </span>
-          <span className="text-muted-foreground">Auto-refresh 30s</span>
+          <span className="text-muted-foreground hidden sm:inline">Auto-refresh 30s</span>
         </div>
       </div>
 
@@ -457,7 +463,7 @@ export default function Dashboard() {
         <div className="dash-card lg:col-span-2">
           <div className="dash-card-header">
             <span className="section-title">Incident Trends</span>
-            <span className="dash-card-period">last 6 months</span>
+            <span className="dash-card-period">{chartRange === "all" ? "last 6 months" : chartPeriod}</span>
           </div>
           <ResponsiveContainer width="100%" height={240}>
             <AreaChart data={trendData}>
@@ -479,7 +485,7 @@ export default function Dashboard() {
         <div className="dash-card">
           <div className="dash-card-header">
             <span className="section-title">Threat Distribution</span>
-            <span className="dash-card-period">live · {incidents.length} incidents</span>
+            <span className="dash-card-period">{chartPeriod} · {chartIncidents.length} incidents</span>
           </div>
           <div className="flex flex-col xl:flex-row items-center gap-3">
             <div className="w-full xl:w-[52%] xl:min-w-[190px] xl:shrink-0 h-[220px]">
@@ -528,7 +534,7 @@ export default function Dashboard() {
         <div className="dash-card">
           <div className="dash-card-header">
             <span className="section-title">Case Status Distribution</span>
-            <span className="dash-card-period">live</span>
+            <span className="dash-card-period">{chartPeriod}</span>
           </div>
           {statusDistribution.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-12">No incident data yet</p>
@@ -588,7 +594,7 @@ export default function Dashboard() {
         <div className="dash-card lg:col-span-2">
           <div className="dash-card-header">
             <span className="section-title">By Region</span>
-            <span className="dash-card-period">all time</span>
+            <span className="dash-card-period">{chartPeriod}</span>
           </div>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={regionData} layout="vertical" margin={{ left: 4 }}>
@@ -651,7 +657,7 @@ export default function Dashboard() {
       <div className="dash-card">
         <div className="dash-card-header">
           <span className="section-title">Product Risk Exposure</span>
-          <span className="dash-card-period">all time</span>
+          <span className="dash-card-period">{chartPeriod}</span>
         </div>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={productData}>

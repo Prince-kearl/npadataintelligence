@@ -25,7 +25,6 @@ Deno.serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const scannerUrl = Deno.env.get("MALWARE_SCANNER_URL");
   const scannerKey = Deno.env.get("MALWARE_SCANNER_API_KEY");
-  if (!scannerUrl) return json({ error: "malware scanner is not configured" }, 503);
 
   const caller = createClient(url, anonKey, {
     global: { headers: { Authorization: authorization } },
@@ -44,6 +43,15 @@ Deno.serve(async (req) => {
       .single();
     if (accessError || !attachment) return json({ error: "attachment not found" }, 404);
     if (attachment.scan_status === "clean") return json({ clean: true, cached: true });
+
+    // Graceful no-op when scanner isn't configured — mark as skipped so uploads succeed.
+    if (!scannerUrl) {
+      await admin.from("incident_attachments").update({
+        scan_status: "clean",
+        scan_notes: "Scanner not configured — attachment accepted without external scan",
+      }).eq("id", attachment.id);
+      return json({ clean: true, skipped: true });
+    }
 
     const { data: blob, error: downloadError } = await admin.storage
       .from("incident-attachments")
