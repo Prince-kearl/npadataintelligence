@@ -234,7 +234,13 @@ export default function ExcelImportDialog({ open, onOpenChange, onApply }: Props
     }
     onApply(out);
     onOpenChange(false);
-    toast.success("Form populated from spreadsheet. Review before submitting.");
+    const filled = Object.keys(out).length;
+    const skipped = SYSTEM_FIELDS.length - filled;
+    toast.success(`Filled ${filled} field${filled === 1 ? "" : "s"} from row ${rowIndex + 1}`, {
+      description: skipped > 0
+        ? `${skipped} unmapped field${skipped === 1 ? "" : "s"} left blank — complete them manually before submitting.`
+        : "Review the form and submit when ready.",
+    });
   };
 
   return (
@@ -327,7 +333,12 @@ export default function ExcelImportDialog({ open, onOpenChange, onApply }: Props
             )}
 
             <div className="space-y-3">
-              <Label className="label-text">Map spreadsheet columns to form fields</Label>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <Label className="label-text">Map spreadsheet columns to form fields</Label>
+                <p className="text-xs text-muted-foreground">
+                  Fields left as <em>Not mapped</em> stay blank so you can fill them in manually.
+                </p>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {SYSTEM_FIELDS.map((f) => (
                   <div key={f.key} className="space-y-1">
