@@ -195,35 +195,52 @@ export default function NotificationsPage() {
         </div>
         <div className="space-y-2 max-h-72 overflow-auto pr-1">
           {notifications.length === 0 && <p className="text-sm text-muted-foreground">No notifications yet.</p>}
-          {notifications.map((item) => (
-            <div key={item.id} className={`rounded-xl border p-3 ${item.is_read ? "border-border" : "border-primary/40 bg-primary/5"}`}>
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
-                  <p className="text-[11px] text-muted-foreground tabular-nums mt-0.5">{new Date(item.created_at).toLocaleString()}</p>
+          {notifications.map((item) => {
+            const meta = (item.metadata ?? {}) as Record<string, unknown>;
+            const hasIncident = typeof meta.incident_id === "string";
+            return (
+              <div key={item.id} className={`rounded-xl border p-3 transition-colors ${item.is_read ? "border-border" : "border-primary/40 bg-primary/5"} ${hasIncident ? "cursor-pointer hover:border-primary/60 hover:bg-primary/10" : ""}`}
+                onClick={() => hasIncident && openNotification(item)}
+                role={hasIncident ? "button" : undefined}
+                tabIndex={hasIncident ? 0 : undefined}
+                onKeyDown={(e) => {
+                  if (hasIncident && (e.key === "Enter" || e.key === " ")) {
+                    e.preventDefault();
+                    openNotification(item);
+                  }
+                }}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate flex items-center gap-1.5">
+                      {item.title}
+                      {hasIncident && <ExternalLink className="h-3 w-3 text-primary/70" />}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground tabular-nums mt-0.5">{new Date(item.created_at).toLocaleString()}</p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => markOne.mutate({ id: item.id, isRead: !item.is_read })}
+                      title={item.is_read ? "Mark as unread" : "Mark as read"}
+                    >
+                      {item.is_read ? <Circle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => removeOne.mutate(item.id)}
+                      title="Delete notification"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => markOne.mutate({ id: item.id, isRead: !item.is_read })}
-                    title={item.is_read ? "Mark as unread" : "Mark as read"}
-                  >
-                    {item.is_read ? <Circle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => removeOne.mutate(item.id)}
-                    title="Delete notification"
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
+                <p className="text-sm text-muted-foreground mt-1">{item.message}</p>
               </div>
-              <p className="text-sm text-muted-foreground mt-1">{item.message}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
