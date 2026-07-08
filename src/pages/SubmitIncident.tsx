@@ -390,7 +390,7 @@ export default function SubmitIncident() {
       const submitted = await finalizeIncidentSubmission(inc.id);
 
       await deleteDraft(draftId);
-      setSubmissionId(crypto.randomUUID());
+      clearForm();
       toast.success(`Incident submitted as ${submitted.reference_code}`);
       qc.invalidateQueries({ queryKey: ["incidents"] });
       navigate("/records");
