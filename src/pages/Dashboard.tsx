@@ -19,7 +19,7 @@ import {
   
 } from "lucide-react";
 import { KPICard } from "@/components/KPICard";
-import { incidentsByProduct, incidentsByRegion, monthlyTrend } from "@/lib/analytics";
+import { incidentsByProduct, incidentsByRegion } from "@/lib/analytics";
 import { createIncidentResponseAction, STATUS_LABELS, type ResponseActionType } from "@/lib/incidents";
 import {
   BarChart,
@@ -49,8 +49,18 @@ import { useRole } from "@/hooks/useRole";
 import { toast } from "sonner";
 import { ErrorState, PageSkeleton } from "@/components/ReliabilityState";
 import { useAuth } from "@/hooks/useAuth";
-import { DateRangeFilter } from "@/components/DateRangeFilter";
-import { filterIncidentsByRange, rangePeriodLabel, type DateRangeMode } from "@/lib/date-filter";
+import {
+  ChartTimeFilter,
+  ChartLoadingSkeleton,
+  useChartTimeFilter,
+  useChartFilterLoading,
+} from "@/components/ChartTimeFilter";
+import {
+  chartTimeLabel,
+  filterByChartTime,
+  trendSeries,
+} from "@/lib/chart-time-filter";
+
 
 const statusClass: Record<string, string> = {
   New: "status-new",
@@ -183,12 +193,34 @@ export default function Dashboard() {
       setIsIssuingCommand(false);
     }
   };
-  const [chartRange, setChartRange] = useState<DateRangeMode>("all");
-  const chartIncidents = useMemo(() => filterIncidentsByRange(incidents, chartRange), [incidents, chartRange]);
-  const chartPeriod = rangePeriodLabel(chartRange);
-  const trendData = useMemo(() => monthlyTrend(chartIncidents), [chartIncidents]);
-  const regionData = useMemo(() => incidentsByRegion(chartIncidents).slice(0, 8), [chartIncidents]);
-  const productData = useMemo(() => incidentsByProduct(chartIncidents), [chartIncidents]);
+  // Each analytics card manages its own time filter — no global sync.
+  const [trendFilter, setTrendFilter] = useChartTimeFilter();
+  const [threatFilter, setThreatFilter] = useChartTimeFilter();
+  const [hotspotFilter, setHotspotFilter] = useChartTimeFilter();
+  const [statusFilter, setStatusFilter] = useChartTimeFilter();
+  const [causesFilter, setCausesFilter] = useChartTimeFilter();
+  const [regionFilter, setRegionFilter] = useChartTimeFilter();
+  const [productFilter, setProductFilter] = useChartTimeFilter();
+
+  const trendLoading = useChartFilterLoading(trendFilter);
+  const threatLoading = useChartFilterLoading(threatFilter);
+  const hotspotLoading = useChartFilterLoading(hotspotFilter);
+  const statusLoading = useChartFilterLoading(statusFilter);
+  const causesLoading = useChartFilterLoading(causesFilter);
+  const regionLoading = useChartFilterLoading(regionFilter);
+  const productLoading = useChartFilterLoading(productFilter);
+
+  const trendRows = useMemo(() => filterByChartTime(incidents, trendFilter), [incidents, trendFilter]);
+  const threatRows = useMemo(() => filterByChartTime(incidents, threatFilter), [incidents, threatFilter]);
+  const hotspotRows = useMemo(() => filterByChartTime(incidents, hotspotFilter), [incidents, hotspotFilter]);
+  const statusRows = useMemo(() => filterByChartTime(incidents, statusFilter), [incidents, statusFilter]);
+  const causesRows = useMemo(() => filterByChartTime(incidents, causesFilter), [incidents, causesFilter]);
+  const regionRows = useMemo(() => filterByChartTime(incidents, regionFilter), [incidents, regionFilter]);
+  const productRows = useMemo(() => filterByChartTime(incidents, productFilter), [incidents, productFilter]);
+
+  const trendData = useMemo(() => trendSeries(trendRows, trendFilter), [trendRows, trendFilter]);
+  const regionData = useMemo(() => incidentsByRegion(regionRows).slice(0, 8), [regionRows]);
+  const productData = useMemo(() => incidentsByProduct(productRows), [productRows]);
   const liveFeed = useMemo(() => [...incidents]
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .slice(0, 4)
@@ -202,10 +234,10 @@ export default function Dashboard() {
 
   const threatDistribution = useMemo(() => {
     const counts = new Map<string, number>();
-    chartIncidents.forEach((inc) => {
+    threatRows.forEach((inc) => {
       counts.set(inc.category, (counts.get(inc.category) || 0) + 1);
     });
-    const total = chartIncidents.length || 1;
+    const total = threatRows.length || 1;
     return Array.from(counts.entries())
       .map(([name, value]) => ({
         name,
@@ -214,11 +246,11 @@ export default function Dashboard() {
         fill: CATEGORY_COLORS[name] || COLORS.navy,
       }))
       .sort((a, b) => b.value - a.value);
-  }, [chartIncidents]);
+  }, [threatRows]);
 
   const statusDistribution = useMemo(() => {
     const counts = new Map<string, number>();
-    chartIncidents.forEach((inc) => {
+    statusRows.forEach((inc) => {
       counts.set(inc.status, (counts.get(inc.status) || 0) + 1);
     });
     const palette: Record<string, string> = {
@@ -237,12 +269,12 @@ export default function Dashboard() {
       value,
       fill: palette[name] || COLORS.navy,
     }));
-  }, [chartIncidents]);
+  }, [statusRows]);
 
 
   const topCauses = useMemo(() => {
     const counts = new Map<string, number>();
-    chartIncidents.forEach((i) => {
+    causesRows.forEach((i) => {
       const key = `${i.category} · ${i.product_type || "—"}`;
       counts.set(key, (counts.get(key) || 0) + 1);
     });
@@ -250,7 +282,8 @@ export default function Dashboard() {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
-  }, [chartIncidents]);
+  }, [causesRows]);
+
 
   const kpis = useMemo(() => {
     const now = Date.now();
@@ -295,13 +328,13 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          <DateRangeFilter value={chartRange} onChange={setChartRange} />
           <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-success/10 text-success font-medium">
             <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
             {isFetching ? "Refreshing" : "Live"}
           </span>
-          <span className="text-muted-foreground hidden sm:inline">Auto-refresh 30s</span>
+          <span className="text-muted-foreground hidden sm:inline">Auto-refresh 30s · each card has its own time filter</span>
         </div>
+
       </div>
 
       {role === "collector" && (
@@ -436,18 +469,23 @@ export default function Dashboard() {
         </div>
 
         <div className="dash-card">
-          <div className="dash-card-header">
+          <div className="dash-card-header flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-primary" />
               <span className="section-title">Incident Hotspot Heatmap</span>
+              <span className="dash-card-period">{chartTimeLabel(hotspotFilter, `live GPS · ${incidents.length} sites`)}</span>
             </div>
-            <span className="dash-card-period">live GPS · {incidents.length} sites</span>
+            <ChartTimeFilter value={hotspotFilter} onChange={setHotspotFilter} compact />
           </div>
-          <HotspotMap
-            incidents={incidents}
-            height="clamp(260px, 70vw, 340px)"
-            onSelect={(inc: any) => navigate(`/incidents/${encodeURIComponent(inc.id)}`)}
-          />
+          {hotspotLoading ? (
+            <ChartLoadingSkeleton height={300} />
+          ) : (
+            <HotspotMap
+              incidents={hotspotRows}
+              height="clamp(260px, 70vw, 340px)"
+              onSelect={(inc: any) => navigate(`/incidents/${encodeURIComponent(inc.id)}`)}
+            />
+          )}
           <div className="flex items-center justify-between mt-3 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-destructive" /> Major</span>
             <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: COLORS.orange }} /> Minor</span>
@@ -455,88 +493,103 @@ export default function Dashboard() {
             <span>Click a hotspot for details</span>
           </div>
         </div>
+
       </div>
 
 
       {/* Row: Trends + Threat distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="dash-card lg:col-span-2">
-          <div className="dash-card-header">
-            <span className="section-title">Incident Trends</span>
-            <span className="dash-card-period">{chartRange === "all" ? "last 6 months" : chartPeriod}</span>
+          <div className="dash-card-header flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="section-title">Incident Trends</span>
+              <span className="dash-card-period">{chartTimeLabel(trendFilter, "last 6 months")}</span>
+            </div>
+            <ChartTimeFilter value={trendFilter} onChange={setTrendFilter} compact />
           </div>
-          <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={trendData}>
-              <defs>
-                <linearGradient id="gradientBlue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={COLORS.blue} stopOpacity={0.25} />
-                  <stop offset="100%" stopColor={COLORS.blue} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 90%)" />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
-              <Tooltip {...tooltipStyle} />
-              <Area type="monotone" dataKey="incidents" stroke={COLORS.blue} strokeWidth={2} fill="url(#gradientBlue)" />
-            </AreaChart>
-          </ResponsiveContainer>
+          {trendLoading ? <ChartLoadingSkeleton height={240} /> : (
+            <ResponsiveContainer width="100%" height={240}>
+              <AreaChart data={trendData}>
+                <defs>
+                  <linearGradient id="gradientBlue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={COLORS.blue} stopOpacity={0.25} />
+                    <stop offset="100%" stopColor={COLORS.blue} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 90%)" />
+                <XAxis dataKey="label" tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
+                <Tooltip {...tooltipStyle} />
+                <Area type="monotone" dataKey="incidents" stroke={COLORS.blue} strokeWidth={2} fill="url(#gradientBlue)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         <div className="dash-card">
-          <div className="dash-card-header">
-            <span className="section-title">Threat Distribution</span>
-            <span className="dash-card-period">{chartPeriod} · {chartIncidents.length} incidents</span>
-          </div>
-          <div className="flex flex-col xl:flex-row items-center gap-3">
-            <div className="w-full xl:w-[52%] xl:min-w-[190px] xl:shrink-0 h-[220px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                <Pie
-                  data={threatDistribution}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={70}
-                  innerRadius={44}
-                  dataKey="value"
-                  strokeWidth={2}
-                  stroke="#fff"
-                  onClick={(d: any) => drillDown(d.name)}
-                  className="cursor-pointer"
-                >
-                  {threatDistribution.map((d, i) => (
-                    <Cell key={i} fill={d.fill} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CategoryTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
+          <div className="dash-card-header flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="section-title">Threat Distribution</span>
+              <span className="dash-card-period">{chartTimeLabel(threatFilter)} · {threatRows.length} incidents</span>
             </div>
-            <div className="w-full xl:flex-1 min-w-0 space-y-1.5">
-              {threatDistribution.map((d) => (
-                <button
-                  key={d.name}
-                  onClick={() => drillDown(d.name)}
-                  className="w-full flex items-center gap-2 text-xs py-1 px-1.5 rounded hover:bg-muted/60 transition-colors text-left"
-                >
-                  <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: d.fill }} />
-                  <span className="text-muted-foreground flex-1 truncate">{d.name}</span>
-                  <span className="tabular-nums font-medium text-foreground">{d.value}</span>
-                  <span className="tabular-nums text-muted-foreground text-[10px] w-9 text-right">{d.pct}%</span>
-                </button>
-              ))}
-            </div>
+            <ChartTimeFilter value={threatFilter} onChange={setThreatFilter} compact />
           </div>
+          {threatLoading ? <ChartLoadingSkeleton height={220} /> : (
+            <div className="flex flex-col xl:flex-row items-center gap-3">
+              <div className="w-full xl:w-[52%] xl:min-w-[190px] xl:shrink-0 h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                  <Pie
+                    data={threatDistribution}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={70}
+                    innerRadius={44}
+                    dataKey="value"
+                    strokeWidth={2}
+                    stroke="#fff"
+                    onClick={(d: any) => drillDown(d.name)}
+                    className="cursor-pointer"
+                  >
+                    {threatDistribution.map((d, i) => (
+                      <Cell key={i} fill={d.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CategoryTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="w-full xl:flex-1 min-w-0 space-y-1.5">
+                {threatDistribution.map((d) => (
+                  <button
+                    key={d.name}
+                    onClick={() => drillDown(d.name)}
+                    className="w-full flex items-center gap-2 text-xs py-1 px-1.5 rounded hover:bg-muted/60 transition-colors text-left"
+                  >
+                    <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: d.fill }} />
+                    <span className="text-muted-foreground flex-1 truncate">{d.name}</span>
+                    <span className="tabular-nums font-medium text-foreground">{d.value}</span>
+                    <span className="tabular-nums text-muted-foreground text-[10px] w-9 text-right">{d.pct}%</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
 
       {/* Row: Status distribution + Top recurring causes */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="dash-card">
-          <div className="dash-card-header">
-            <span className="section-title">Case Status Distribution</span>
-            <span className="dash-card-period">{chartPeriod}</span>
+          <div className="dash-card-header flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="section-title">Case Status Distribution</span>
+              <span className="dash-card-period">{chartTimeLabel(statusFilter)}</span>
+            </div>
+            <ChartTimeFilter value={statusFilter} onChange={setStatusFilter} compact />
           </div>
-          {statusDistribution.length === 0 ? (
+          {statusLoading ? <ChartLoadingSkeleton height={220} /> : statusDistribution.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-12">No incident data yet</p>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
@@ -558,11 +611,14 @@ export default function Dashboard() {
         </div>
 
         <div className="dash-card lg:col-span-2">
-          <div className="dash-card-header">
-            <span className="section-title">Top Recurring Causes</span>
-            <span className="dash-card-period">category · product</span>
+          <div className="dash-card-header flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="section-title">Top Recurring Causes</span>
+              <span className="dash-card-period">{chartTimeLabel(causesFilter, "category · product")}</span>
+            </div>
+            <ChartTimeFilter value={causesFilter} onChange={setCausesFilter} compact />
           </div>
-          {topCauses.length === 0 ? (
+          {causesLoading ? <ChartLoadingSkeleton height={200} /> : topCauses.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-12">No incident data yet</p>
           ) : (
             <div className="space-y-2.5">
@@ -589,27 +645,34 @@ export default function Dashboard() {
 
 
 
+
       {/* Row: By Region + Recent table */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         <div className="dash-card lg:col-span-2">
-          <div className="dash-card-header">
-            <span className="section-title">By Region</span>
-            <span className="dash-card-period">{chartPeriod}</span>
+          <div className="dash-card-header flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="section-title">By Region</span>
+              <span className="dash-card-period">{chartTimeLabel(regionFilter)}</span>
+            </div>
+            <ChartTimeFilter value={regionFilter} onChange={setRegionFilter} compact />
           </div>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={regionData} layout="vertical" margin={{ left: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 90%)" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
-              <YAxis dataKey="region" type="category" tick={{ fontSize: 11, fill: "hsl(220, 15%, 50%)" }} width={85} axisLine={false} tickLine={false} />
-              <Tooltip {...tooltipStyle} />
-              <Bar dataKey="incidents" radius={[0, 4, 4, 0]} barSize={16}>
-                {regionData.map((_, i) => (
-                  <Cell key={i} fill={pieColors[i % pieColors.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          {regionLoading ? <ChartLoadingSkeleton height={260} /> : (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={regionData} layout="vertical" margin={{ left: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 90%)" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
+                <YAxis dataKey="region" type="category" tick={{ fontSize: 11, fill: "hsl(220, 15%, 50%)" }} width={85} axisLine={false} tickLine={false} />
+                <Tooltip {...tooltipStyle} />
+                <Bar dataKey="incidents" radius={[0, 4, 4, 0]} barSize={16}>
+                  {regionData.map((_, i) => (
+                    <Cell key={i} fill={pieColors[i % pieColors.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
+
 
         <div className="dash-card lg:col-span-3 p-0 overflow-hidden">
           <div className="dash-card-header px-5 pt-5">
@@ -655,24 +718,30 @@ export default function Dashboard() {
 
       {/* Row: Product risk */}
       <div className="dash-card">
-        <div className="dash-card-header">
-          <span className="section-title">Product Risk Exposure</span>
-          <span className="dash-card-period">{chartPeriod}</span>
+        <div className="dash-card-header flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="section-title">Product Risk Exposure</span>
+            <span className="dash-card-period">{chartTimeLabel(productFilter)}</span>
+          </div>
+          <ChartTimeFilter value={productFilter} onChange={setProductFilter} compact />
         </div>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={productData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 90%)" />
-            <XAxis dataKey="product" tick={{ fontSize: 11, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
-            <Tooltip {...tooltipStyle} />
-            <Bar dataKey="incidents" radius={[4, 4, 0, 0]} barSize={28}>
-              {productData.map((_, i) => (
-                <Cell key={i} fill={pieColors[i % pieColors.length]} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        {productLoading ? <ChartLoadingSkeleton height={220} /> : (
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={productData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 90%)" />
+              <XAxis dataKey="product" tick={{ fontSize: 11, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
+              <Tooltip {...tooltipStyle} />
+              <Bar dataKey="incidents" radius={[4, 4, 0, 0]} barSize={28}>
+                {productData.map((_, i) => (
+                  <Cell key={i} fill={pieColors[i % pieColors.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
+
 
       {/* Regulatory Command Panel */}
       {canIssueCommand && (
