@@ -507,8 +507,10 @@ export default function Dashboard() {
         <div className="dash-card lg:col-span-2">
           <div className="dash-card-header flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <span className="section-title">Incident Trends</span>
-              <span className="dash-card-period">{chartTimeLabel(trendFilter, "last 6 months")}</span>
+              <span className="section-title">Consumer Incident Trend</span>
+              <span className="dash-card-period">
+                {chartTimeLabel(trendFilter, "last 6 months")} · {trendRows.length} consumer reports
+              </span>
             </div>
             <ChartTimeFilter value={trendFilter} onChange={setTrendFilter} compact />
           </div>
@@ -524,7 +526,7 @@ export default function Dashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 90%)" />
                 <XAxis dataKey="label" tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 12, fill: "hsl(220, 15%, 50%)" }} axisLine={false} tickLine={false} />
-                <Tooltip {...tooltipStyle} />
+                <Tooltip content={<ConsumerTrendTooltip />} />
                 <Area type="monotone" dataKey="incidents" stroke={COLORS.blue} strokeWidth={2} fill="url(#gradientBlue)" />
               </AreaChart>
             </ResponsiveContainer>
