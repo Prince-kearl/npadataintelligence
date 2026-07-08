@@ -9,7 +9,10 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Search, Download, X, Loader2, BookmarkPlus, Bookmark, Trash2, MapPin, CalendarDays, ChevronRight } from "lucide-react";
+import { Search, Download, X, Loader2, BookmarkPlus, Bookmark, Trash2, MapPin, CalendarDays, ChevronRight, Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import ExcelImportDialog, { type ImportedIncident } from "@/components/ExcelImportDialog";
+import { REGIONS, INCIDENT_CATEGORIES, INCIDENT_TYPES, PRODUCT_TYPES, INJURY_TYPES, REPORT_SOURCES } from "@/lib/incident-options";
 import { useIncidents } from "@/hooks/useIncidents";
 import { useRole } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
@@ -52,7 +55,7 @@ export default function Records() {
   const incidentsQuery = useIncidents();
   const { data: incidents = [], isLoading, isError, error, refetch } = incidentsQuery;
   const { can, allowedTransitions } = useRole();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const qc = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -95,6 +98,89 @@ export default function Records() {
   const [pendingRestore, setPendingRestore] = useState<{ id: string; reference: string } | null>(null);
   const [restoreReason, setRestoreReason] = useState("");
   const [isRestoring, setIsRestoring] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const matchOption = <T extends string>(value: string | undefined, options: readonly T[]): T | undefined => {
+    if (!value) return undefined;
+    const v = value.toLowerCase().trim();
+    return (
+      options.find((o) => o.toLowerCase() === v) ||
+      options.find((o) => o.toLowerCase().includes(v) || v.includes(o.toLowerCase()))
+    );
+  };
+
+  const handleBulkImport = async (rows: ImportedIncident[]) => {
+    if (!user) {
+      toast.error("You must be signed in to import records.");
+      return;
+    }
+    setIsImporting(true);
+    const skipped: { row: number; reason: string }[] = [];
+    const payloads: any[] = [];
+    rows.forEach((r, idx) => {
+      const region = matchOption(r.region, REGIONS);
+      const category = matchOption(r.category, INCIDENT_CATEGORIES);
+      if (!r.incidentDate || !region || !r.locationName || !category || !r.description) {
+        skipped.push({ row: idx + 1, reason: "missing required fields (date, region, location, category, description)" });
+        return;
+      }
+      payloads.push({
+        reporter_id: user.id,
+        reporter_name: profile?.full_name || profile?.email || "Bulk import",
+        department: profile?.department || null,
+        incident_date: r.incidentDate,
+        region,
+        district: r.district || null,
+        location_name: r.locationName,
+        gps_coordinates: r.gps || null,
+        category,
+        incident_type: matchOption(r.incidentType, INCIDENT_TYPES) || null,
+        product_type: matchOption(r.productType, PRODUCT_TYPES) || null,
+        injury_type: matchOption(r.injuryType, INJURY_TYPES) || null,
+        casualties: r.casualties ?? 0,
+        fatalities: r.fatalities ?? 0,
+        description: r.description,
+        source: matchOption(r.source, REPORT_SOURCES) || null,
+        status: "New" as const,
+      });
+    });
+
+    if (!payloads.length) {
+      toast.error("No importable rows found.", {
+        description: "Ensure each row has a date, region, location, category, and description.",
+      });
+      setIsImporting(false);
+      return;
+    }
+
+    const BATCH_SIZE = 500;
+    let inserted = 0;
+    let failed = 0;
+    for (let i = 0; i < payloads.length; i += BATCH_SIZE) {
+      const batch = payloads.slice(i, i + BATCH_SIZE);
+      const { error, data } = await supabase.from("incidents").insert(batch).select("id");
+      if (error) {
+        failed += batch.length;
+        console.error(`Batch import failed at row ${i}:`, error);
+      } else {
+        inserted += data?.length ?? batch.length;
+      }
+    }
+    setIsImporting(false);
+    setImportOpen(false);
+    qc.invalidateQueries({ queryKey: ["incidents"] });
+    const parts: string[] = [];
+    if (skipped.length) parts.push(`${skipped.length} skipped (missing required fields)`);
+    if (failed) parts.push(`${failed} failed`);
+    if (inserted) {
+      toast.success(`Imported ${inserted} record${inserted === 1 ? "" : "s"}`, {
+        description: parts.join(" · ") || undefined,
+      });
+    } else {
+      toast.error("Import failed", { description: parts.join(" · ") || "No records were saved." });
+    }
+  };
 
   const deletedIncidentsQuery = useQuery({
     queryKey: ["deleted-incidents"],
@@ -310,6 +396,11 @@ export default function Records() {
           <p className="meta-text mt-1">{isLoading ? "Loading..." : `${filtered.length} of ${incidents.length} records`}</p>
         </div>
         <div className="grid grid-cols-1 sm:flex gap-2 w-full sm:w-auto">
+          {can("submit_incident") && (
+            <Button variant="outline" onClick={() => setImportOpen(true)} disabled={!user} className="w-full sm:w-auto">
+              <Upload className="h-4 w-4 mr-1" /> Import Excel
+            </Button>
+          )}
           {can("manage_users") && (
             <Button variant="outline" onClick={() => setShowTrash((v) => !v)} className="w-full sm:w-auto">
               <Trash2 className="h-4 w-4 mr-1" /> {showTrash ? "Hide Trash" : "Show Trash"}
@@ -327,6 +418,14 @@ export default function Records() {
           )}
         </div>
       </div>
+
+      <ExcelImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        mode="bulk"
+        busy={isImporting}
+        onBulkApply={handleBulkImport}
+      />
 
       {templates.length > 0 && (
         <div className="dash-card py-3">

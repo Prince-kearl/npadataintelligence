@@ -124,10 +124,13 @@ function parseNumberSafe(raw: unknown): number {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onApply: (data: ImportedIncident) => void;
+  mode?: "single" | "bulk";
+  onApply?: (data: ImportedIncident) => void;
+  onBulkApply?: (rows: ImportedIncident[]) => void | Promise<void>;
+  busy?: boolean;
 }
 
-export default function ExcelImportDialog({ open, onOpenChange, onApply }: Props) {
+export default function ExcelImportDialog({ open, onOpenChange, mode = "single", onApply, onBulkApply, busy = false }: Props) {
   const [progress, setProgress] = useState(0);
   const [parsing, setParsing] = useState(false);
   const [fileName, setFileName] = useState<string>("");
@@ -221,9 +224,7 @@ export default function ExcelImportDialog({ open, onOpenChange, onApply }: Props
 
   const previewRows = useMemo(() => rows.slice(0, 25), [rows]);
 
-  const apply = () => {
-    const row = rows[rowIndex];
-    if (!row) return;
+  const extractRow = (row: Record<string, unknown>): ImportedIncident => {
     const out: ImportedIncident = {};
     for (const field of SYSTEM_FIELDS) {
       const col = mapping[field.key];
@@ -239,7 +240,19 @@ export default function ExcelImportDialog({ open, onOpenChange, onApply }: Props
         (out as any)[field.key] = String(raw).trim();
       }
     }
-    onApply(out);
+    return out;
+  };
+
+  const apply = async () => {
+    if (mode === "bulk") {
+      const all = rows.map(extractRow);
+      await onBulkApply?.(all);
+      return;
+    }
+    const row = rows[rowIndex];
+    if (!row) return;
+    const out = extractRow(row);
+    onApply?.(out);
     onOpenChange(false);
     const filled = Object.keys(out).length;
     const skipped = SYSTEM_FIELDS.length - filled;
@@ -258,7 +271,9 @@ export default function ExcelImportDialog({ open, onOpenChange, onApply }: Props
             <FileSpreadsheet className="h-5 w-5 text-primary" /> Import Data via Excel
           </DialogTitle>
           <DialogDescription>
-            Upload an .xlsx or .xls file. We'll detect the columns and let you map them to the form fields.
+            {mode === "bulk"
+              ? "Upload an .xlsx or .xls file — every row will be imported as an incident record after you confirm the column mapping."
+              : "Upload an .xlsx or .xls file. We'll detect the columns and let you map them to the form fields."}
           </DialogDescription>
         </DialogHeader>
 
@@ -305,7 +320,7 @@ export default function ExcelImportDialog({ open, onOpenChange, onApply }: Props
               </Button>
             </div>
 
-            {rows.length > 1 && (
+            {mode === "single" && rows.length > 1 && (
               <div className="space-y-2">
                 <Label className="label-text">Select the row to import</Label>
                 <div className="border rounded-lg overflow-auto max-h-56">
@@ -343,7 +358,9 @@ export default function ExcelImportDialog({ open, onOpenChange, onApply }: Props
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <Label className="label-text">Map spreadsheet columns to form fields</Label>
                 <p className="text-xs text-muted-foreground">
-                  Fields left as <em>Not mapped</em> stay blank so you can fill them in manually.
+                  {mode === "bulk"
+                    ? `All ${rows.length} row${rows.length === 1 ? "" : "s"} will be imported. Unmapped fields are saved blank.`
+                    : "Fields left as Not mapped stay blank so you can fill them in manually."}
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -372,9 +389,13 @@ export default function ExcelImportDialog({ open, onOpenChange, onApply }: Props
         )}
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="button" onClick={apply} disabled={!headers.length || !rows.length}>
-            Apply Mapping
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
+          <Button type="button" onClick={apply} disabled={!headers.length || !rows.length || busy}>
+            {busy
+              ? "Importing…"
+              : mode === "bulk"
+                ? `Import ${rows.length} record${rows.length === 1 ? "" : "s"}`
+                : "Apply Mapping"}
           </Button>
         </DialogFooter>
       </DialogContent>
