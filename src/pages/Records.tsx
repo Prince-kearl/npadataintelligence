@@ -431,7 +431,15 @@ export default function Records() {
         onOpenChange={setImportOpen}
         mode="bulk"
         busy={isImporting}
-        onBulkApply={handleBulkImport}
+        onBulkApply={handleMappedRows}
+      />
+
+      <BulkImportReviewDialog
+        open={reviewOpen}
+        onOpenChange={setReviewOpen}
+        rows={reviewRows}
+        busy={isImporting}
+        onSubmit={handleReviewSubmit}
       />
 
       {templates.length > 0 && (
