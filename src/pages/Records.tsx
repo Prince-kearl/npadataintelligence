@@ -9,7 +9,10 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Search, Download, X, Loader2, BookmarkPlus, Bookmark, Trash2, MapPin, CalendarDays, ChevronRight } from "lucide-react";
+import { Search, Download, X, Loader2, BookmarkPlus, Bookmark, Trash2, MapPin, CalendarDays, ChevronRight, Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import ExcelImportDialog, { type ImportedIncident } from "@/components/ExcelImportDialog";
+import { REGIONS, INCIDENT_CATEGORIES, INCIDENT_TYPES, PRODUCT_TYPES, INJURY_TYPES, REPORT_SOURCES } from "@/lib/incident-options";
 import { useIncidents } from "@/hooks/useIncidents";
 import { useRole } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
