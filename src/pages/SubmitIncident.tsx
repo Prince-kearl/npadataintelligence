@@ -318,10 +318,21 @@ export default function SubmitIncident() {
       }, files.length);
 
       // Deterministic paths and unique metadata make this loop safe to retry.
+      const updateFile = (index: number, patch: Partial<PendingFile>) =>
+        setFiles((prev) => prev.map((f, i) => (i === index ? { ...f, ...patch } : f)));
       for (const [index, pf] of files.entries()) {
-        const meta: AttachmentMeta = await uploadAttachment(user.id, submissionId, index, pf.file);
-        const attachment = await attachToIncident(inc.id, user.id, pf.file, meta, pf.tags);
-        await scanAttachment(attachment.id);
+        try {
+          updateFile(index, { state: "uploading", progress: 20, errorMessage: undefined });
+          const meta: AttachmentMeta = await uploadAttachment(user.id, submissionId, index, pf.file);
+          updateFile(index, { progress: 60 });
+          const attachment = await attachToIncident(inc.id, user.id, pf.file, meta, pf.tags);
+          updateFile(index, { state: "scanning", progress: 80 });
+          await scanAttachment(attachment.id);
+          updateFile(index, { state: "done", progress: 100 });
+        } catch (fileErr: any) {
+          updateFile(index, { state: "error", errorMessage: fileErr?.message || "Upload failed" });
+          throw fileErr;
+        }
       }
 
       const submitted = await finalizeIncidentSubmission(inc.id);
