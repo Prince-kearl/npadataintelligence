@@ -390,7 +390,7 @@ export default function SubmitIncident() {
       const submitted = await finalizeIncidentSubmission(inc.id);
 
       await deleteDraft(draftId);
-      setSubmissionId(crypto.randomUUID());
+      clearForm();
       toast.success(`Incident submitted as ${submitted.reference_code}`);
       qc.invalidateQueries({ queryKey: ["incidents"] });
       navigate("/records");
@@ -435,6 +435,16 @@ export default function SubmitIncident() {
     }
   };
 
+  const clearForm = () => {
+    formRef.current?.reset();
+    setSubmissionId(crypto.randomUUID());
+    setIncidentDate(""); setRegion(""); setDistrict(""); setLocationName(""); setGps("");
+    setCategory(""); setIncidentType(""); setProductType(""); setInjuryType("");
+    setCasualties(0); setFatalities(0); setDescription(""); setSource(""); setSourceContact("");
+    setSourceNotes(""); setPreviousChannel("None — first time reported"); setFiles([]);
+    setMatches([]);
+  };
+
   const handleSaveDraft = async () => {
     await saveDraft(draftId, {
       submissionId,
@@ -442,18 +452,16 @@ export default function SubmitIncident() {
       productType, injuryType, casualties, fatalities, description, source, sourceContact,
       sourceNotes, previousChannel,
     });
-    toast.success("Draft saved locally on this device");
+    toast.success("Draft saved locally on this device", {
+      description: "Form cleared — ready for the next entry.",
+    });
+    clearForm();
   };
 
-  const handleDiscardDraft = async () => {
+  const handleClearForm = async () => {
     await deleteDraft(draftId);
-    setSubmissionId(crypto.randomUUID());
-    formRef.current?.reset();
-    setIncidentDate(""); setRegion(""); setDistrict(""); setLocationName(""); setGps("");
-    setCategory(""); setIncidentType(""); setProductType(""); setInjuryType("");
-    setCasualties(0); setFatalities(0); setDescription(""); setSource(""); setSourceContact("");
-    setSourceNotes(""); setPreviousChannel("None — first time reported"); setFiles([]);
-    toast.success("Draft discarded");
+    clearForm();
+    toast.success("Form cleared");
   };
 
   const topScore = matches[0]?.score ?? 0;
@@ -755,8 +763,8 @@ export default function SubmitIncident() {
         </div>
 
         <div className="grid grid-cols-1 sm:flex sm:items-center gap-2 sm:gap-3 sm:justify-end">
-          <Button variant="ghost" type="button" onClick={handleDiscardDraft} className="min-h-12 w-full sm:w-auto">
-            <RotateCcw className="h-4 w-4 mr-1" /> Discard
+          <Button variant="ghost" type="button" onClick={handleClearForm} className="min-h-12 w-full sm:w-auto">
+            <RotateCcw className="h-4 w-4 mr-1" /> Clear
           </Button>
           <Button variant="outline" type="button" onClick={handleSaveDraft} className="min-h-12 w-full sm:w-auto">
             <Save className="h-4 w-4 mr-1" /> Save Draft
