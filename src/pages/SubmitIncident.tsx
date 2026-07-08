@@ -102,6 +102,38 @@ export default function SubmitIncident() {
   const [previousChannel, setPreviousChannel] = useState("None — first time reported");
   const [files, setFiles] = useState<PendingFile[]>([]);
   const [submissionId, setSubmissionId] = useState(() => crypto.randomUUID());
+  const [excelOpen, setExcelOpen] = useState(false);
+
+  const matchOption = <T extends string>(value: string | undefined, options: readonly T[]): T | undefined => {
+    if (!value) return undefined;
+    const v = value.toLowerCase().trim();
+    return (
+      options.find((o) => o.toLowerCase() === v) ||
+      options.find((o) => o.toLowerCase().includes(v) || v.includes(o.toLowerCase()))
+    );
+  };
+
+  const applyImported = (data: ImportedIncident) => {
+    if (data.incidentDate) setIncidentDate(data.incidentDate);
+    const r = matchOption(data.region, REGIONS);
+    if (r) setRegion(r);
+    if (data.district) setDistrict(data.district);
+    if (data.locationName) setLocationName(data.locationName);
+    if (data.gps) setGps(data.gps);
+    const c = matchOption(data.category, INCIDENT_CATEGORIES);
+    if (c) setCategory(c);
+    const it = matchOption(data.incidentType, INCIDENT_TYPES);
+    if (it) setIncidentType(it);
+    const pt = matchOption(data.productType, PRODUCT_TYPES);
+    if (pt) setProductType(pt);
+    const inj = matchOption(data.injuryType, INJURY_TYPES);
+    if (inj) setInjuryType(inj);
+    if (typeof data.casualties === "number") setCasualties(data.casualties);
+    if (typeof data.fatalities === "number") setFatalities(data.fatalities);
+    if (data.description) setDescription(data.description);
+    const s = matchOption(data.source, REPORT_SOURCES);
+    if (s) setSource(s);
+  };
 
   const formRef = useRef<HTMLFormElement>(null);
 
