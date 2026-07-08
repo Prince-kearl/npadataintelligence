@@ -19,7 +19,7 @@ import {
   
 } from "lucide-react";
 import { KPICard } from "@/components/KPICard";
-import { incidentsByProduct, incidentsByRegion, monthlyTrend } from "@/lib/analytics";
+import { incidentsByProduct, incidentsByRegion } from "@/lib/analytics";
 import { createIncidentResponseAction, STATUS_LABELS, type ResponseActionType } from "@/lib/incidents";
 import {
   BarChart,
