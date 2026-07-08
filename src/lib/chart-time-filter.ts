@@ -123,3 +123,105 @@ export function trendSeries<T extends { incident_date: string }>(
   }
   return buckets.map(({ label, incidents }) => ({ label, incidents }));
 }
+
+/**
+ * Consumer-reported incident sources. Distinguishes public/consumer channels
+ * from internal (Field Inspection, NPA Patrol, Regulatory Audit, etc.).
+ */
+export const CONSUMER_REPORT_SOURCES: readonly string[] = [
+  "Public Complaint",
+  "Anonymous Tip",
+  "Media / News Report",
+];
+
+export function isConsumerReport<T extends { source: string | null }>(row: T): boolean {
+  return !!row.source && CONSUMER_REPORT_SOURCES.includes(row.source);
+}
+
+export function filterConsumerReports<T extends { source: string | null }>(rows: T[]): T[] {
+  return rows.filter(isConsumerReport);
+}
+
+export interface EnhancedTrendPoint {
+  label: string;
+  incidents: number;
+  pctChange: number | null; // vs previous bucket; null for first bucket or when prev = 0
+  topCategory: string | null;
+  topCategoryCount: number;
+}
+
+/**
+ * Same time bucketing as trendSeries but also returns:
+ *  - % change vs previous bucket
+ *  - top incident category for the bucket
+ */
+export function enhancedTrendSeries<T extends { incident_date: string; category: string | null }>(
+  rows: T[],
+  state: ChartTimeFilterState,
+): EnhancedTrendPoint[] {
+  const base = trendSeries(rows, state);
+  // Map each base bucket back to its date-key predicate to pick matching rows.
+  const bucketRows: T[][] = base.map(() => []);
+  const now = new Date();
+
+  if (state.month && state.year && state.quarter) {
+    const daysInMonth = new Date(state.year, state.month, 0).getDate();
+    for (const r of rows) {
+      const y = Number(r.incident_date.slice(0, 4));
+      const m = Number(r.incident_date.slice(5, 7));
+      const d = Number(r.incident_date.slice(8, 10));
+      if (y === state.year && m === state.month && d >= 1 && d <= daysInMonth) {
+        bucketRows[d - 1].push(r);
+      }
+    }
+  } else if (state.quarter && state.year) {
+    const months = QUARTER_MONTHS[state.quarter];
+    for (const r of rows) {
+      const y = Number(r.incident_date.slice(0, 4));
+      const m = Number(r.incident_date.slice(5, 7));
+      if (y !== state.year) continue;
+      const idx = months.indexOf(m);
+      if (idx >= 0) bucketRows[idx].push(r);
+    }
+  } else if (state.year) {
+    for (const r of rows) {
+      const y = Number(r.incident_date.slice(0, 4));
+      const m = Number(r.incident_date.slice(5, 7));
+      if (y === state.year && m >= 1 && m <= 12) bucketRows[m - 1].push(r);
+    }
+  } else {
+    const keys = Array.from({ length: 6 }, (_, offset) => {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - offset), 1));
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    });
+    const idxByKey = new Map(keys.map((k, i) => [k, i]));
+    for (const r of rows) {
+      const idx = idxByKey.get(r.incident_date.slice(0, 7));
+      if (idx !== undefined) bucketRows[idx].push(r);
+    }
+  }
+
+  return base.map((b, i) => {
+    const counts = new Map<string, number>();
+    for (const r of bucketRows[i]) {
+      const c = r.category?.trim();
+      if (!c) continue;
+      counts.set(c, (counts.get(c) ?? 0) + 1);
+    }
+    let topCategory: string | null = null;
+    let topCategoryCount = 0;
+    for (const [c, n] of counts) {
+      if (n > topCategoryCount) { topCategory = c; topCategoryCount = n; }
+    }
+    const prev = i > 0 ? base[i - 1].incidents : null;
+    const pctChange =
+      prev === null || prev === 0 ? null : ((b.incidents - prev) / prev) * 100;
+    return {
+      label: b.label,
+      incidents: b.incidents,
+      pctChange,
+      topCategory,
+      topCategoryCount,
+    };
+  });
+}
