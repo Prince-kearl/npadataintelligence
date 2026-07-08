@@ -472,14 +472,21 @@ export default function IncidentCase() {
               <span className="inline-flex items-center gap-1.5"><Fingerprint className="h-4 w-4" />{incident.id.slice(0, 8)}</span>
             </div>
           </div>
-          {transitions.length > 0 && (
+          {(transitions.length > 0 || role === "admin") && (
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={openEdit}>Edit details</Button>
+              {transitions.length > 0 && (
+                <Button size="sm" variant="outline" onClick={openEdit}>Edit details</Button>
+              )}
               {transitions.map((status) => (
                 <Button key={status} size="sm" onClick={() => setTargetStatus(status)}>
                   Move to {STATUS_LABELS[status] || status}<ChevronRight className="ml-1 h-4 w-4" />
                 </Button>
               ))}
+              {role === "admin" && (
+                <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => setEscalateOpen(true)}>
+                  <ShieldAlert className="mr-1 h-4 w-4" /> Open as New Case & Escalate
+                </Button>
+              )}
               {role === "admin" && (
                 <Button size="sm" variant="destructive" onClick={() => setDeleteOpen(true)}>Delete incident</Button>
               )}
