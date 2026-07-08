@@ -198,8 +198,10 @@ export default function NotificationsPage() {
           {notifications.map((item) => {
             const meta = (item.metadata ?? {}) as Record<string, unknown>;
             const hasIncident = typeof meta.incident_id === "string";
+            const previouslyReported = meta.previously_reported === true;
+            const previousChannel = typeof meta.previous_channel === "string" ? meta.previous_channel : null;
             return (
-              <div key={item.id} className={`rounded-xl border p-3 transition-colors ${item.is_read ? "border-border" : "border-primary/40 bg-primary/5"} ${hasIncident ? "cursor-pointer hover:border-primary/60 hover:bg-primary/10" : ""}`}
+              <div key={item.id} className={`rounded-xl border p-3 transition-colors ${item.is_read ? "border-border" : "border-primary/40 bg-primary/5"} ${previouslyReported ? "border-warning/50 bg-warning/5" : ""} ${hasIncident ? "cursor-pointer hover:border-primary/60 hover:bg-primary/10" : ""}`}
                 onClick={() => hasIncident && openNotification(item)}
                 role={hasIncident ? "button" : undefined}
                 tabIndex={hasIncident ? 0 : undefined}
@@ -216,8 +218,14 @@ export default function NotificationsPage() {
                       {item.title}
                       {hasIncident && <ExternalLink className="h-3 w-3 text-primary/70" />}
                     </p>
+                    {previouslyReported && (
+                      <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-warning/15 text-warning border border-warning/30">
+                        ⚠ Previously reported{previousChannel ? ` · ${previousChannel}` : ""}
+                      </span>
+                    )}
                     <p className="text-[11px] text-muted-foreground tabular-nums mt-0.5">{new Date(item.created_at).toLocaleString()}</p>
                   </div>
+
                   <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                     <Button
                       size="sm"
