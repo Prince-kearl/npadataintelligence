@@ -112,7 +112,7 @@
   }
 
   .dash-card-header {
-    @apply flex items-center justify-between mb-4;
+    @apply flex items-center justify-between gap-3 mb-4 flex-wrap sm:flex-nowrap;
   }
   .dash-card-title {
     @apply text-sm font-medium text-muted-foreground;
